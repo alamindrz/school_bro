@@ -1,0 +1,67 @@
+{% extends "parents/portal/base_portal.html" %}
+{% load static %}
+
+{% block title %}Parent Portal Login - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="max-w-md w-full">
+        <!-- Logo and Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex h-20 w-20 rounded-full bg-primary-100 dark:bg-primary-900 items-center justify-center mb-4">
+                <i class="fas fa-hands text-3xl text-primary-600 dark:text-primary-400"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Parent Portal</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Access your child's academic information</p>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email Address
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" 
+                               name="email" 
+                               id="email" 
+                               required
+                               placeholder="Enter your email address"
+                               class="block w-full pl-10 pr-3 py-3 border border-light-border dark:border-dark-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    </div>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    Send Login Link
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    We'll send a secure login link to your email. No password needed.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Help Text -->
+        <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>Not registered? Contact the school administration to set up your parent account.</p>
+        </div>
+        
+        <!-- Back to Main Site -->
+        <div class="mt-8 text-center">
+            <a href="{% url 'corecode:dashboard' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Main Site
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

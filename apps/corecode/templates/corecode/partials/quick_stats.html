@@ -1,0 +1,97 @@
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <!-- Total Students -->
+    <div class="bg-light-card dark:bg-dark-card overflow-hidden rounded-lg shadow-sm border border-light-border dark:border-dark-border">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-primary-100 dark:bg-primary-900 p-3">
+                        <span class="h-6 w-6 text-primary-600 dark:text-primary-400">👥</span>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Students</dt>
+                        <dd class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ total_students }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 px-5 py-3">
+            <div class="text-sm">
+                <span class="text-green-600 dark:text-green-400 font-medium">{{ active_students }} active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Staff -->
+    <div class="bg-light-card dark:bg-dark-card overflow-hidden rounded-lg shadow-sm border border-light-border dark:border-dark-border">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-primary-100 dark:bg-primary-900 p-3">
+                        <span class="h-6 w-6 text-primary-600 dark:text-primary-400">👨‍🏫</span>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Staff</dt>
+                        <dd class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ total_staff }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 px-5 py-3">
+            <div class="text-sm">
+                <span class="text-primary-600 dark:text-primary-400 font-medium">{{ total_staff }} active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Term -->
+    <div class="bg-light-card dark:bg-dark-card overflow-hidden rounded-lg shadow-sm border border-light-border dark:border-dark-border">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-primary-100 dark:bg-primary-900 p-3">
+                        <span class="h-6 w-6 text-primary-600 dark:text-primary-400">📅</span>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Current Term</dt>
+                        <dd class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ current_term }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 px-5 py-3">
+            <div class="text-sm">
+                <span class="text-primary-600 dark:text-primary-400 font-medium">{{ completion_percentage }}% complete</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes -->
+    <div class="bg-light-card dark:bg-dark-card overflow-hidden rounded-lg shadow-sm border border-light-border dark:border-dark-border">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="rounded-md bg-primary-100 dark:bg-primary-900 p-3">
+                        <span class="h-6 w-6 text-primary-600 dark:text-primary-400">📚</span>
+                    </div>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Classes</dt>
+                        <dd class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ total_classes|default:"15" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 px-5 py-3">
+            <div class="text-sm">
+                <span class="text-primary-600 dark:text-primary-400 font-medium">Nigerian 6-3-3-4 system</span>
+            </div>
+        </div>
+    </div>
+</div>

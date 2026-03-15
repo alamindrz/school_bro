@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Result Sheet - {{ sheet.student_class.display_name }} - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header with breadcrumb -->
+    <div class="mb-6">
+        <nav class="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <a href="{% url 'corecode:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Dashboard</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'results:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Results</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'results:sheet_list' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Sheets</a>
+            <span class="mx-2">/</span>
+            <span class="text-gray-700 dark:text-gray-300">{{ sheet.student_class.display_name }} - {{ sheet.academic_term.name }}</span>
+        </nav>
+        
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Result Sheet: {{ sheet.student_class.display_name }}
+            </h1>
+            <div class="flex space-x-3">
+                {% if sheet.can_edit %}
+                <a href="{% url 'results:bulk_upload' sheet.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    <i class="fas fa-upload mr-2"></i> Bulk Upload
+                </a>
+                {% endif %}
+                
+                {% if sheet.can_edit and sheet_data.students_without_results %}
+                <a href="{% url 'results:result_entry' sheet.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    <i class="fas fa-edit mr-2"></i> Enter Results
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="mb-6 rounded-lg p-4 
+        {% if sheet.status == 'published' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800
+        {% elif sheet.status == 'approved' %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800
+        {% elif sheet.status == 'pending_approval' %}bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800
+        {% else %}bg-gray-50 dark:bg-gray-800 border border-light-border dark:border-dark-border
+        {% endif %}">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">
+                    {% if sheet.status == 'published' %}✅
+                    {% elif sheet.status == 'approved' %}👍
+                    {% elif sheet.status == 'pending_approval' %}⏳
+                    {% else %}📝
+                    {% endif %}
+                </span>
+                <div>
+                    <h3 class="text-lg font-semibold 
+                        {% if sheet.status == 'published' %}text-green-800 dark:text-green-200
+                        {% elif sheet.status == 'approved' %}text-blue-800 dark:text-blue-200
+                        {% elif sheet.status == 'pending_approval' %}text-yellow-800 dark:text-yellow-200
+                        {% else %}text-gray-800 dark:text-gray-200
+                        {% endif %}">
+                        Status: {{ sheet.get_status_display }}
+                    </h3>
+                    {% if sheet.submitted_at %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Submitted by {{ sheet.submitted_by }} on {{ sheet.submitted_at|date:"M d, Y H:i" }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                {% if sheet.can_approve and perms.results.approve_resultsheet %}
+                <form method="post" action="{% url 'results:approve_sheet' sheet.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
+                        <i class="fas fa-check mr-2"></i> Approve
+                    </button>
+                </form>
+                {% endif %}
+                
+                {% if sheet.can_publish and perms.results.publish_resultsheet %}
+                <form method="post" action="{% url 'results:publish_sheet' sheet.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                            onclick="return confirm('Publish results? This will notify parents.')">
+                        <i class="fas fa-globe mr-2"></i> Publish
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sheet Info -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Academic Session</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ sheet.academic_session.name }}</p>
+        </div>
+        <div class="bg-light-card dark:bg-dark-card rounded-lg p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Term</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ sheet.academic_term.get_term_display }}</p>
+        </div>
+        <div class="bg-light-card dark:bg-dark-card rounded-lg p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Subjects</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ sheet_data.subjects|length }}</p>
+        </div>
+        <div class="bg-light-card dark:bg-dark-card rounded-lg p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Students with Results</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ sheet_data.students|length }}</p>
+        </div>
+    </div>
+
+    <!-- Subjects List -->
+    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Subjects</h2>
+        </div>
+        <div class="p-4">
+            <div class="flex flex-wrap gap-2">
+                {% for subject in sheet_data.subjects %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                    {{ subject.name }}
+                    {% if subject.teacher_name %}
+                    <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">({{ subject.teacher_name }})</span>
+                    {% endif %}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Without Results Alert -->
+    {% if students_without_results %}
+    <div class="mb-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mt-1 mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    {{ students_without_results|length }} students missing results
+                </h3>
+                <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                    <ul class="list-disc list-inside">
+                        {% for student in students_without_results|slice:":5" %}
+                        <li>{{ student.name }} ({{ student.admission_number }})</li>
+                        {% endfor %}
+                        {% if students_without_results|length > 5 %}
+                        <li>...and {{ students_without_results|length|add:"-5" }} more</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'results:result_entry' sheet.id %}" 
+                       class="inline-flex items-center px-3 py-1 text-xs font-medium text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-900 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-800">
+                        <i class="fas fa-edit mr-1"></i> Enter Missing Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Results Table -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Student Results</h2>
+        </div>
+        
+        {% if sheet_data.students %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Student</th>
+                        {% for subject in sheet_data.subjects %}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {{ subject.code }}
+                        </th>
+                        {% endfor %}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Total</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Average</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Position</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                    {% for student in sheet_data.students %}
+                    <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ student.name }}
+                        </td>
+                        {% for subject in sheet_data.subjects %}
+                            {% with result=student.results|dictsort:"subject_id" %}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                {% for r in student.results %}
+                                    {% if r.subject_id == subject.id %}
+                                        <span class="font-medium 
+                                            {% if r.grade == 'F9' %}text-red-600 dark:text-red-400
+                                            {% elif r.grade in 'A1,B2,B3' %}text-green-600 dark:text-green-400
+                                            {% else %}text-yellow-600 dark:text-yellow-400
+                                            {% endif %}">
+                                            {{ r.grade }}
+                                        </span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                            ({{ r.total }})
+                                        </span>
+                                    {% endif %}
+                                {% empty %}
+                                    <span class="text-gray-400 dark:text-gray-600">-</span>
+                                {% endfor %}
+                            </td>
+                            {% endwith %}
+                        {% endfor %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {{ student.results|sum(attribute='total') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {{ (student.results|sum(attribute='total') / sheet_data.subjects|length)|floatformat:1 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400">
+                            {{ student.results.0.position }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-gray-500 dark:text-gray-400">
+            <i class="fas fa-file-excel text-4xl mb-3"></i>
+            <p class="text-lg font-medium">No results entered yet</p>
+            <p class="text-sm mt-1">Use the bulk upload or enter results manually</p>
+            <div class="mt-4 space-x-3">
+                <a href="{% url 'results:bulk_upload' sheet.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                    <i class="fas fa-upload mr-2"></i> Bulk Upload
+                </a>
+                <a href="{% url 'results:result_entry' sheet.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                    <i class="fas fa-edit mr-2"></i> Manual Entry
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-6 flex justify-end space-x-3">
+        {% if sheet.can_edit and perms.results.submit_resultsheet and sheet_data.students %}
+        <form method="post" action="{% url 'results:submit_sheet' sheet.id %}">
+            {% csrf_token %}
+            <button type="submit" 
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                <i class="fas fa-paper-plane mr-2"></i> Submit for Approval
+            </button>
+        </form>
+        {% endif %}
+        
+        {% if sheet.status == 'published' %}
+        <a href="{% url 'results:class_performance' sheet.id %}" 
+           class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+            <i class="fas fa-chart-bar mr-2"></i> View Performance Report
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

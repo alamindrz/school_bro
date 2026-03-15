@@ -1,0 +1,15 @@
+{% if classes %}
+    {% for class in classes %}
+        <div class="px-4 py-2 hover:bg-light-hover dark:hover:bg-dark-hover cursor-pointer"
+             hx-get="{% url 'corecode:ajax_class_capacity' %}?class_id={{ class.id }}"
+             hx-target="#class-capacity-display"
+             hx-trigger="click">
+            <div class="font-medium">{{ class.display_name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ class.education_level|title }}</div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+        No classes found matching "{{ request.GET.q }}"
+    </div>
+{% endif %}

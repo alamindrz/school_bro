@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Invoice Creation - Finance - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Bulk Invoice Creation</h1>
+            <a href="{% url 'finance:invoice_list' %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back to Invoices
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Create invoices for multiple students at once. You can also generate from fee structure.
+        </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-light-border dark:border-dark-border">
+        <nav class="-mb-px flex space-x-8">
+            <button onclick="showTab('manual')" 
+                    class="tab-button active border-primary-500 text-primary-600 dark:text-primary-400 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-manual-btn">
+                Manual Entry
+            </button>
+            <button onclick="showTab('structure')" 
+                    class="tab-button border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-structure-btn">
+                Generate from Fee Structure
+            </button>
+        </nav>
+    </div>
+
+    <!-- Manual Entry Tab -->
+    <div id="tab-manual" class="tab-panel">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Manual Bulk Invoice</h2>
+            </div>
+            
+            <form method="post" action="{% url 'finance:bulk_invoice' %}" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Class Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Select Class *
+                    </label>
+                    <select name="class_id" required
+                            class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <option value="">Choose a class...</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Invoices will be created for all active students in this class</p>
+                </div>
+                
+                <!-- Fee Details -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Fee Type *
+                        </label>
+                        <select name="fee_type" required
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">Select fee type...</option>
+                            {% for value, label in fee_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Amount (₦) *
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 dark:text-gray-400 sm:text-sm">₦</span>
+                            </div>
+                            <input type="number" 
+                                   name="amount" 
+                                   step="0.01" 
+                                   min="0"
+                                   required
+                                   class="block w-full pl-7 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Academic Context -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session *
+                        </label>
+                        <select name="session_id" required
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">Select session...</option>
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Term
+                        </label>
+                        <select name="term_id" id="term-select-manual"
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">N/A (One-time/Session)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Due Date
+                        </label>
+                        <input type="date" 
+                               name="due_date"
+                               value="{{ now|date:'Y-m-d' }}"
+                               class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    </div>
+                </div>
+                
+                <!-- Student Preview -->
+                <div class="pt-4">
+                    <button type="button" onclick="previewStudents()" 
+                            class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        👁️ Preview Students
+                    </button>
+                    
+                    <div id="student-preview" class="mt-4 hidden">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Students in this class:</h3>
+                        <div class="max-h-60 overflow-y-auto border border-light-border dark:border-dark-border rounded-md p-2">
+                            <!-- Preview will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-light-border dark:border-dark-border">
+                    <a href="{% url 'finance:invoice_list' %}" 
+                       class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                            onclick="return confirm('Create invoices for all students in this class?')">
+                        Create Bulk Invoices
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generate from Structure Tab -->
+    <div id="tab-structure" class="tab-panel hidden">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Generate from Fee Structure</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Automatically create invoices based on predefined fee structures
+                </p>
+            </div>
+            
+            <form method="post" action="{% url 'finance:generate_invoices' %}" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Class Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Select Class *
+                    </label>
+                    <select name="class_id" required
+                            class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <option value="">Choose a class...</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Academic Context -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session *
+                        </label>
+                        <select name="session_id" required
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">Select session...</option>
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Term
+                        </label>
+                        <select name="term_id" id="term-select-structure"
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">Select term (for per-term fees)...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Fee Structure Preview -->
+                <div id="fee-structure-preview" class="hidden">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Fee Structure for this class:</h3>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <!-- Will be loaded via AJAX -->
+                    </div>
+                </div>
+                
+                <!-- Submit -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-light-border dark:border-dark-border">
+                    <a href="{% url 'finance:invoice_list' %}" 
+                       class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                            onclick="return confirm('Generate invoices from fee structure? This may create multiple invoices per student.')">
+                        Generate Invoices
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-panel').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        });
+        
+        // Activate clicked tab
+        document.getElementById(`tab-${tabName}-btn`).classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        document.getElementById(`tab-${tabName}-btn`).classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+    }
+    
+    // Load terms when session is selected (manual tab)
+    document.querySelector('select[name="session_id"]').addEventListener('change', function() {
+        const sessionId = this.value;
+        const termSelect = document.getElementById('term-select-manual');
+        
+        if (sessionId) {
+            fetch(`/corecode/ajax/terms/?session_id=${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    termSelect.innerHTML = '<option value="">N/A (One-time/Session)</option>';
+                    data.terms.forEach(term => {
+                        const option = document.createElement('option');
+                        option.value = term.id;
+                        option.textContent = term.name;
+                        termSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+    
+    // Load terms for structure tab
+    document.querySelector('select[name="session_id"]').addEventListener('change', function() {
+        const sessionId = this.value;
+        const termSelect = document.getElementById('term-select-structure');
+        
+        if (sessionId) {
+            fetch(`/corecode/ajax/terms/?session_id=${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    termSelect.innerHTML = '<option value="">Select term (for per-term fees)...</option>';
+                    data.terms.forEach(term => {
+                        const option = document.createElement('option');
+                        option.value = term.id;
+                        option.textContent = term.name;
+                        termSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+    
+    // Preview students function
+    function previewStudents() {
+        const classId = document.querySelector('select[name="class_id"]').value;
+        if (!classId) {
+            alert('Please select a class first');
+            return;
+        }
+        
+        fetch(`/students/ajax/?action=class_students&class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                const preview = document.getElementById('student-preview');
+                const previewContent = preview.querySelector('.max-h-60');
+                
+                if (data.students && data.students.length > 0) {
+                    let html = '<ul class="divide-y divide-light-border dark:divide-dark-border">';
+                    data.students.forEach(student => {
+                        html += `
+                            <li class="py-2 flex justify-between">
+                                <span class="text-sm text-gray-900 dark:text-gray-100">${student.name}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${student.admission_number}</span>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                    previewContent.innerHTML = html;
+                } else {
+                    previewContent.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">No active students in this class</p>';
+                }
+                
+                preview.classList.remove('hidden');
+            });
+    }
+    
+    // Load fee structure preview
+    document.querySelector('select[name="class_id"]').addEventListener('change', function() {
+        const classId = this.value;
+        const sessionId = document.querySelector('select[name="session_id"]').value;
+        const preview = document.getElementById('fee-structure-preview');
+        
+        if (classId && sessionId) {
+            fetch(`/finance/ajax/fee-structure/?class_id=${classId}&session_id=${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fees && data.fees.length > 0) {
+                        let html = '<table class="min-w-full divide-y divide-light-border dark:divide-dark-border">';
+                        html += '<thead><tr><th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400">Fee Type</th><th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th><th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400">Term</th></tr></thead>';
+                        html += '<tbody class="divide-y divide-light-border dark:divide-dark-border">';
+                        
+                        data.fees.forEach(fee => {
+                            html += `
+                                <tr>
+                                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">${fee.fee_type_display}</td>
+                                    <td class="py-2 text-sm text-gray-900 dark:text-gray-100">₦${fee.amount}</td>
+                                    <td class="py-2 text-sm text-gray-500 dark:text-gray-400">${fee.term_display}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += '</tbody></table>';
+                        preview.querySelector('.bg-gray-50').innerHTML = html;
+                        preview.classList.remove('hidden');
+                    } else {
+                        preview.querySelector('.bg-gray-50').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No fee structure defined for this class</p>';
+                        preview.classList.remove('hidden');
+                    }
+                });
+        }
+    });
+</script>
+{% endblock %}

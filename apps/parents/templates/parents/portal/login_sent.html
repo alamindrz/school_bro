@@ -1,0 +1,79 @@
+{% extends "parents/portal/base_portal.html" %}
+
+{% block title %}Check Your Email - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="max-w-md w-full text-center">
+        <!-- Success Icon -->
+        <div class="inline-flex h-24 w-24 rounded-full bg-green-100 dark:bg-green-900 items-center justify-center mb-6">
+            <i class="fas fa-envelope-open-text text-4xl text-green-600 dark:text-green-400"></i>
+        </div>
+        
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Check Your Email</h1>
+        
+        <p class="text-gray-600 dark:text-gray-400 mb-6">
+            We've sent a secure login link to your email address. Click the link in the email to access your parent portal.
+        </p>
+        
+        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 text-left">
+            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                <i class="fas fa-lightbulb mr-1"></i> What to do next:
+            </h3>
+            <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+                <li>• Check your inbox for an email from <strong>{{ company_name }}</strong></li>
+                <li>• Click the login link in the email (it expires in 24 hours)</li>
+                <li>• If you don't see it, check your spam folder</li>
+                <li>• Still having trouble? Contact the school office</li>
+            </ul>
+        </div>
+        
+        <div class="space-y-3">
+            <button onclick="resendEmail()" 
+                    class="w-full flex justify-center items-center px-4 py-3 border border-primary-600 dark:border-primary-400 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20">
+                <i class="fas fa-redo-alt mr-2"></i>
+                Resend Email
+            </button>
+            
+            <a href="{% url 'parents:login' %}" 
+               class="block w-full px-4 py-3 border border-light-border dark:border-dark-border rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Login
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function resendEmail() {
+        // Get email from localStorage or prompt
+        const email = localStorage.getItem('parent_login_email') || prompt('Please enter your email address:');
+        
+        if (email) {
+            fetch('/parents/api/resend-link/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Login link resent! Please check your email.');
+                } else {
+                    alert('Failed to resend. Please try again.');
+                }
+            });
+        }
+    }
+    
+    // Store email for resend functionality
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    if (email) {
+        localStorage.setItem('parent_login_email', email);
+    }
+</script>
+{% endblock %}

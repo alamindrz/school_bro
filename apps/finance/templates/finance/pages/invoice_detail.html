@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - Finance - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header with breadcrumb -->
+    <div class="mb-6">
+        <nav class="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <a href="{% url 'corecode:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Dashboard</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'finance:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Finance</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'finance:invoice_list' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Invoices</a>
+            <span class="mx-2">/</span>
+            <span class="text-gray-700 dark:text-gray-300">{{ invoice.invoice_number }}</span>
+        </nav>
+        
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Invoice: {{ invoice.invoice_number }}
+            </h1>
+            <div class="flex space-x-3">
+                {% if invoice.balance > 0 and perms.finance.add_payment %}
+                <a href="{% url 'finance:record_payment' %}?invoice_id={{ invoice.id }}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                    💰 Record Payment
+                </a>
+                {% endif %}
+                <button onclick="window.print()" 
+                        class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    🖨️ Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="mb-6 rounded-lg p-4 
+        {% if invoice.status == 'paid' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800
+        {% elif invoice.status == 'overdue' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
+        {% elif invoice.status == 'partial' %}bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800
+        {% else %}bg-gray-50 dark:bg-gray-800 border border-light-border dark:border-dark-border
+        {% endif %}">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">
+                    {% if invoice.status == 'paid' %}✅
+                    {% elif invoice.status == 'overdue' %}⚠️
+                    {% elif invoice.status == 'partial' %}⏳
+                    {% elif invoice.status == 'pending' %}📄
+                    {% else %}📝
+                    {% endif %}
+                </span>
+                <div>
+                    <h3 class="text-lg font-semibold 
+                        {% if invoice.status == 'paid' %}text-green-800 dark:text-green-200
+                        {% elif invoice.status == 'overdue' %}text-red-800 dark:text-red-200
+                        {% elif invoice.status == 'partial' %}text-yellow-800 dark:text-yellow-200
+                        {% else %}text-gray-800 dark:text-gray-200
+                        {% endif %}">
+                        Status: {{ invoice.get_status_display }}
+                    </h3>
+                    {% if invoice.is_overdue %}
+                    <p class="text-sm text-red-600 dark:text-red-400">This invoice is overdue</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="text-right">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Balance Due</p>
+                <p class="text-2xl font-bold {% if invoice.balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                    ₦{{ invoice.balance|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left column - Invoice Details -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Invoice Info Card -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Invoice Details</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Student</dt>
+                            <dd class="mt-1">
+                                <a href="{% url 'students:detail' invoice.student_id %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+                                    {{ invoice.student_name }}
+                                </a>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Class</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.student_class.display_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Fee Type</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.get_fee_type_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Description</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.description }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Academic Session</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.academic_session.name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Term</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">
+                                {{ invoice.academic_term.get_term_display|default:"N/A" }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Issue Date</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.issue_date|date:"F d, Y" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Due Date</dt>
+                            <dd class="mt-1 text-gray-900 dark:text-gray-100">{{ invoice.due_date|date:"F d, Y" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Amount Breakdown Card -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Amount Breakdown</h2>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between py-2">
+                            <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">₦{{ invoice.subtotal|floatformat:2 }}</span>
+                        </div>
+                        
+                        {% if invoice.discount_amount > 0 %}
+                        <div class="flex justify-between py-2">
+                            <span class="text-gray-600 dark:text-gray-400">
+                                Discount ({{ invoice.get_discount_type_display }} {{ invoice.discount_value }}):
+                            </span>
+                            <span class="text-green-600 dark:text-green-400">-₦{{ invoice.discount_amount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if invoice.waiver_amount > 0 %}
+                        <div class="flex justify-between py-2">
+                            <span class="text-gray-600 dark:text-gray-400">Waiver:</span>
+                            <span class="text-green-600 dark:text-green-400">-₦{{ invoice.waiver_amount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex justify-between py-2 border-t border-light-border dark:border-dark-border">
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">Total:</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">₦{{ invoice.total|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between py-2">
+                            <span class="text-gray-600 dark:text-gray-400">Amount Paid:</span>
+                            <span class="text-green-600 dark:text-green-400 font-medium">₦{{ invoice.amount_paid|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between py-2 border-t border-light-border dark:border-dark-border">
+                            <span class="text-gray-900 dark:text-gray-100 font-medium">Balance:</span>
+                            <span class="text-xl font-bold {% if invoice.balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                                ₦{{ invoice.balance|floatformat:2 }}
+                            </span>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600 dark:text-gray-400">Payment Progress</span>
+                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ invoice.payment_progress|floatformat:1 }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-primary-500 h-2.5 rounded-full transition-all duration-500" 
+                                     style="width: {{ invoice.payment_progress }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Payment History</h2>
+                </div>
+                
+                {% if invoice.payments %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Receipt</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Received By</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                            {% for payment in invoice.payments %}
+                            <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ payment.payment_date|date:"M d, Y H:i" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <a href="{% url 'finance:receipt' payment.id %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+                                        {{ payment.receipt_number }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
+                                    ₦{{ payment.amount|floatformat:2 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ payment.method }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ payment.received_by|default:"System" }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <p>No payments recorded yet</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Waiver History -->
+            {% if invoice.waivers %}
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Waiver History</h2>
+                </div>
+                <div class="divide-y divide-light-border dark:divide-dark-border">
+                    {% for waiver in invoice.waivers %}
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Waiver of ₦{{ waiver.amount|floatformat:2 }}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ waiver.reason }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Requested by {{ waiver.requested_by }} on {{ waiver.requested_at|date:"M d, Y" }}
+                                </p>
+                                {% if waiver.approved_at %}
+                                <p class="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    Approved by {{ waiver.approved_by }} on {{ waiver.approved_at|date:"M d, Y" }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if waiver.status == 'approved' %}bg-green-100 text-green-800
+                                {% elif waiver.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ waiver.status|title }}
+                            </span>
+                        </div>
+                        
+                        {% if waiver.status == 'pending' and perms.finance.approve_waiver %}
+                        <div class="mt-3 flex space-x-2">
+                            <form method="post" action="{% url 'finance:waiver_approve' waiver.id %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="notes" value="Approved from invoice detail">
+                                <button type="submit" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">
+                                    Approve
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'finance:waiver_reject' waiver.id %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="reason" value="Rejected from invoice detail">
+                                <button type="submit" class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
+                                    Reject
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right column - Actions & Summary -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Quick Actions</h2>
+                </div>
+                <div class="p-6 space-y-3">
+                    {% if invoice.balance > 0 %}
+                    <a href="{% url 'finance:record_payment' %}?invoice_id={{ invoice.id }}" 
+                       class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        💰 Record Payment
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'finance:student_financial' invoice.student_id %}" 
+                       class="w-full flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        📊 Student Financial Summary
+                    </a>
+                    
+                    {% if invoice.balance > 0 and perms.finance.add_feewaiver %}
+                    <button onclick="showWaiverForm()" 
+                            class="w-full flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        🎯 Request Waiver
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Student Summary -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Student Summary</h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                            <span class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                                {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+                            </span>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.full_name }}</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ student.admission_number }}</p>
+                        </div>
+                    </div>
+                    
+                    <dl class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Class:</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ student.current_class.display_name }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Age:</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ student.age }} years</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Metadata</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Created:</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ invoice.created_at|date:"M d, Y H:i" }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Created by:</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ invoice.created_by|default:"System" }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Last updated:</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ invoice.updated_at|date:"M d, Y H:i" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Waiver Request Modal -->
+<div id="waiver-modal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-xl max-w-md w-full mx-4">
+        <form method="post" action="{% url 'finance:waiver_request' invoice.id %}">
+            {% csrf_token %}
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Request Fee Waiver</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Amount (Max: ₦{{ invoice.balance|floatformat:2 }})
+                    </label>
+                    <input type="number" 
+                           name="amount" 
+                           step="0.01" 
+                           max="{{ invoice.balance }}"
+                           required
+                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Reason
+                    </label>
+                    <textarea name="reason" 
+                              rows="3" 
+                              required
+                              class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                              placeholder="Explain reason for waiver request..."></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-light-border dark:border-dark-border flex justify-end space-x-3">
+                <button type="button" onclick="hideWaiverForm()" 
+                        class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    Submit Request
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showWaiverForm() {
+        document.getElementById('waiver-modal').classList.remove('hidden');
+        document.getElementById('waiver-modal').classList.add('flex');
+    }
+    
+    function hideWaiverForm() {
+        document.getElementById('waiver-modal').classList.add('hidden');
+        document.getElementById('waiver-modal').classList.remove('flex');
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('waiver-modal');
+        if (e.target === modal) {
+            hideWaiverForm();
+        }
+    });
+</script>
+
+<style media="print">
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .invoice-print, .invoice-print * {
+            visibility: visible;
+        }
+        .invoice-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

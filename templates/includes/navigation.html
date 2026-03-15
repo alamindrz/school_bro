@@ -1,0 +1,331 @@
+{% load static %}
+
+<!-- Desktop Sidebar with Dark Mode Support -->
+<nav class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 xl:w-80 lg:flex-col transition-all duration-300">
+    <div class="flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-lg">
+        <!-- Logo Area with Theme Toggle -->
+        <div class="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-gray-200 dark:border-gray-700">
+            <a href="{% url 'corecode:dashboard' %}" class="flex items-center space-x-2 group">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-200">
+                    <span class="text-white font-bold text-xl">S</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-900 dark:text-white font-semibold text-lg leading-tight">SchoolManager</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">v2.0</span>
+                </div>
+            </a>
+            
+            <!-- Theme Toggle (Desktop) -->
+            <button id="theme-toggle" class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200">
+                <svg class="h-5 w-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+                <svg class="h-5 w-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Search Bar (Desktop) -->
+        <div class="px-4 py-3">
+            <div class="relative">
+                <input type="text" 
+                       placeholder="Search..." 
+                       class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                       hx-post="/"
+                       hx-trigger="keyup changed delay:500ms"
+                       hx-target="#desktop-search-results"
+                       hx-indicator="#desktop-search-indicator">
+                <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <div id="desktop-search-indicator" class="absolute right-3 top-2.5 hidden">
+                    <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div id="desktop-search-results" class="absolute left-4 right-4 mt-1 z-50"></div>
+        </div>
+        
+        <!-- Navigation Items with Scrollbar -->
+        <div class="flex-1 flex flex-col overflow-y-auto scrollbar-thin px-3 py-2">
+            <!-- Main Navigation -->
+            <div class="space-y-1">
+                <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">Main</div>
+                {% for item in main_menu %}
+                <div class="relative group" x-data="{ open: false }">
+                    {% if item.children %}
+                    <!-- Parent item with children -->
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
+                        {% if item.active %}bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}">
+                        <div class="flex items-center space-x-3">
+                            <i class="{{ item.icon }} w-5 h-5 {% if item.active %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}"></i>
+                            <span>{{ item.label }}</span>
+                        </div>
+                        <div class="flex items-center">
+                            {% if item.badge %}
+                            <span class="mr-2 px-2 py-0.5 text-xs bg-{{ item.badge_color }}-100 dark:bg-{{ item.badge_color }}-900 text-{{ item.badge_color }}-800 dark:text-{{ item.badge_color }}-300 rounded-full">{{ item.badge }}</span>
+                            {% endif %}
+                            <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </button>
+                    
+                    <!-- Dropdown children -->
+                    <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="pl-11 mt-1 space-y-1">
+                        {% for child in item.children %}
+                        <a href="{{ child.url }}" 
+                           class="flex items-center px-3 py-2 text-sm rounded-lg {% if child.active %}bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white{% endif %} transition-all duration-150"
+                           {% if child.active %}data-active="true"{% endif %}
+                           hx-boost="true"
+                           hx-target="#main-content"
+                           hx-indicator="#global-loading"
+                           hx-push-url="true">
+                            <i class="{{ child.icon }} w-4 h-4 mr-3 {% if child.active %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}"></i>
+                            <span class="flex-1">{{ child.label }}</span>
+                            {% if child.badge %}
+                            <span class="ml-2 px-2 py-0.5 text-xs bg-{{ child.badge_color }}-100 dark:bg-{{ child.badge_color }}-900 text-{{ child.badge_color }}-800 dark:text-{{ child.badge_color }}-300 rounded-full">{{ child.badge }}</span>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <!-- Single menu item -->
+                    <a href="{{ item.url }}" 
+                       class="flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
+                           {% if item.active %}bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
+                       {% if item.active %}data-active="true"{% endif %}
+                       hx-boost="true"
+                       hx-target="#main-content"
+                       hx-indicator="#global-loading"
+                       hx-push-url="true">
+                        <div class="flex items-center space-x-3">
+                            <i class="{{ item.icon }} w-5 h-5 {% if item.active %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}"></i>
+                            <span>{{ item.label }}</span>
+                        </div>
+                        {% if item.badge %}
+                        <span class="px-2 py-0.5 text-xs bg-{{ item.badge_color }}-100 dark:bg-{{ item.badge_color }}-900 text-{{ item.badge_color }}-800 dark:text-{{ item.badge_color }}-300 rounded-full">{{ item.badge }}</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- System Section -->
+            {% if system_menu %}
+            <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">System</div>
+                {% for item in system_menu %}
+                <a href="{{ item.url }}" 
+                   class="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150"
+                   hx-boost="true"
+                   hx-target="#main-content"
+                   hx-indicator="#global-loading"
+                   hx-push-url="true">
+                    <i class="{{ item.icon }} w-5 h-5 mr-3 text-gray-400 dark:text-gray-500"></i>
+                    <span>{{ item.label }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- User Profile Section (Desktop) -->
+        <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="flex items-center space-x-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group">
+                    <div class="relative">
+                        <img class="h-8 w-8 rounded-full ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-blue-500 transition-all duration-200" 
+                             src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=3b82f6&color=fff&bold=true&size=32" 
+                             alt="">
+                        <span class="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-1 ring-white dark:ring-gray-800"></span>
+                    </div>
+                    <div class="flex-1 text-left min-w-0">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ request.user.email|default:'' }}</p>
+                    </div>
+                    <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                
+                <!-- User Dropdown Menu -->
+                <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="absolute bottom-full left-0 mb-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    {% for item in user_menu %}
+                    <a href="{{ item.url }}" 
+                       class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                       hx-boost="true"
+                       hx-target="#main-content"
+                       hx-indicator="#global-loading"
+                       hx-push-url="true">
+                        <i class="{{ item.icon }} w-5 h-5 mr-3 text-gray-400 dark:text-gray-500"></i>
+                        {{ item.label }}
+                    </a>
+                    {% endfor %}
+                    
+                    <!-- Divider -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    
+                    <!-- Logout -->
+                    <form method="post" action="{% url 'logout' %}" class="block">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors duration-150">
+                            <i class="fas fa-sign-out-alt w-5 h-5 mr-3"></i>
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Menu (Sidebar) with Dark Mode -->
+<div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+    <div class="flex flex-col h-full">
+        <!-- Mobile Menu Header -->
+        <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+            <a href="{% url 'corecode:dashboard' %}" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-bold text-xl">S</span>
+                </div>
+                <span class="text-gray-900 dark:text-white font-semibold text-lg">SchoolManager</span>
+            </a>
+            <button id="close-mobile-menu" class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Mobile Search -->
+        <div class="px-4 py-3">
+            <div class="relative">
+                <input type="text" 
+                       placeholder="Search..." 
+                       class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       hx-post=""
+                       hx-trigger="keyup changed delay:500ms"
+                       hx-target="#mobile-search-results"
+                       hx-indicator="#mobile-search-indicator-mobile">
+                <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <div id="mobile-search-results" class="mt-2"></div>
+        </div>
+        
+        <!-- Mobile Navigation Items -->
+        <div class="flex-1 overflow-y-auto scrollbar-thin px-3 py-2">
+            <div class="space-y-1">
+                {% for item in main_menu %}
+                <div x-data="{ open: false }">
+                    {% if item.children %}
+                    <button @click="open = !open" class="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                        <div class="flex items-center space-x-3">
+                            <i class="{{ item.icon }} w-5 h-5 text-gray-400 dark:text-gray-500"></i>
+                            <span>{{ item.label }}</span>
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    
+                    <div x-show="open" x-transition class="pl-11 mt-1 space-y-1">
+                        {% for child in item.children %}
+                        <a href="{{ child.url }}" 
+                           class="flex items-center px-3 py-2 text-sm rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors duration-150"
+                           @click="document.getElementById('mobile-menu').classList.add('-translate-x-full'); document.getElementById('mobile-menu-overlay').classList.add('hidden'); document.body.classList.remove('overflow-hidden')">
+                            <i class="{{ child.icon }} w-4 h-4 mr-3 text-gray-400 dark:text-gray-500"></i>
+                            {{ child.label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <a href="{{ item.url }}" 
+                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                       @click="document.getElementById('mobile-menu').classList.add('-translate-x-full'); document.getElementById('mobile-menu-overlay').classList.add('hidden'); document.body.classList.remove('overflow-hidden')">
+                        <i class="{{ item.icon }} w-5 h-5 mr-3 text-gray-400 dark:text-gray-500"></i>
+                        {{ item.label }}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Mobile User Info -->
+        <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center space-x-3">
+                <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=3b82f6&color=fff&bold=true&size=40" alt="">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ request.user.email|default:'' }}</p>
+                </div>
+            </div>
+            
+            <!-- Mobile Logout -->
+            <form method="post" action="{% url 'logout' %}" class="mt-3">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-150">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Menu Overlay -->
+<div id="mobile-menu-overlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300"></div>
+
+<!-- Alpine.js for interactive components -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- HTMX Preloading -->
+<script>
+    document.addEventListener('alpine:init', () => {
+        // Alpine.js is now loaded
+    });
+
+    // Handle mobile menu close on navigation
+    document.addEventListener('htmx:afterSettle', function() {
+        // Close mobile menu if open
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+        
+        if (mobileMenu && !mobileMenu.classList.contains('-translate-x-full')) {
+            mobileMenu.classList.add('-translate-x-full');
+            mobileMenuOverlay.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    });
+
+    // Add touch swipe to close mobile menu
+    if (window.innerWidth < 1024) {
+        let touchStart = null;
+        
+        document.addEventListener('touchstart', function(e) {
+            touchStart = e.touches[0].clientX;
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            if (!touchStart) return;
+            
+            const mobileMenu = document.getElementById('mobile-menu');
+            const touchEnd = e.changedTouches[0].clientX;
+            const diff = touchEnd - touchStart;
+            
+            if (diff > 50 && touchStart < 50 && !mobileMenu.classList.contains('-translate-x-full')) {
+                // Swipe right to close
+                document.getElementById('close-mobile-menu').click();
+            }
+            
+            touchStart = null;
+        });
+    }
+</script>

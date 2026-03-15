@@ -1,0 +1,128 @@
+{% load static %}
+{% load student_tags %}
+
+<div class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+     x-data="previewResults({{ preview_data|safe }}, {{ stats|safe }})">
+    
+    <!-- Header -->
+    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <i class="fas fa-eye mr-2 text-primary-500"></i> 
+                Import Preview
+            </h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                {{ stats.valid }} valid · {{ stats.invalid }} invalid · {{ stats.total }} total
+            </span>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    {% include "students/partials/preview_stats.html" %}
+    
+    <!-- Preview Table -->
+    {% include "students/partials/preview_table.html" %}
+    
+    <!-- Error Summary -->
+    {% include "students/partials/preview_errors.html" %}
+    
+    <!-- Footer Actions -->
+    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+        <button type="button" 
+                @click="cancelPreview()"
+                class="mr-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <i class="fas fa-times mr-2"></i> Cancel
+        </button>
+        <button type="button" 
+                @click="confirmImport()"
+                :disabled="stats.valid === 0"
+                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-check mr-2"></i>
+            Import {{ stats.valid }} Record{{ stats.valid|pluralize }}
+        </button>
+    </div>
+</div>
+
+<script>
+    function previewResults(previewData, stats) {
+        return {
+            previewData: previewData,
+            stats: stats,
+            currentPage: 1,
+            pageSize: 10,
+            showErrorModal: false,
+            selectedError: null,
+            
+            get paginatedData() {
+                const start = (this.currentPage - 1) * this.pageSize;
+                const end = start + this.pageSize;
+                return this.previewData.slice(start, end);
+            },
+            
+            get totalPages() {
+                return Math.ceil(this.previewData.length / this.pageSize);
+            },
+            
+            get startIndex() {
+                return (this.currentPage - 1) * this.pageSize;
+            },
+            
+            get endIndex() {
+                return Math.min(this.startIndex + this.pageSize, this.previewData.length);
+            },
+            
+            get displayedPages() {
+                const pages = [];
+                const total = this.totalPages;
+                let start = Math.max(1, this.currentPage - 2);
+                let end = Math.min(total, this.currentPage + 2);
+                
+                if (end - start < 4) {
+                    if (start === 1) {
+                        end = Math.min(5, total);
+                    } else {
+                        start = Math.max(1, total - 4);
+                    }
+                }
+                
+                for (let i = start; i <= end; i++) {
+                    pages.push(i);
+                }
+                return pages;
+            },
+            
+            showErrorDetails(row) {
+                this.selectedError = row;
+                this.showErrorModal = true;
+            },
+            
+            cancelPreview() {
+                this.$dispatch('preview-cancelled');
+            },
+            
+            async confirmImport() {
+                try {
+                    const response = await fetch('{% url "students:confirm_import" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            preview_data: this.previewData,
+                            stats: this.stats
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('Import failed');
+                    
+                    const result = await response.json();
+                    window.location.href = result.redirect_url || '{% url "students:list" %}';
+                    
+                } catch (error) {
+                    alert('Import failed: ' + error.message);
+                }
+            }
+        };
+    }
+</script>

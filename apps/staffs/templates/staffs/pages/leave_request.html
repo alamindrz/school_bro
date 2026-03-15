@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Request Leave - {{ staff.full_name }} - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Request Leave</h1>
+            <a href="{% url 'staffs:detail' staff.id %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back to Profile
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Request leave for <span class="font-medium">{{ staff.full_name }}</span>
+        </p>
+    </div>
+
+    <!-- Leave Balances -->
+    <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {% for type, balance in leave_balances.items %}
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4 text-center">
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ type|title }}</p>
+            <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ balance }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">days remaining</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Leave Request Form -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <form method="post" class="space-y-6 p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Leave Type *
+                    </label>
+                    <select name="leave_type" required
+                            class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <option value="">Select type...</option>
+                        {% for value, label in leave_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div></div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Start Date *
+                    </label>
+                    <input type="date" name="start_date" required
+                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        End Date *
+                    </label>
+                    <input type="date" name="end_date" required
+                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Reason for Leave *
+                    </label>
+                    <textarea name="reason" rows="3" required
+                              class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                              placeholder="Please provide reason for leave request..."></textarea>
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Handover Notes
+                    </label>
+                    <textarea name="handover_notes" rows="2"
+                              class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                              placeholder="Who will cover your duties? Any important information?"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Alternative Phone
+                    </label>
+                    <input type="tel" name="alternative_phone"
+                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Alternative Email
+                    </label>
+                    <input type="email" name="alternative_email"
+                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-light-border dark:border-dark-border">
+                <a href="{% url 'staffs:detail' staff.id %}" 
+                   class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    Submit Leave Request
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Auto-calculate days
+    document.querySelector('input[name="end_date"]').addEventListener('change', function() {
+        const start = new Date(document.querySelector('input[name="start_date"]').value);
+        const end = new Date(this.value);
+        
+        if (start && end && end >= start) {
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Show days count
+            const daysDisplay = document.createElement('p');
+            daysDisplay.className = 'mt-1 text-xs text-primary-600 dark:text-primary-400';
+            daysDisplay.textContent = `${diffDays} day(s) requested`;
+            
+            // Remove any existing days display
+            const existing = document.querySelector('.days-display');
+            if (existing) existing.remove();
+            
+            daysDisplay.classList.add('days-display');
+            this.parentNode.appendChild(daysDisplay);
+        }
+    });
+</script>
+{% endblock %}

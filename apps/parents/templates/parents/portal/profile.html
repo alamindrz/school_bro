@@ -1,0 +1,177 @@
+{% extends "parents/portal/base_portal.html" %}
+
+{% block title %}Profile - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Profile Settings</h1>
+
+    <!-- Profile Card -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Personal Information</h2>
+        </div>
+        
+        <div class="p-6">
+            <div class="flex items-center mb-6">
+                <div class="h-16 w-16 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                    <span class="text-2xl font-bold text-primary-700 dark:text-primary-300">
+                        {{ parent.first_name|first|upper }}{{ parent.last_name|first|upper }}
+                    </span>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ parent.full_name }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Parent/Guardian</p>
+                </div>
+            </div>
+            
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm text-gray-500 dark:text-gray-400">Email</dt>
+                    <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ parent.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
+                    <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ parent.phone }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-500 dark:text-gray-400">Alternate Phone</dt>
+                    <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ parent.alternate_phone|default:"Not provided" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-500 dark:text-gray-400">Account Status</dt>
+                    <dd class="text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if parent.access_status == 'active' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                            {% endif %}">
+                            {{ parent.access_status_display }}
+                        </span>
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Notification Preferences -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Notification Preferences</h2>
+        </div>
+        
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Payment Receipts</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Get notified when payments are received</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_email" value="payment_receipt" 
+                                   {% if 'email' in notification_preferences.payment_receipt %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">Email</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_sms" value="payment_receipt"
+                                   {% if 'sms' in notification_preferences.payment_receipt %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">SMS</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Payment Reminders</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Get reminders before fees are due</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_email" value="payment_reminder"
+                                   {% if 'email' in notification_preferences.payment_reminder %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">Email</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_sms" value="payment_reminder"
+                                   {% if 'sms' in notification_preferences.payment_reminder %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">SMS</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Results Published</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Get notified when results are out</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_email" value="result_published"
+                                   {% if 'email' in notification_preferences.result_published %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">Email</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_sms" value="result_published"
+                                   {% if 'sms' in notification_preferences.result_published %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">SMS</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Attendance Alerts</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Get alerted about absences</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_email" value="attendance_alert"
+                                   {% if 'email' in notification_preferences.attendance_alert %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">Email</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="notify_sms" value="attendance_alert"
+                                   {% if 'sms' in notification_preferences.attendance_alert %}checked{% endif %}
+                                   class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500">
+                            <span class="ml-2 text-sm">SMS</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Save Preferences
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Login History -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Login History</h2>
+        </div>
+        
+        <div class="p-6">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-clock mr-2"></i> Last login: {{ parent.last_login|date:"F d, Y H:i"|default:"Never" }}
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                <i class="fas fa-signal mr-2"></i> Total logins: {{ parent.login_count }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

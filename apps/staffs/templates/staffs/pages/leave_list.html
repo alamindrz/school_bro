@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% load static %}
+{% load staff_tags %}
+
+{% block title %}Leave Requests - Staff Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="leaveList()"
+     x-init="init()">
+    
+    <!-- Page Header -->
+    <div class="mb-8 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <i class="fas fa-umbrella-beach text-primary-500 mr-3"></i>
+                Leave Requests
+            </h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Manage and track all staff leave requests
+            </p>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="mt-4 sm:mt-0 flex space-x-3">
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-4 py-2">
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Pending</span>
+                <span class="ml-2 text-lg font-bold text-yellow-600 dark:text-yellow-400">{{ pending_count }}</span>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg px-4 py-2">
+                <span class="text-sm text-green-700 dark:text-green-300">Approved</span>
+                <span class="ml-2 text-lg font-bold text-green-600 dark:text-green-400">{{ approved_count }}</span>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 rounded-lg px-4 py-2">
+                <span class="text-sm text-red-700 dark:text-red-300">Rejected</span>
+                <span class="ml-2 text-lg font-bold text-red-600 dark:text-red-400">{{ rejected_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <i class="fas fa-filter mr-2 text-gray-500"></i> Filter Leave Requests
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Status
+                    </label>
+                    <select name="status" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Leave Type Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Leave Type
+                    </label>
+                    <select name="leave_type" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Types</option>
+                        {% for value, label in leave_type_choices %}
+                        <option value="{{ value }}" {% if request.GET.leave_type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Staff Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Staff Member
+                    </label>
+                    <select name="staff_id" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Staff</option>
+                        {% for staff in staff_list %}
+                        <option value="{{ staff.id }}" {% if request.GET.staff_id == staff.id|stringformat:"i" %}selected{% endif %}>
+                            {{ staff.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Year Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Year
+                    </label>
+                    <select name="year" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Years</option>
+                        {% for year in years %}
+                        <option value="{{ year.year }}" {% if request.GET.year == year.year|stringformat:"i" %}selected{% endif %}>
+                            {{ year.year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Date Range -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        From Date
+                    </label>
+                    <input type="date" 
+                           name="start_date" 
+                           value="{{ request.GET.start_date }}"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        To Date
+                    </label>
+                    <input type="date" 
+                           name="end_date" 
+                           value="{{ request.GET.end_date }}"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                
+                <!-- Search -->
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Search
+                    </label>
+                    <input type="text" 
+                           name="search" 
+                           value="{{ request.GET.search }}"
+                           placeholder="Search by staff name, reason..." 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                
+                <!-- Filter Actions -->
+                <div class="sm:col-span-2 lg:col-span-4 flex justify-end space-x-3 mt-4">
+                    <button type="button" 
+                            onclick="clearFilters()"
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                        <i class="fas fa-times mr-2"></i> Clear Filters
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="fas fa-search mr-2"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leave Requests Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Staff
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Leave Type
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Duration
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Days
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Reason
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Applied
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for leave in leaves %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                                    <span class="text-xs font-medium text-primary-700 dark:text-primary-300">
+                                        {{ leave.staff_name|slice:":2"|upper }}
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ leave.staff_name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ leave.staff_department|default:"No Department" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm text-gray-900 dark:text-white">{{ leave.leave_type_display }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                {{ leave.start_date|date:"M d, Y" }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                to {{ leave.end_date|date:"M d, Y" }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                {{ leave.days }} days
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="text-sm text-gray-900 dark:text-white truncate max-w-xs" 
+                               x-tooltip="{{ leave.reason }}">
+                                {{ leave.reason|truncatechars:50 }}
+                            </p>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if leave.status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                <i class="fas fa-clock mr-1"></i> Pending
+                            </span>
+                            {% elif leave.status == 'approved' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <i class="fas fa-check-circle mr-1"></i> Approved
+                            </span>
+                            {% elif leave.status == 'rejected' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                <i class="fas fa-times-circle mr-1"></i> Rejected
+                            </span>
+                            {% elif leave.status == 'cancelled' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                <i class="fas fa-ban mr-1"></i> Cancelled
+                            </span>
+                            {% elif leave.status == 'completed' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <i class="fas fa-check-double mr-1"></i> Completed
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ leave.created_at|date:"M d, Y" }}
+                            <span class="text-xs block">{{ leave.created_at|timesince }} ago</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{% url 'staffs:leave_detail' leave.id %}" 
+                                   class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                {% if leave.status == 'pending' and perms.staffs.approve_leave %}
+                                <button @click="openApproveModal({{ leave.id }}, '{{ leave.staff_name }}')"
+                                        class="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                                        title="Approve">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button @click="openRejectModal({{ leave.id }}, '{{ leave.staff_name }}')"
+                                        class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                        title="Reject">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if leave.status == 'pending' and request.user.staff_profile.id == leave.staff_id %}
+                                <form method="post" action="{% url 'staffs:cancel_leave' leave.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            onclick="return confirm('Are you sure you want to cancel this leave request?')"
+                                            class="text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                                            title="Cancel">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-umbrella-beach text-4xl mb-3"></i>
+                                <p class="text-lg font-medium">No leave requests found</p>
+                                <p class="text-sm mt-1">Try adjusting your filters or create a new leave request</p>
+                                {% if perms.staffs.add_leaverequest %}
+                                <a href="{% url 'staffs:leave_request' %}" 
+                                   class="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                                    <i class="fas fa-plus mr-2"></i> New Leave Request
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-gray-700 dark:text-gray-300 mb-4 sm:mb-0">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span>
+                    to <span class="font-medium">{{ page_obj.end_index }}</span>
+                    of <span class="font-medium">{{ paginator.count }}</span> results
+                </p>
+                
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700">
+                        <span class="sr-only">First</span>
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700">
+                        <span class="sr-only">Previous</span>
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for i in paginator.page_range %}
+                        {% if page_obj.number == i %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600 dark:bg-primary-900 dark:border-primary-400 dark:text-primary-300">
+                            {{ i }}
+                        </span>
+                        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <a href="?page={{ i }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                            {{ i }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700">
+                        <span class="sr-only">Next</span>
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700">
+                        <span class="sr-only">Last</span>
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Approve Modal -->
+    <div x-show="showApproveModal" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form method="post" :action="`/staffs/leave-requests/${approveId}/approve/`">
+                    {% csrf_token %}
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-check text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                                    Approve Leave Request
+                                </h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Are you sure you want to approve leave request for <span class="font-medium" x-text="approveName"></span>?
+                                    </p>
+                                </div>
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Approval Notes (Optional)
+                                    </label>
+                                    <textarea name="notes" 
+                                              rows="2"
+                                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                              placeholder="Add any notes about this approval..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" 
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Approve
+                        </button>
+                        <button type="button" 
+                                @click="showApproveModal = false"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div x-show="showRejectModal" 
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form method="post" :action="`/staffs/leave-requests/${rejectId}/reject/`">
+                    {% csrf_token %}
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-times text-red-600 dark:text-red-400"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                                    Reject Leave Request
+                                </h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        Are you sure you want to reject leave request for <span class="font-medium" x-text="rejectName"></span>?
+                                    </p>
+                                </div>
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Reason for Rejection <span class="text-red-500">*</span>
+                                    </label>
+                                    <textarea name="reason" 
+                                              rows="3"
+                                              required
+                                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                              placeholder="Please provide a reason for rejection..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" 
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Reject
+                        </button>
+                        <button type="button" 
+                                @click="showRejectModal = false"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function leaveList() {
+        return {
+            showApproveModal: false,
+            showRejectModal: false,
+            approveId: null,
+            approveName: '',
+            rejectId: null,
+            rejectName: '',
+            
+            openApproveModal(id, name) {
+                this.approveId = id;
+                this.approveName = name;
+                this.showApproveModal = true;
+            },
+            
+            openRejectModal(id, name) {
+                this.rejectId = id;
+                this.rejectName = name;
+                this.showRejectModal = true;
+            },
+            
+            init() {
+                // Add tooltips
+                document.querySelectorAll('[x-tooltip]').forEach(el => {
+                    const text = el.getAttribute('x-tooltip');
+                    if (text && text.length > 50) {
+                        // Initialize tooltip library if you have one
+                        // For now, just use title attribute
+                        el.setAttribute('title', text);
+                    }
+                });
+            }
+        };
+    }
+    
+    function clearFilters() {
+        window.location.href = window.location.pathname;
+    }
+</script>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}

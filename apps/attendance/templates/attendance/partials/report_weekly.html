@@ -1,0 +1,114 @@
+{% load static %}
+{% load attendance_tags %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Weekly Attendance Report
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                {{ report.start_date|date:"M d, Y" }} - {{ report.end_date|date:"M d, Y" }}
+            </p>
+        </div>
+        <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg px-4 py-2">
+            <span class="text-sm text-primary-600 dark:text-primary-400">Average Attendance</span>
+            <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">{{ report.average_daily|floatformat:1 }}%</p>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="p-6 grid grid-cols-1 gap-5 sm:grid-cols-4">
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total School Days</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ report.total_days }}</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+            <p class="text-sm text-green-600 dark:text-green-400">Total Present</p>
+            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ report.total_present }}</p>
+        </div>
+        <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+            <p class="text-sm text-red-600 dark:text-red-400">Total Absent</p>
+            <p class="text-2xl font-bold text-red-700 dark:text-red-300">{{ report.total_absent }}</p>
+        </div>
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+            <p class="text-sm text-yellow-600 dark:text-yellow-400">Total Late</p>
+            <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{{ report.total_late }}</p>
+        </div>
+    </div>
+
+    <!-- Daily Breakdown Chart -->
+    <div class="px-6 pb-6">
+        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Daily Attendance Trend</h3>
+        <div class="h-64" id="weeklyChart"></div>
+    </div>
+
+    <!-- Daily Breakdown Table -->
+    <div class="px-6 pb-6">
+        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Daily Breakdown</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Day</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Present</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Absent</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Late</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for day in report.daily %}
+                    <tr>
+                        <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">{{ day.date|date:"M d" }}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">{{ day.day_name }}</td>
+                        <td class="px-4 py-2 text-sm text-green-600 dark:text-green-400">{{ day.present }}</td>
+                        <td class="px-4 py-2 text-sm text-red-600 dark:text-red-400">{{ day.absent }}</td>
+                        <td class="px-4 py-2 text-sm text-yellow-600 dark:text-yellow-400">{{ day.late }}</td>
+                        <td class="px-4 py-2 text-sm font-medium">
+                            <span class="{% if day.percentage >= 90 %}text-green-600{% elif day.percentage >= 75 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                {{ day.percentage|floatformat:1 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('weeklyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for day in report.daily %}'{{ day.date|date:"D" }}',{% endfor %}],
+                datasets: [{
+                    label: 'Attendance Rate',
+                    data: [{% for day in report.daily %}{{ day.percentage }},{% endfor %}],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: { display: true, text: 'Percentage (%)' }
+                    }
+                }
+            }
+        });
+    });
+</script>

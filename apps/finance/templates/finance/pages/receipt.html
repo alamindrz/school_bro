@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt {{ payment.receipt_number }} - Finance - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header with print button -->
+    <div class="mb-6 flex justify-end space-x-3 no-print">
+        <button onclick="window.print()" 
+                class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+            🖨️ Print Receipt
+        </button>
+        <a href="{% url 'finance:invoice_detail' payment.invoice_id %}" 
+           class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+            ← Back to Invoice
+        </a>
+    </div>
+
+    <!-- Receipt Card -->
+    <div class="receipt-print bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <!-- Receipt Header -->
+        <div class="px-8 py-6 border-b border-light-border dark:border-dark-border text-center">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ company_name|default:"DETs Toolkit" }}</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Official Payment Receipt</p>
+        </div>
+        
+        <!-- Receipt Info -->
+        <div class="px-8 py-6 grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Receipt Number</p>
+                <p class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ payment.receipt_number }}</p>
+                
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">Transaction ID</p>
+                <p class="text-sm font-mono text-gray-900 dark:text-gray-100">{{ payment.transaction_id }}</p>
+                
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">Date</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ payment.payment_date|date:"F d, Y H:i" }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                <p class="text-lg font-bold text-green-600 dark:text-green-400">PAID</p>
+                
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">Payment Method</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ payment.method }}</p>
+                
+                {% if payment.gateway_reference %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">Gateway Reference</p>
+                <p class="text-xs font-mono text-gray-900 dark:text-gray-100">{{ payment.gateway_reference }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Student & Invoice Details -->
+        <div class="px-8 py-4 bg-gray-50 dark:bg-gray-800">
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Student</p>
+                    <p class="text-base font-medium text-gray-900 dark:text-gray-100">{{ invoice.student_name }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">ID: {{ invoice.student_id }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Invoice</p>
+                    <p class="text-base font-medium text-gray-900 dark:text-gray-100">{{ invoice.invoice_number }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ invoice.fee_type }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Details Table -->
+        <div class="px-8 py-6">
+            <table class="w-full">
+                <thead class="border-b border-light-border dark:border-dark-border">
+                    <tr>
+                        <th class="text-left py-2 text-sm font-medium text-gray-700 dark:text-gray-300">Description</th>
+                        <th class="text-right py-2 text-sm font-medium text-gray-700 dark:text-gray-300">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-light-border dark:divide-dark-border">
+                    <tr>
+                        <td class="py-3 text-sm text-gray-900 dark:text-gray-100">
+                            {{ invoice.description }}
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.academic_session.name }} {% if invoice.academic_term %}- {{ invoice.academic_term.get_term_display }}{% endif %}</div>
+                        </td>
+                        <td class="py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">₦{{ payment.amount|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="bg-gray-50 dark:bg-gray-800">
+                        <td class="py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Total Paid</td>
+                        <td class="py-3 text-lg text-right font-bold text-green-600 dark:text-green-400">₦{{ payment.amount|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Invoice Summary -->
+        <div class="px-8 py-4 border-t border-light-border dark:border-dark-border">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Invoice Total</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">₦{{ invoice.total|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Amount Paid</p>
+                    <p class="text-sm font-medium text-green-600 dark:text-green-400">₦{{ invoice.amount_paid|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Balance</p>
+                    <p class="text-sm font-medium {% if invoice.balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                        ₦{{ invoice.balance|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-8 py-4 border-t border-light-border dark:border-dark-border text-center text-xs text-gray-500 dark:text-gray-400">
+            <p>This is a computer-generated receipt. No signature required.</p>
+            <p class="mt-1">For any queries, please contact the finance office.</p>
+        </div>
+    </div>
+    
+    <!-- Payment Notes (if any) -->
+    {% if payment.notes %}
+    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg no-print">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Payment Notes</p>
+        <p class="text-sm text-gray-900 dark:text-gray-100 mt-1">{{ payment.notes }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- Received By -->
+    <div class="mt-4 text-right text-sm text-gray-500 dark:text-gray-400 no-print">
+        Received by: {{ payment.received_by|default:"System" }}
+    </div>
+</div>
+
+<style media="print">
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .receipt-print, .receipt-print * {
+            visibility: visible;
+        }
+        .receipt-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            background: white;
+            color: black;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

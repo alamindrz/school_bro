@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Attendance Register{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="registerForm()"
+     x-init="init()">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-clipboard-list text-primary-500 mr-3"></i>
+                    {% if object %}Edit{% else %}Create New{% endif %} Attendance Register
+                </h1>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    {% if object %}
+                        Update attendance register details
+                    {% else %}
+                        Create a new attendance register for a class
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{% url 'attendance:register_list' %}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Registers
+            </a>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <form method="post" id="registerForm">
+            {% csrf_token %}
+            
+            <!-- Form Fields -->
+            <div class="p-6 space-y-6">
+                <!-- Class Selection -->
+                <div>
+                    <label for="{{ form.student_class.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Class <span class="text-red-500">*</span>
+                    </label>
+                    <select name="student_class" 
+                            id="{{ form.student_class.id_for_label }}"
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            :class="{ 'border-red-500': errors.student_class }"
+                            @change="checkExistingRegister()"
+                            required>
+                        <option value="">Select Class</option>
+                        {% for class in form.fields.student_class.queryset %}
+                            <option value="{{ class.id }}" {% if form.student_class.value == class.id %}selected{% endif %}>
+                                {{ class.display_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.student_class.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.student_class.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Date and Session Row -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Date -->
+                    <div>
+                        <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" 
+                               name="date" 
+                               id="{{ form.date.id_for_label }}"
+                               value="{{ form.date.value|date:'Y-m-d'|default:'' }}"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                               :class="{ 'border-red-500': errors.date }"
+                               @change="checkExistingRegister()"
+                               required>
+                        {% if form.date.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Session Type -->
+                    <div>
+                        <label for="{{ form.session_type.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session Type <span class="text-red-500">*</span>
+                        </label>
+                        <select name="session_type" 
+                                id="{{ form.session_type.id_for_label }}"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                :class="{ 'border-red-500': errors.session_type }"
+                                @change="checkExistingRegister()"
+                                required>
+                            <option value="">Select Session</option>
+                            <option value="morning" {% if form.session_type.value == 'morning' %}selected{% endif %}>Morning Session</option>
+                            <option value="afternoon" {% if form.session_type.value == 'afternoon' %}selected{% endif %}>Afternoon Session</option>
+                            <option value="full_day" {% if form.session_type.value == 'full_day' %}selected{% endif %}>Full Day</option>
+                            <option value="evening" {% if form.session_type.value == 'evening' %}selected{% endif %}>Evening Session</option>
+                        </select>
+                        {% if form.session_type.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.session_type.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Academic Context Row -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Academic Session -->
+                    <div>
+                        <label for="{{ form.academic_session.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Academic Session <span class="text-red-500">*</span>
+                        </label>
+                        <select name="academic_session" 
+                                id="{{ form.academic_session.id_for_label }}"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                :class="{ 'border-red-500': errors.academic_session }"
+                                @change="loadTerms()"
+                                required>
+                            <option value="">Select Session</option>
+                            {% for session in form.fields.academic_session.queryset %}
+                                <option value="{{ session.id }}" {% if form.academic_session.value == session.id %}selected{% endif %}>
+                                    {{ session.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.academic_session.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.academic_session.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Academic Term (loaded via AJAX) -->
+                    <div id="term-field-container">
+                        <label for="{{ form.academic_term.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Academic Term
+                        </label>
+                        <select name="academic_term" 
+                                id="{{ form.academic_term.id_for_label }}"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                :disabled="!termsLoaded">
+                            <option value="">Select Term (Optional)</option>
+                            <template x-for="term in terms" :key="term.id">
+                                <option :value="term.id" 
+                                        :selected="term.id == '{{ form.academic_term.value|default:'' }}'"
+                                        x-text="term.name"></option>
+                            </template>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Optional - leave blank for one-time registers
+                        </p>
+                        {% if form.academic_term.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.academic_term.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Existing Register Warning -->
+                <div x-show="existingRegister" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                Register Already Exists
+                            </h3>
+                            <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                                <p x-text="existingRegister.message"></p>
+                            </div>
+                            <div class="mt-4">
+                                <a :href="existingRegister.url" 
+                                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 dark:text-yellow-200 dark:bg-yellow-900 dark:hover:bg-yellow-800">
+                                    <i class="fas fa-eye mr-2"></i> View Existing Register
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Errors -->
+                <div x-show="Object.keys(errors).length > 0" 
+                     x-cloak
+                     class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+                                Please fix the following errors:
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <template x-for="(error, field) in errors" :key="field">
+                                        <li><span x-text="field + ': ' + error"></span></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+                <button type="button" 
+                        onclick="window.location.href='{% url 'attendance:register_list' %}'"
+                        class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        :disabled="existingRegister !== null"
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Update{% else %}Create{% endif %} Register
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Info Card -->
+    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div class="ml-3 flex-1">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">About Attendance Registers</h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Each class can have one register per day per session type</li>
+                        <li>Morning session: 8:00 AM - 2:00 PM</li>
+                        <li>Afternoon session: 2:00 PM - 6:00 PM</li>
+                        <li>Full day: 8:00 AM - 6:00 PM</li>
+                        <li>Evening session: 4:00 PM - 8:00 PM</li>
+                        <li>You can add attendance records after creating the register</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function registerForm() {
+        return {
+            terms: [],
+            termsLoaded: false,
+            existingRegister: null,
+            errors: {},
+            
+            init() {
+                // Load terms if session is pre-selected
+                const sessionSelect = document.getElementById('{{ form.academic_session.id_for_label }}');
+                if (sessionSelect && sessionSelect.value) {
+                    this.loadTerms();
+                }
+                
+                // Check for existing register if class, date, and session are selected
+                this.checkExistingRegister();
+            },
+            
+            async loadTerms() {
+                const sessionId = document.getElementById('{{ form.academic_session.id_for_label }}').value;
+                
+                if (!sessionId) {
+                    this.terms = [];
+                    this.termsLoaded = false;
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/corecode/ajax/terms/?session_id=${sessionId}`);
+                    const data = await response.json();
+                    
+                    if (data.terms) {
+                        this.terms = data.terms;
+                    } else {
+                        this.terms = [];
+                    }
+                    
+                    this.termsLoaded = true;
+                    
+                } catch (error) {
+                    console.error('Failed to load terms:', error);
+                    this.terms = [];
+                    this.termsLoaded = true;
+                }
+            },
+            
+            async checkExistingRegister() {
+                const classId = document.getElementById('{{ form.student_class.id_for_label }}')?.value;
+                const date = document.getElementById('{{ form.date.id_for_label }}')?.value;
+                const sessionType = document.getElementById('{{ form.session_type.id_for_label }}')?.value;
+                
+                if (!classId || !date || !sessionType) {
+                    this.existingRegister = null;
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(
+                        `/attendance/ajax/check-register/?class_id=${classId}&date=${date}&session_type=${sessionType}`
+                    );
+                    const data = await response.json();
+                    
+                    if (data.exists) {
+                        this.existingRegister = {
+                            message: `A register already exists for this class on ${date} (${sessionType} session)`,
+                            url: data.url
+                        };
+                    } else {
+                        this.existingRegister = null;
+                    }
+                    
+                } catch (error) {
+                    console.error('Failed to check existing register:', error);
+                    this.existingRegister = null;
+                }
+            },
+            
+            validateForm() {
+                this.errors = {};
+                
+                const classField = document.getElementById('{{ form.student_class.id_for_label }}');
+                const dateField = document.getElementById('{{ form.date.id_for_label }}');
+                const sessionField = document.getElementById('{{ form.session_type.id_for_label }}');
+                const academicSessionField = document.getElementById('{{ form.academic_session.id_for_label }}');
+                
+                if (!classField?.value) {
+                    this.errors.student_class = 'Class is required';
+                }
+                
+                if (!dateField?.value) {
+                    this.errors.date = 'Date is required';
+                }
+                
+                if (!sessionField?.value) {
+                    this.errors.session_type = 'Session type is required';
+                }
+                
+                if (!academicSessionField?.value) {
+                    this.errors.academic_session = 'Academic session is required';
+                }
+                
+                return Object.keys(this.errors).length === 0;
+            }
+        };
+    }
+</script>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}

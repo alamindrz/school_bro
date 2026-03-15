@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Payment - Finance - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Bulk Payment</h1>
+            <a href="javascript:history.back()" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Make a payment that covers multiple invoices (e.g., paying for multiple terms or multiple children)
+        </p>
+    </div>
+
+    <!-- Student Summary (if student_id provided) -->
+    {% if student %}
+    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+        <div class="flex items-center space-x-4">
+            <div class="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                <span class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                    {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+                </span>
+            </div>
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.full_name }}</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ student.admission_number }} • {{ student.current_class.display_name }}</p>
+            </div>
+            <div class="ml-auto text-right">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Total Outstanding</p>
+                <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400">₦{{ total_due|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left column - Invoice Selection -->
+        <div class="lg:col-span-2">
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Select Invoices</h2>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <!-- Student Search (if no student pre-selected) -->
+                    {% if not student %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Search Student
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="student-search" 
+                                   placeholder="Enter student name or admission number..." 
+                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   hx-get="{% url 'students:ajax_search' %}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#student-results"
+                                   hx-vals='{"action": "search"}'>
+                        </div>
+                        <div id="student-results" class="mt-2 max-h-60 overflow-y-auto border border-light-border dark:border-dark-border rounded-md">
+                            <!-- Student results appear here -->
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Invoice List -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {% if student %}Invoices for {{ student.full_name }}{% else %}Select invoices to pay{% endif %}
+                        </label>
+                        
+                        <div id="invoice-list" class="space-y-2 max-h-96 overflow-y-auto border border-light-border dark:border-dark-border rounded-md p-3">
+                            {% if invoices %}
+                                {% for invoice in invoices %}
+                                <label class="flex items-start p-3 hover:bg-light-hover dark:hover:bg-dark-hover rounded-md cursor-pointer">
+                                    <input type="checkbox" 
+                                           name="invoice_ids" 
+                                           value="{{ invoice.id }}"
+                                           data-balance="{{ invoice.balance }}"
+                                           class="invoice-checkbox mt-1 mr-3 rounded border-light-border dark:border-dark-border text-primary-600 focus:ring-primary-500">
+                                    <div class="flex-1">
+                                        <div class="flex justify-between">
+                                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.invoice_number }}</span>
+                                            <span class="text-sm font-medium {% if invoice.is_overdue %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-gray-100{% endif %}">
+                                                ₦{{ invoice.balance|floatformat:2 }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.fee_type }} • Due {{ invoice.due_date|date:"M d, Y" }}</p>
+                                        {% if invoice.is_overdue %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 mt-1">
+                                            Overdue
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                                    No outstanding invoices found
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column - Payment Details -->
+        <div class="space-y-6">
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Payment Details</h2>
+                </div>
+                
+                <form method="post" action="{% url 'finance:bulk_payment' %}" class="p-6 space-y-4">
+                    {% csrf_token %}
+                    
+                    <!-- Selected Invoices Summary -->
+                    <div id="selected-summary" class="hidden bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Selected Invoices</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100" id="selected-count">0</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Selected: ₦<span id="selected-total">0.00</span></p>
+                    </div>
+                    
+                    <!-- Hidden inputs for selected invoices -->
+                    <div id="selected-inputs"></div>
+                    
+                    <!-- Payment Amount -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Payment Amount (₦) *
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 dark:text-gray-400 sm:text-sm">₦</span>
+                            </div>
+                            <input type="number" 
+                                   name="amount" 
+                                   id="payment-amount"
+                                   step="0.01" 
+                                   min="0.01"
+                                   required
+                                   class="block w-full pl-7 pr-12 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        </div>
+                    </div>
+                    
+                    <!-- Allocation Method -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Allocation Method
+                        </label>
+                        <select name="allocation" id="allocation-method" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="even">Split evenly</option>
+                            <option value="full">Pay oldest first (full until money runs out)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Payment Method -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Payment Method *
+                        </label>
+                        <select name="method" required
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            {% for value, label in payment_methods %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Notes
+                        </label>
+                        <textarea name="notes" 
+                                  rows="2"
+                                  class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                  placeholder="Optional notes about this payment"></textarea>
+                    </div>
+                    
+                    <!-- Allocation Preview -->
+                    <div id="allocation-preview" class="hidden mt-4 pt-4 border-t border-light-border dark:border-dark-border">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Payment Allocation</h3>
+                        <div id="allocation-list" class="space-y-2 text-sm">
+                            <!-- Allocation preview will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <button type="submit" 
+                            class="w-full mt-4 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            id="submit-btn"
+                            disabled>
+                        Process Bulk Payment
+                    </button>
+                </form>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">💡 About Bulk Payments</h3>
+                <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-2">
+                    <li>• Select multiple invoices to pay at once</li>
+                    <li>• Choose how to allocate the payment amount</li>
+                    <li>• "Split evenly" divides payment equally among invoices</li>
+                    <li>• "Pay oldest first" pays invoices in full until money runs out</li>
+                    <li>• Overpayments will be held as credit for future invoices</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const checkboxes = document.querySelectorAll('.invoice-checkbox');
+    const selectedSummary = document.getElementById('selected-summary');
+    const selectedCount = document.getElementById('selected-count');
+    const selectedTotal = document.getElementById('selected-total');
+    const selectedInputs = document.getElementById('selected-inputs');
+    const paymentAmount = document.getElementById('payment-amount');
+    const allocationMethod = document.getElementById('allocation-method');
+    const allocationPreview = document.getElementById('allocation-preview');
+    const allocationList = document.getElementById('allocation-list');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    function updateSelection() {
+        const selected = [];
+        let total = 0;
+        
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                const balance = parseFloat(cb.dataset.balance);
+                selected.push({
+                    id: cb.value,
+                    balance: balance
+                });
+                total += balance;
+            }
+        });
+        
+        if (selected.length > 0) {
+            selectedSummary.classList.remove('hidden');
+            selectedCount.textContent = selected.length;
+            selectedTotal.textContent = total.toFixed(2);
+            
+            // Create hidden inputs
+            selectedInputs.innerHTML = selected.map(s => 
+                `<input type="hidden" name="invoice_ids" value="${s.id}">`
+            ).join('');
+            
+            submitBtn.disabled = false;
+            
+            // Update allocation preview if amount is entered
+            if (paymentAmount.value) {
+                calculateAllocation(selected, parseFloat(paymentAmount.value));
+            }
+        } else {
+            selectedSummary.classList.add('hidden');
+            selectedInputs.innerHTML = '';
+            allocationPreview.classList.add('hidden');
+            submitBtn.disabled = true;
+        }
+    }
+    
+    function calculateAllocation(selected, amount) {
+        const method = allocationMethod.value;
+        let allocations = [];
+        
+        if (method === 'even') {
+            const perInvoice = amount / selected.length;
+            selected.forEach(s => {
+                allocations.push({
+                    id: s.id,
+                    amount: Math.min(perInvoice, s.balance),
+                    balance: s.balance
+                });
+            });
+        } else {
+            let remaining = amount;
+            selected.sort((a, b) => a.balance - b.balance); // Pay smallest first
+            selected.forEach(s => {
+                const payAmount = Math.min(s.balance, remaining);
+                if (payAmount > 0) {
+                    allocations.push({
+                        id: s.id,
+                        amount: payAmount,
+                        balance: s.balance
+                    });
+                    remaining -= payAmount;
+                }
+            });
+        }
+        
+        // Show preview
+        allocationPreview.classList.remove('hidden');
+        let html = '';
+        allocations.forEach(a => {
+            html += `
+                <div class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-400">Invoice ${a.id}:</span>
+                    <span class="font-medium text-gray-900 dark:text-gray-100">₦${a.amount.toFixed(2)}</span>
+                </div>
+            `;
+        });
+        allocationList.innerHTML = html;
+    }
+    
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelection);
+    });
+    
+    paymentAmount.addEventListener('input', function() {
+        const selected = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                selected.push({
+                    id: cb.value,
+                    balance: parseFloat(cb.dataset.balance)
+                });
+            }
+        });
+        
+        if (selected.length > 0 && this.value) {
+            calculateAllocation(selected, parseFloat(this.value));
+        } else {
+            allocationPreview.classList.add('hidden');
+        }
+    });
+    
+    allocationMethod.addEventListener('change', function() {
+        if (paymentAmount.value) {
+            const selected = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selected.push({
+                        id: cb.value,
+                        balance: parseFloat(cb.dataset.balance)
+                    });
+                }
+            });
+            calculateAllocation(selected, parseFloat(paymentAmount.value));
+        }
+    });
+    
+    // Student selection handler
+    window.selectStudent = function(studentId, studentName) {
+        window.location.href = `{% url 'finance:bulk_payment' %}?student_id=${studentId}`;
+    };
+</script>
+{% endblock %}

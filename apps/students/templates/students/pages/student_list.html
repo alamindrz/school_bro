@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Students - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Students</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Total: <span class="font-medium">{{ total_count }}</span> students
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-3">
+            {% if perms.students.add_student %}
+            <a href="{% url 'students:create' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                + Add Student
+            </a>
+            {% endif %}
+            {% if perms.students.bulk_import_students %}
+            <a href="{% url 'students:bulk_import' %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                📥 Bulk Import
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <!-- Search -->
+                <div class="sm:col-span-2">
+                    <label for="{{ search_form.q.id_for_label }}" class="sr-only">Search</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-400 dark:text-gray-500 sm:text-sm">🔍</span>
+                        </div>
+                        {{ search_form.q }}
+                    </div>
+                </div>
+                
+                <!-- Class Filter -->
+                <div>
+                    <label for="{{ search_form.class_id.id_for_label }}" class="sr-only">Class</label>
+                    {{ search_form.class_id }}
+                </div>
+                
+                <!-- Status Filter -->
+                <div>
+                    <label for="{{ search_form.status.id_for_label }}" class="sr-only">Status</label>
+                    {{ search_form.status }}
+                </div>
+                
+                <!-- Gender Filter (hidden on mobile, visible on lg) -->
+                <div class="hidden lg:block">
+                    <label for="{{ search_form.gender.id_for_label }}" class="sr-only">Gender</label>
+                    {{ search_form.gender }}
+                </div>
+                
+                <!-- Session Filter (hidden on mobile, visible on lg) -->
+                <div class="hidden lg:block">
+                    <label for="{{ search_form.session_id.id_for_label }}" class="sr-only">Session</label>
+                    {{ search_form.session_id }}
+                </div>
+            </div>
+            
+            <!-- Advanced Filters Toggle (mobile) -->
+            <div class="lg:hidden">
+                <button type="button" onclick="toggleAdvancedFilters()" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                    + More filters
+                </button>
+            </div>
+            
+            <!-- Advanced Filters (hidden on mobile, shown when toggled) -->
+            <div id="advanced-filters" class="hidden lg:grid lg:grid-cols-2 gap-4 pt-2">
+                <div>
+                    <label for="{{ search_form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
+                    {{ search_form.gender }}
+                </div>
+                <div>
+                    <label for="{{ search_form.session_id.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Enrollment Session</label>
+                    {{ search_form.session_id }}
+                </div>
+            </div>
+            
+            <!-- Filter Actions -->
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="clearFilters()" 
+                        class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Clear
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Students Grid/Table Toggle -->
+    <div class="mb-4 flex justify-end space-x-2">
+        <button onclick="setView('grid')" id="grid-view-btn" 
+                class="p-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400">
+            <span class="block h-5 w-5">📱</span>
+        </button>
+        <button onclick="setView('table')" id="table-view-btn" 
+                class="p-2 rounded-md bg-light-hover dark:bg-dark-hover text-gray-600 dark:text-gray-400">
+            <span class="block h-5 w-5">📋</span>
+        </button>
+    </div>
+
+    <!-- Grid View -->
+    <div id="grid-view" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for student in students %}
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden hover:shadow-md transition-shadow">
+            <div class="p-5">
+                <!-- Student Avatar/Initials -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                        <span class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                            {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+                        </span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        {% if student.status == 'active' %}
+                            bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                        {% elif student.status == 'graduated' %}
+                            bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                        {% elif student.status == 'suspended' %}
+                            bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                        {% else %}
+                            bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                        {% endif %}">
+                        {{ student.get_status_display }}
+                    </span>
+                </div>
+                
+                <!-- Student Info -->
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    <a href="{% url 'students:detail' student.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                        {{ student.get_full_name }}
+                    </a>
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    {{ student.admission_number }}
+                </p>
+                
+                <!-- Class & Other Details -->
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <span class="mr-2">📚</span>
+                        {{ student.current_class.display_name }}
+                    </div>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <span class="mr-2">📅</span>
+                        Enrolled: {{ student.enrollment_date|date:"M Y" }}
+                    </div>
+                    {% if student.email %}
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <span class="mr-2">📧</span>
+                        <span class="truncate">{{ student.email }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Card Footer -->
+            <div class="border-t border-light-border dark:border-dark-border px-5 py-3 bg-gray-50 dark:bg-gray-800 flex justify-between">
+                <a href="{% url 'students:detail' student.id %}" 
+                   class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                    View Profile →
+                </a>
+                {% if perms.students.change_student %}
+                <a href="{% url 'students:edit' student.id %}" 
+                   class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                    Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <div class="text-6xl mb-4">👤</div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No students found</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">
+                {% if request.GET %}
+                    No students match your search criteria. Try clearing filters.
+                {% else %}
+                    Get started by adding your first student.
+                {% endif %}
+            </p>
+            {% if perms.students.add_student %}
+            <a href="{% url 'students:create' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                + Add Your First Student
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Table View (hidden by default) -->
+    <div id="table-view" class="hidden bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admission #</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Class</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gender</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enrollment</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                    {% for student in students %}
+                    <tr class="hover:bg-light-hover dark:hover:bg-dark-hover transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ student.admission_number }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            <a href="{% url 'students:detail' student.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                                {{ student.get_full_name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ student.current_class.display_name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if student.status == 'active' %}
+                                    bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif student.status == 'graduated' %}
+                                    bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% elif student.status == 'suspended' %}
+                                    bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}
+                                    bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                {% endif %}">
+                                {{ student.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ student.get_gender_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ student.enrollment_date|date:"M Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{% url 'students:detail' student.id %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 mr-3">View</a>
+                            {% if perms.students.change_student %}
+                            <a href="{% url 'students:edit' student.id %}" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">Edit</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-8 flex items-center justify-between">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Previous
+                </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Next
+                </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span> to 
+                    <span class="font-medium">{{ page_obj.end_index }}</span> of 
+                    <span class="font-medium">{{ paginator.count }}</span> students
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+                            <span class="sr-only">Previous</span>
+                            <span aria-hidden="true">&larr;</span>
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in paginator.page_range %}
+                        {% if num == page_obj.number %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 dark:bg-primary-900/50 text-sm font-medium text-primary-600 dark:text-primary-400">
+                                {{ num }}
+                            </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                               class="relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+                            <span class="sr-only">Next</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // View toggle functionality
+    function setView(view) {
+        const gridView = document.getElementById('grid-view');
+        const tableView = document.getElementById('table-view');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const tableBtn = document.getElementById('table-view-btn');
+        
+        if (view === 'grid') {
+            gridView.classList.remove('hidden');
+            tableView.classList.add('hidden');
+            gridBtn.classList.add('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
+            gridBtn.classList.remove('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            tableBtn.classList.remove('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
+            tableBtn.classList.add('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            localStorage.setItem('studentView', 'grid');
+        } else {
+            gridView.classList.add('hidden');
+            tableView.classList.remove('hidden');
+            tableBtn.classList.add('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
+            tableBtn.classList.remove('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            gridBtn.classList.remove('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
+            gridBtn.classList.add('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            localStorage.setItem('studentView', 'table');
+        }
+    }
+    
+    // Load saved view preference
+    const savedView = localStorage.getItem('studentView');
+    if (savedView) {
+        setView(savedView);
+    }
+    
+    // Advanced filters toggle for mobile
+    function toggleAdvancedFilters() {
+        const filters = document.getElementById('advanced-filters');
+        filters.classList.toggle('hidden');
+    }
+    
+    // Clear all filters
+    function clearFilters() {
+        document.querySelectorAll('select, input').forEach(field => {
+            if (field.type !== 'button' && field.type !== 'submit') {
+                field.value = '';
+            }
+        });
+        window.location.href = window.location.pathname;
+    }
+    
+    // Auto-submit on filter change (optional)
+    document.querySelectorAll('select').forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+</script>
+{% endblock %}

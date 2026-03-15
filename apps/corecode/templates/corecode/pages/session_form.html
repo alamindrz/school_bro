@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Academic Session - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {% if object %}Edit{% else %}Create New{% endif %} Academic Session
+            </h1>
+            <a href="{% url 'corecode:session_list' %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back to Sessions
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {% if object %}
+                Update the academic session details below.
+            {% else %}
+                Create a new academic session (e.g., 2024/2025). Terms will be automatically created.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form card -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <form method="post" class="space-y-6 p-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 dark:bg-red-900/50 p-4">
+                    <div class="text-sm text-red-800 dark:text-red-200">
+                        {{ form.non_field_errors }}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <!-- Name -->
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.name.label }} *
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.name.help_text %}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.name.help_text }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Code -->
+                <div>
+                    <label for="{{ form.code.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.code.label }} *
+                    </label>
+                    {{ form.code }}
+                    {% if form.code.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.code.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Short code (e.g., 202425)</p>
+                </div>
+                
+                <!-- Start Date -->
+                <div>
+                    <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.start_date.label }} *
+                    </label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.start_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- End Date -->
+                <div>
+                    <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.end_date.label }} *
+                    </label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.end_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Is Current -->
+                <div class="sm:col-span-2">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.is_current }}
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="{{ form.is_current.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                {{ form.is_current.label }}
+                            </label>
+                            <p class="text-gray-500 dark:text-gray-400">Make this the current active session</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-4 border-t border-light-border dark:border-dark-border">
+                <a href="{% url 'corecode:session_list' %}" 
+                   class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    {% if object %}Update{% else %}Create{% endif %} Session
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Info card -->
+    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <span class="text-blue-400">ℹ️</span>
+            </div>
+            <div class="ml-3 flex-1 md:flex md:justify-between">
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> Creating a new academic session will automatically create three terms 
+                    (First, Second, Third Term) with appropriate dates based on the session duration.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-generate code from name if not provided
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        const codeInput = document.getElementById('{{ form.code.id_for_label }}');
+        
+        if (nameInput && codeInput && !codeInput.value) {
+            nameInput.addEventListener('blur', function() {
+                if (!codeInput.value && this.value) {
+                    // Convert "2024/2025" to "202425"
+                    const code = this.value.replace(/\//g, '').replace(/\s/g, '');
+                    codeInput.value = code;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

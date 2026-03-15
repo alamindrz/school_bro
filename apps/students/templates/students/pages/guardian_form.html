@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Guardian - {{ student.get_full_name }} - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {% if object %}Edit{% else %}Add{% endif %} Guardian
+            </h1>
+            <a href="{% url 'students:detail' student.id %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back to Profile
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {% if object %}
+                Update guardian information for <span class="font-medium">{{ student.get_full_name }}</span>
+            {% else %}
+                Add a parent or guardian for <span class="font-medium">{{ student.get_full_name }}</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form card -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <form method="post" class="space-y-6 p-6" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 dark:bg-red-900/50 p-4">
+                    <div class="text-sm text-red-800 dark:text-red-200">
+                        {{ form.non_field_errors }}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Personal Information -->
+            <div>
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Personal Information</h2>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- First Name -->
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.first_name.label }} *
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Last Name -->
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.last_name.label }} *
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Relationship -->
+                    <div>
+                        <label for="{{ form.relationship.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.relationship.label }} *
+                        </label>
+                        {{ form.relationship }}
+                        {% if form.relationship.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.relationship.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="pt-6 border-t border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Contact Information</h2>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Email -->
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Phone -->
+                    <div>
+                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.phone.label }} *
+                        </label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Alternate Phone -->
+                    <div>
+                        <label for="{{ form.alternate_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.alternate_phone.label }}
+                        </label>
+                        {{ form.alternate_phone }}
+                    </div>
+                    
+                    <!-- Address -->
+                    <div class="sm:col-span-2">
+                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.address.label }}
+                        </label>
+                        {{ form.address }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Professional Information -->
+            <div class="pt-6 border-t border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Professional Information</h2>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Occupation -->
+                    <div>
+                        <label for="{{ form.occupation.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.occupation.label }}
+                        </label>
+                        {{ form.occupation }}
+                    </div>
+                    
+                    <!-- Employer -->
+                    <div>
+                        <label for="{{ form.employer.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.employer.label }}
+                        </label>
+                        {{ form.employer }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guardian Preferences -->
+            <div class="pt-6 border-t border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Guardian Preferences</h2>
+                <div class="space-y-4">
+                    <!-- Is Primary -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.is_primary }}
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="{{ form.is_primary.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                {{ form.is_primary.label }}
+                            </label>
+                            <p class="text-gray-500 dark:text-gray-400">Primary guardian receives all communications and has decision-making authority</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Is Emergency Contact -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.is_emergency_contact }}
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="{{ form.is_emergency_contact.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                {{ form.is_emergency_contact.label }}
+                            </label>
+                            <p class="text-gray-500 dark:text-gray-400">Contact in case of emergency</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Create Portal Account (only for new guardians) -->
+                    {% if not object %}
+                    <div class="pt-4">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ form.create_portal_account }}
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="{{ form.create_portal_account.id_for_label }}" class="font-medium text-gray-700 dark:text-gray-300">
+                                    {{ form.create_portal_account.label }}
+                                </label>
+                                <p class="text-gray-500 dark:text-gray-400">{{ form.create_portal_account.help_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-light-border dark:border-dark-border">
+                <a href="{% url 'students:detail' student.id %}" 
+                   class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    {% if object %}Update{% else %}Add{% endif %} Guardian
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

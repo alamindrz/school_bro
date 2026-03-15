@@ -1,0 +1,128 @@
+{% load static %}
+{% load attendance_tags %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Termly Attendance Report
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ report.term }} - {{ report.session }}</p>
+    </div>
+    
+    <!-- Term Overview -->
+    <div class="p-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- Summary Cards -->
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Days</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ report.total_days }}</p>
+                </div>
+                <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4">
+                    <p class="text-sm text-primary-600 dark:text-primary-400">Overall Average</p>
+                    <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">{{ report.average_attendance|floatformat:1 }}%</p>
+                </div>
+            </div>
+            
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                <p class="text-sm text-green-600 dark:text-green-400">Total Present</p>
+                <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ report.total_present }}</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                    <p class="text-sm text-red-600 dark:text-red-400">Total Absent</p>
+                    <p class="text-2xl font-bold text-red-700 dark:text-red-300">{{ report.total_absent }}</p>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+                    <p class="text-sm text-yellow-600 dark:text-yellow-400">Total Late</p>
+                    <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{{ report.total_late }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Term Progress Chart -->
+        <div>
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Attendance Distribution</h3>
+            <div class="h-64" id="termlyChart"></div>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="px-6 pb-6">
+        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Monthly Breakdown</h3>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {% for month in report.monthly %}
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ month.month }}</p>
+                <div class="mt-2 space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-gray-400">Present</span>
+                        <span class="font-medium text-green-600 dark:text-green-400">{{ month.present }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-gray-400">Absent</span>
+                        <span class="font-medium text-red-600 dark:text-red-400">{{ month.absent }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-gray-400">Rate</span>
+                        <span class="font-medium {% if month.percentage >= 90 %}text-green-600{% elif month.percentage >= 75 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {{ month.percentage|floatformat:1 }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Top/Bottom Performers -->
+    <div class="px-6 pb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Top Performing Classes</h3>
+            <div class="space-y-2">
+                {% for class in report.top_classes %}
+                <div class="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ class.name }}</span>
+                    <span class="text-sm font-bold text-green-600 dark:text-green-400">{{ class.percentage|floatformat:1 }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div>
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Classes Needing Attention</h3>
+            <div class="space-y-2">
+                {% for class in report.bottom_classes %}
+                <div class="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ class.name }}</span>
+                    <span class="text-sm font-bold text-red-600 dark:text-red-400">{{ class.percentage|floatformat:1 }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('termlyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent', 'Late'],
+                datasets: [{
+                    data: [{{ report.total_present }}, {{ report.total_absent }}, {{ report.total_late }}],
+                    backgroundColor: ['#22c55e', '#ef4444', '#eab308'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    });
+</script>

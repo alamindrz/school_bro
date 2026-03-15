@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Bulk Import Students{% endblock %}
+
+{% block extra_head %}
+<script>
+    function bulkImportForm() {
+        return {
+            showPreview: false,
+            isUploading: false,
+            previewData: null,
+            
+            async previewImport() {
+                const form = document.getElementById('bulkImportForm');
+                const formData = new FormData(form);
+                formData.append('preview', 'true');
+                
+                this.isUploading = true;
+                
+                try {
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('Preview failed');
+                    
+                    const data = await response.json();
+                    this.previewData = data;
+                    this.showPreview = true;
+                    
+                    // Load preview template
+                    const previewContainer = document.getElementById('preview-container');
+                    const response2 = await fetch('{% url "students:render_preview" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    previewContainer.innerHTML = await response2.text();
+                    
+                } catch (error) {
+                    alert('Preview failed: ' + error.message);
+                } finally {
+                    this.isUploading = false;
+                }
+            },
+            
+            initForm() {
+                // Listen for preview cancelled event
+                document.addEventListener('preview-cancelled', () => {
+                    this.showPreview = false;
+                });
+            }
+        };
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Bulk Import Students</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Upload a CSV file to import multiple students at once. Download the template to get started.
+        </p>
+    </div>
+
+    <!-- Template Info Card -->
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 mt-1 mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">CSV Format Requirements</h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <p><strong>Required columns:</strong> {{ template_context.required_columns|join:", " }}</p>
+                    <p><strong>Optional columns:</strong> {{ template_context.optional_columns|join:", " }}</p>
+                    <p class="mt-1">Maximum rows: {{ template_context.max_rows }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <form method="post" enctype="multipart/form-data" id="bulkImportForm" class="p-6">
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
+
+    <!-- Preview Results -->
+    <div id="preview-container" class="mt-8">
+        <!-- Preview will be loaded here -->
+    </div>
+</div>
+{% endblock %}

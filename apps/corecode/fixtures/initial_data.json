@@ -1,0 +1,57 @@
+[
+    {
+        "model": "corecode.siteconfig",
+        "pk": 1,
+        "fields": {
+            "key": "COMPANY_NAME",
+            "value": "DETs Toolkit School",
+            "description": "School/Organization name",
+            "is_public": true,
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "corecode.siteconfig",
+        "pk": 2,
+        "fields": {
+            "key": "TERMS_PER_SESSION",
+            "value": "3",
+            "description": "Number of terms per academic session",
+            "is_public": false,
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "corecode.siteconfig",
+        "pk": 3,
+        "fields": {
+            "key": "PASS_MARK",
+            "value": "40",
+            "description": "Minimum score to pass",
+            "is_public": false,
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "corecode.siteconfig",
+        "pk": 4,
+        "fields": {
+            "key": "DISTINCTION_MARK",
+            "value": "70",
+            "description": "Minimum score for distinction",
+            "is_public": false,
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "corecode.siteconfig",
+        "pk": 5,
+        "fields": {
+            "key": "ADMISSIONS_OPEN",
+            "value": "False",
+            "description": "Whether admissions are currently open",
+            "is_public": true,
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    }
+]

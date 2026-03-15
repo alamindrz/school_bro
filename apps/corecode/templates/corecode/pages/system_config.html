@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}System Configuration - DETs Toolkit{% endblock %}
+
+{% block extra_head %}
+<style>
+    .config-card {
+        transition: all 0.2s ease;
+    }
+    .config-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">System Configuration</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Configure system-wide settings. Changes take effect immediately.
+        </p>
+    </div>
+
+    <!-- Configuration tabs -->
+    <div class="mb-6 border-b border-light-border dark:border-dark-border">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button onclick="showTab('academic')" 
+                    class="tab-button active border-primary-500 text-primary-600 dark:text-primary-400 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-academic-btn">
+                Academic
+            </button>
+            <button onclick="showTab('admissions')" 
+                    class="tab-button border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-admissions-btn">
+                Admissions
+            </button>
+            <button onclick="showTab('results')" 
+                    class="tab-button border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-results-btn">
+                Results & Grading
+            </button>
+            <button onclick="showTab('system')" 
+                    class="tab-button border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    id="tab-system-btn">
+                System
+            </button>
+        </nav>
+    </div>
+
+    <form method="post" id="config-form">
+        {% csrf_token %}
+        
+        <!-- Academic Tab -->
+        <div id="tab-academic" class="tab-panel">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {% for config in academic_configs %}
+                <div class="config-card bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ config.key|title }}
+                    </label>
+                    
+                    {% if config.key == 'CURRENT_SESSION' %}
+                        <select name="{{ config.key }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-light-border dark:border-dark-border focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">-- Select Current Session --</option>
+                            {% for session in sessions %}
+                                <option value="{{ session.id }}" {% if config.value == session.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ session.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% elif config.key == 'CURRENT_TERM' %}
+                        <select name="{{ config.key }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-light-border dark:border-dark-border focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="">-- Select Current Term --</option>
+                            {% for term in terms %}
+                                <option value="{{ term.id }}" {% if config.value == term.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ term.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% elif config.key == 'TERMS_PER_SESSION' %}
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="number" 
+                                   name="{{ config.key }}" 
+                                   value="{{ config.value|default:'3' }}" 
+                                   min="1" max="4"
+                                   class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-light-border dark:border-dark-border focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Nigerian standard: 3 terms</p>
+                    {% else %}
+                        <input type="text" 
+                               name="{{ config.key }}" 
+                               value="{{ config.value|default:'' }}" 
+                               class="mt-1 block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    {% endif %}
+                    
+                    {% if config.description %}
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ config.description }}</p>
+                    {% endif %}
+                    
+                    <p class="mt-1 text-xs text-gray-400">
+                        Last updated: {{ config.updated_at|timesince }} ago
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Admissions Tab -->
+        <div id="tab-admissions" class="tab-panel hidden">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {% for config in admissions_configs %}
+                <div class="config-card bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ config.key|title}}
+                    </label>
+                    
+                    {% if config.key == 'ADMISSIONS_OPEN' %}
+                        <div class="mt-2">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="{{ config.key }}" 
+                                       value="true"
+                                       {% if config.value == 'True' %}checked{% endif %}
+                                       class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500 bg-light-card dark:bg-dark-card">
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Open for applications</span>
+                            </label>
+                        </div>
+                    {% elif config.key == 'ADMISSION_DEADLINE' %}
+                        <input type="date" 
+                               name="{{ config.key }}" 
+                               value="{{ config.value|default:'' }}" 
+                               class="mt-1 block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    {% elif config.key == 'AUTO_ENROLL_APPROVED' %}
+                        <div class="mt-2">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="{{ config.key }}" 
+                                       value="true"
+                                       {% if config.value == 'True' %}checked{% endif %}
+                                       class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500 bg-light-card dark:bg-dark-card">
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Automatically enroll approved applicants</span>
+                            </label>
+                        </div>
+                    {% else %}
+                        <input type="text" 
+                               name="{{ config.key }}" 
+                               value="{{ config.value|default:'' }}" 
+                               class="mt-1 block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    {% endif %}
+                    
+                    {% if config.description %}
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ config.description }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Results Tab -->
+        <div id="tab-results" class="tab-panel hidden">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {% for config in result_configs %}
+                <div class="config-card bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ config.key|title }}
+                    </label>
+                    
+                    {% if config.key == 'PASS_MARK' or config.key == 'DISTINCTION_MARK' %}
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="number" 
+                                   name="{{ config.key }}" 
+                                   value="{{ config.value|default:'40' }}" 
+                                   min="0" max="100"
+                                   class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-light-border dark:border-dark-border focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-light-border dark:border-dark-border bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 sm:text-sm">%</span>
+                        </div>
+                    {% elif config.key == 'EXAM_CLEARANCE_REQUIRED' %}
+                        <div class="mt-2">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="{{ config.key }}" 
+                                       value="true"
+                                       {% if config.value == 'True' %}checked{% endif %}
+                                       class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500 bg-light-card dark:bg-dark-card">
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Require financial clearance for exams</span>
+                            </label>
+                        </div>
+                    {% elif config.key == 'RESULT_TEMPLATE' %}
+                        <select name="{{ config.key }}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-light-border dark:border-dark-border focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <option value="standard" {% if config.value == 'standard' %}selected{% endif %}>Standard Format</option>
+                            <option value="cambridge" {% if config.value == 'cambridge' %}selected{% endif %}>Cambridge Style</option>
+                            <option value="waec" {% if config.value == 'waec' %}selected{% endif %}>WAEC Style</option>
+                            <option value="nebta" {% if config.value == 'nebta' %}selected{% endif %}>NEBTA Style</option>
+                        </select>
+                    {% else %}
+                        <input type="text" 
+                               name="{{ config.key }}" 
+                               value="{{ config.value|default:'' }}" 
+                               class="mt-1 block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    {% endif %}
+                    
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {% if config.key == 'PASS_MARK' %}Nigerian standard: 40%{% endif %}
+                        {% if config.key == 'DISTINCTION_MARK' %}Nigerian standard: 70%{% endif %}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- System Tab -->
+        <div id="tab-system" class="tab-panel hidden">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {% for config in system_configs %}
+                <div class="config-card bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ config.key|title }}
+                    </label>
+                    
+                    {% if config.key == 'MAINTENANCE_MODE' %}
+                        <div class="mt-2">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       name="{{ config.key }}" 
+                                       value="true"
+                                       {% if config.value == 'True' %}checked{% endif %}
+                                       class="rounded border-light-border dark:border-dark-border text-primary-600 shadow-sm focus:ring-primary-500 bg-light-card dark:bg-dark-card">
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Enable maintenance mode</span>
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-red-600 dark:text-red-400">⚠️ Only superusers can access the system when enabled</p>
+                    {% else %}
+                        <input type="text" 
+                               name="{{ config.key }}" 
+                               value="{{ config.value|default:'' }}" 
+                               class="mt-1 block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="mt-8 flex justify-end space-x-3">
+            <button type="reset" 
+                    class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                Reset
+            </button>
+            <button type="submit" 
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Tab switching
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-panel').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        });
+        
+        // Activate clicked tab
+        document.getElementById(`tab-${tabName}-btn`).classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        document.getElementById(`tab-${tabName}-btn`).classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+    }
+    
+    // Show first tab by default
+    showTab('academic');
+    
+    // HTMX for live updates
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[type="checkbox"]') || e.target.matches('select')) {
+            // Could trigger auto-save here if desired
+        }
+    });
+</script>
+{% endblock %}

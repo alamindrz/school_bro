@@ -1,0 +1,70 @@
+{% load static %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white">Student Information</h3>
+        <a href="{% url 'students:detail' student.id %}" 
+           class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400">
+            View Full Profile <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+    </div>
+    
+    <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+            <span class="text-lg font-medium text-primary-700 dark:text-primary-300">
+                {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+            </span>
+        </div>
+        <div class="flex-1">
+            <p class="text-base font-medium text-gray-900 dark:text-white">{{ student.full_name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ student.admission_number }}</p>
+        </div>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if student.status == 'active' %}bg-green-100 text-green-800
+            {% elif student.status == 'graduated' %}bg-blue-100 text-blue-800
+            {% elif student.status == 'suspended' %}bg-yellow-100 text-yellow-800
+            {% else %}bg-gray-100 text-gray-800{% endif %}">
+            {{ student.status_display }}
+        </span>
+    </div>
+    
+    <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Class</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ student.current_class.display_name }}</p>
+        </div>
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Gender</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ student.gender_display }}</p>
+        </div>
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Age</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ student.age }} years</p>
+        </div>
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Enrolled</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ student.enrollment_date|date:"M Y" }}</p>
+        </div>
+    </div>
+    
+    {% if student.email or student.phone %}
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        {% if student.email %}
+        <div class="flex items-center text-xs mb-1">
+            <i class="fas fa-envelope text-gray-400 w-4 mr-2"></i>
+            <a href="mailto:{{ student.email }}" class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                {{ student.email }}
+            </a>
+        </div>
+        {% endif %}
+        {% if student.phone %}
+        <div class="flex items-center text-xs">
+            <i class="fas fa-phone text-gray-400 w-4 mr-2"></i>
+            <a href="tel:{{ student.phone }}" class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                {{ student.phone }}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

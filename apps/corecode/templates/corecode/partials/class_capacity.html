@@ -1,0 +1,19 @@
+<div class="space-y-2">
+    <div class="flex justify-between text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Current Enrollment</span>
+        <span class="font-medium text-gray-900 dark:text-gray-100">{{ enrolled }}/{{ class_obj.max_students }}</span>
+    </div>
+    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+        <div class="bg-primary-500 h-2.5 rounded-full transition-all duration-500" 
+             style="width: {{ percentage }}%"></div>
+    </div>
+    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span>Available: {{ available }}</span>
+        <span>{{ percentage|floatformat:1 }}% full</span>
+    </div>
+    {% if available < 5 %}
+        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+            ⚠️ Only {{ available }} spots remaining
+        </p>
+    {% endif %}
+</div>

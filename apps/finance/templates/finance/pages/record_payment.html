@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Record Payment - Finance - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Record Payment</h1>
+            <a href="javascript:history.back()" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                ← Back
+            </a>
+        </div>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Record a cash, POS, or bank transfer payment against an invoice
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left column - Payment Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Payment Details</h2>
+                </div>
+                
+                <form method="post" action="{% url 'finance:record_payment' %}" class="p-6 space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Invoice Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Select Invoice *
+                        </label>
+                        {% if invoice %}
+                            <input type="hidden" name="invoice_id" value="{{ invoice.id }}">
+                            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.invoice_number }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.student_name }} • Balance: ₦{{ invoice.balance|floatformat:2 }}</p>
+                            </div>
+                        {% else %}
+                            <div class="relative">
+                                <input type="text" 
+                                       id="invoice-search" 
+                                       placeholder="Search by invoice # or student name..." 
+                                       class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                       hx-get="{% url 'finance:ajax_search' %}"
+                                       hx-trigger="keyup changed delay:500ms"
+                                       hx-target="#invoice-results"
+                                       hx-indicator="#search-indicator">
+                                <div id="search-indicator" class="htmx-indicator absolute right-3 top-2">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                                </div>
+                            </div>
+                            <div id="invoice-results" class="mt-2 max-h-60 overflow-y-auto border border-light-border dark:border-dark-border rounded-md">
+                                <!-- Results will appear here -->
+                            </div>
+                            <input type="hidden" name="invoice_id" id="selected-invoice-id">
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Payment Amount -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Amount (₦) *
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 dark:text-gray-400 sm:text-sm">₦</span>
+                            </div>
+                            <input type="number" 
+                                   name="amount" 
+                                   id="payment-amount"
+                                   step="0.01" 
+                                   min="0.01"
+                                   {% if invoice %}max="{{ invoice.balance }}"{% endif %}
+                                   required
+                                   class="block w-full pl-7 pr-12 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 dark:text-gray-400 sm:text-sm" id="balance-hint">
+                                    {% if invoice %}max ₦{{ invoice.balance|floatformat:2 }}{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% if invoice and invoice.balance %}
+                        <div class="mt-1 flex justify-between">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Balance: ₦{{ invoice.balance|floatformat:2 }}</p>
+                            <button type="button" onclick="setFullAmount()" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                                Pay Full Amount
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Payment Method -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Payment Method *
+                        </label>
+                        <select name="method" required
+                                class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            {% for value, label in payment_methods %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Notes
+                        </label>
+                        <textarea name="notes" 
+                                  rows="3"
+                                  class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                  placeholder="Optional notes about this payment"></textarea>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-light-border dark:border-dark-border">
+                        <a href="{% url 'finance:dashboard' %}" 
+                           class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            Record Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right column - Payment Summary -->
+        <div class="space-y-6">
+            <!-- Invoice Summary -->
+            {% if invoice %}
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Invoice Summary</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="space-y-3">
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500 dark:text-gray-400">Invoice #:</dt>
+                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.invoice_number }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500 dark:text-gray-400">Student:</dt>
+                            <dd class="text-sm text-gray-900 dark:text-gray-100">{{ invoice.student_name }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500 dark:text-gray-400">Fee Type:</dt>
+                            <dd class="text-sm text-gray-900 dark:text-gray-100">{{ invoice.fee_type }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500 dark:text-gray-400">Total:</dt>
+                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">₦{{ invoice.total|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex justify-between border-t border-light-border dark:border-dark-border pt-2">
+                            <dt class="text-sm font-medium text-gray-700 dark:text-gray-300">Balance:</dt>
+                            <dd class="text-sm font-bold {% if invoice.balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                                ₦{{ invoice.balance|floatformat:2 }}
+                            </dd>
+                        </div>
+                    </dl>
+                    
+                    <!-- Progress bar -->
+                    <div class="mt-4">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-gray-500 dark:text-gray-400">Payment Progress</span>
+                            <span class="font-medium text-gray-900 dark:text-gray-100">{{ invoice.payment_progress|floatformat:1 }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div class="bg-primary-500 h-2 rounded-full" style="width: {{ invoice.payment_progress }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Tips -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">💡 Payment Tips</h3>
+                <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-2">
+                    <li>• For partial payments, enter the amount you're receiving</li>
+                    <li>• The invoice status will update to "Partially Paid" automatically</li>
+                    <li>• Receipt number will be auto-generated upon completion</li>
+                    <li>• For bulk payments covering multiple invoices, use the <a href="{% url 'finance:bulk_payment' %}" class="underline">Bulk Payment</a> tool</li>
+                </ul>
+            </div>
+            
+            <!-- Bulk Payment Link -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Need to pay for multiple invoices at once?
+                </p>
+                <a href="{% url 'finance:bulk_payment' %}{% if invoice %}?student_id={{ invoice.student_id }}{% endif %}" 
+                   class="mt-2 inline-flex items-center text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                    Use Bulk Payment Tool →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function selectInvoice(invoiceId, invoiceNumber, studentName, balance) {
+        document.getElementById('selected-invoice-id').value = invoiceId;
+        document.getElementById('invoice-search').value = `${invoiceNumber} - ${studentName}`;
+        document.getElementById('invoice-results').innerHTML = '';
+        
+        // Update amount max
+        const amountInput = document.getElementById('payment-amount');
+        amountInput.max = balance;
+        document.getElementById('balance-hint').textContent = `max ₦${parseFloat(balance).toFixed(2)}`;
+        
+        // Show success message
+        const results = document.getElementById('invoice-results');
+        results.innerHTML = '<div class="p-2 text-sm text-green-600 dark:text-green-400">✓ Invoice selected</div>';
+    }
+    
+    function setFullAmount() {
+        const maxAmount = document.getElementById('payment-amount').max;
+        if (maxAmount) {
+            document.getElementById('payment-amount').value = maxAmount;
+        }
+    }
+    
+    // Handle click outside to clear results
+    document.addEventListener('click', function(e) {
+        const results = document.getElementById('invoice-results');
+        const search = document.getElementById('invoice-search');
+        
+        if (results && search && !results.contains(e.target) && !search.contains(e.target)) {
+            setTimeout(() => {
+                results.innerHTML = '';
+            }, 200);
+        }
+    });
+</script>
+{% endblock %}

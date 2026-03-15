@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Register - {{ register.date }} - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header with breadcrumb -->
+    <div class="mb-6">
+        <nav class="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <a href="{% url 'corecode:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Dashboard</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'attendance:dashboard' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Attendance</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'attendance:register_list' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Registers</a>
+            <span class="mx-2">/</span>
+            <span class="text-gray-700 dark:text-gray-300">{{ register.date|date:"M d, Y" }} - {{ register.student_class.display_name }}</span>
+        </nav>
+        
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Attendance Register: {{ register.student_class.display_name }}
+            </h1>
+            <div class="flex space-x-3">
+                {% if not register.is_closed %}
+                <a href="{% url 'attendance:bulk_mark' register.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                    <i class="fas fa-check-double mr-2"></i> Bulk Mark
+                </a>
+                <form method="post" action="{% url 'attendance:close_register' register.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                            onclick="return confirm('Close this register? No further edits will be allowed.')">
+                        <i class="fas fa-lock mr-2"></i> Close Register
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Info Banner -->
+    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ register.date|date:"l, F j, Y" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Session</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ register.get_session_type_display }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Marked By</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ register.marked_by|default:"Not marked" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                {% if register.is_closed %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    Closed on {{ register.closed_at|date:"M d, Y H:i" }}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Open
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary Cards -->
+    <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ register.total_students }}</p>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Present</p>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ register.present_count }}</p>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Absent</p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ register.absent_count }}</p>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Attendance Rate</p>
+            <p class="text-2xl font-bold {% if register.present_percentage >= 90 %}text-green-600 dark:text-green-400{% elif register.present_percentage >= 75 %}text-yellow-600 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                {{ register.present_percentage|floatformat:1 }}%
+            </p>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Attendance Records</h2>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Student</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Check In</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Remarks</th>
+                        {% if not register.is_closed %}
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border" id="attendance-table">
+                    {% for record in register_data.records %}
+                    <tr id="record-{{ record.id }}" class="hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ record.student_name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">ID: {{ record.student_id }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if record.status == 'present' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif record.status == 'absent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% elif record.status == 'late' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% elif record.status == 'excused' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% elif record.status == 'sick' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                {% endif %}">
+                                <i class="fas {{ record.status|status_icon }} mr-1"></i>
+                                {{ record.status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {% if record.check_in_time %}{{ record.check_in_time }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ record.remarks|default:"-" }}
+                        </td>
+                        {% if not register.is_closed %}
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="showEditModal({{ record.id }}, '{{ record.status }}', '{{ record.remarks|escapejs }}')" 
+                                    class="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if not register.is_closed %}5{% else %}4{% endif %}" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-user-slash text-3xl mb-2"></i>
+                            <p>No attendance records yet</p>
+                            {% if not register.is_closed %}
+                            <a href="{% url 'attendance:bulk_mark' register.id %}" class="mt-2 inline-block text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                                Mark attendance →
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-xl max-w-md w-full mx-4">
+        <form id="edit-form" method="post">
+            {% csrf_token %}
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Update Attendance</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select name="status" id="edit-status" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                        <option value="late">Late</option>
+                        <option value="excused">Excused</option>
+                        <option value="sick">Sick</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Remarks</label>
+                    <textarea name="remarks" id="edit-remarks" rows="2" 
+                              class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-light-border dark:border-dark-border flex justify-end space-x-3">
+                <button type="button" onclick="hideEditModal()" 
+                        class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    Update
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showEditModal(recordId, status, remarks) {
+        const modal = document.getElementById('edit-modal');
+        const form = document.getElementById('edit-form');
+        
+        form.action = `/attendance/records/${recordId}/update/`;
+        document.getElementById('edit-status').value = status;
+        document.getElementById('edit-remarks').value = remarks;
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    function hideEditModal() {
+        const modal = document.getElementById('edit-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('edit-modal');
+        if (e.target === modal) {
+            hideEditModal();
+        }
+    });
+</script>
+{% endblock %}

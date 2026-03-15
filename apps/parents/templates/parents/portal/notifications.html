@@ -1,0 +1,96 @@
+{% extends "parents/portal/base_portal.html" %}
+
+{% block title %}Notifications - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Notifications</h1>
+        <button class="px-4 py-2 text-sm font-medium rounded-md border border-light-border dark:border-dark-border text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover"
+                hx-post="{% url 'parents:mark_all_read' %}"
+                hx-target="body"
+                hx-confirm="Mark all notifications as read?">
+            <i class="fas fa-check-double mr-2"></i> Mark All Read
+        </button>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        {% if notifications %}
+        <div class="divide-y divide-light-border dark:divide-dark-border">
+            {% for note in notifications %}
+            <div class="p-4 hover:bg-light-hover dark:hover:bg-dark-hover {% if not note.is_read %}bg-blue-50 dark:bg-blue-900/10{% endif %}"
+                 id="notification-{{ note.id }}">
+                <div class="flex items-start">
+                    <!-- Icon -->
+                    <div class="flex-shrink-0">
+                        <div class="h-10 w-10 rounded-full 
+                            {% if note.type == 'payment_receipt' %}bg-green-100 dark:bg-green-900
+                            {% elif note.type == 'payment_reminder' %}bg-yellow-100 dark:bg-yellow-900
+                            {% elif note.type == 'result_published' %}bg-purple-100 dark:bg-purple-900
+                            {% elif note.type == 'attendance_alert' %}bg-red-100 dark:bg-red-900
+                            {% else %}bg-blue-100 dark:bg-blue-900
+                            {% endif %} flex items-center justify-center">
+                            <i class="fas 
+                                {% if note.type == 'payment_receipt' %}fa-receipt text-green-600 dark:text-green-400
+                                {% elif note.type == 'payment_reminder' %}fa-clock text-yellow-600 dark:text-yellow-400
+                                {% elif note.type == 'result_published' %}fa-scroll text-purple-600 dark:text-purple-400
+                                {% elif note.type == 'attendance_alert' %}fa-calendar-times text-red-600 dark:text-red-400
+                                {% else %}fa-bell text-blue-600 dark:text-blue-400
+                                {% endif %}"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="ml-4 flex-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ note.title }}</h3>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ note.time_ago }}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ note.message }}</p>
+                        
+                        <!-- Related students -->
+                        {% if note.related_students %}
+                        <div class="mt-2 flex space-x-2">
+                            {% for student_id in note.related_students %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                <i class="fas fa-child mr-1"></i> Student {{ student_id }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Link if present -->
+                        {% if note.link_url %}
+                        <div class="mt-2">
+                            <a href="{{ note.link_url }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                                {{ note.link_text|default:"View Details" }} <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Actions -->
+                    {% if not note.is_read %}
+                    <button class="ml-4 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                            hx-post="{% url 'parents:mark_read' note.id %}"
+                            hx-target="#notification-{{ note.id }}"
+                            hx-swap="outerHTML">
+                        Mark Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-gray-500 dark:text-gray-400">
+            <i class="fas fa-bell-slash text-4xl mb-3"></i>
+            <p class="text-lg font-medium">No notifications</p>
+            <p class="text-sm mt-1">You're all caught up!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

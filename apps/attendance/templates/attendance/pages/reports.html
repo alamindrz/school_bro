@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% load static %}
+{% load attendance_tags %}
+
+{% block title %}Attendance Reports - DETs Toolkit{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="attendanceReports()"
+     x-init="init()">
+    
+    <!-- Page Header -->
+    <div class="mb-8 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <i class="fas fa-chart-bar text-primary-500 mr-3"></i>
+                Attendance Reports
+            </h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Generate and analyze attendance reports
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-3">
+            <button @click="exportReport()"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-download mr-2"></i> Export Report
+            </button>
+            <button @click="printReport()"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-print mr-2"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Report Type Tabs -->
+    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8" aria-label="Report Types">
+            <button @click="setReportType('daily')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'daily' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-calendar-day mr-2"></i> Daily Report
+            </button>
+            <button @click="setReportType('weekly')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'weekly' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-calendar-week mr-2"></i> Weekly Report
+            </button>
+            <button @click="setReportType('monthly')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'monthly' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-calendar-alt mr-2"></i> Monthly Report
+            </button>
+            <button @click="setReportType('termly')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'termly' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-calendar-check mr-2"></i> Termly Report
+            </button>
+            <button @click="setReportType('student')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'student' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-user-graduate mr-2"></i> Student Report
+            </button>
+            <button @click="setReportType('class')" 
+                    class="report-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                    :class="reportType === 'class' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">
+                <i class="fas fa-users mr-2"></i> Class Summary
+            </button>
+        </nav>
+    </div>
+
+    <!-- Report Filters Card -->
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <i class="fas fa-filter mr-2 text-gray-500"></i> Report Filters
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <!-- Daily Report Filters -->
+            <div x-show="reportType === 'daily'">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date
+                        </label>
+                        <input type="date" 
+                               x-model="filters.date"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Class (Optional)
+                        </label>
+                        <select x-model="filters.class_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Classes</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button @click="generateReport()"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            <i class="fas fa-chart-line mr-2"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Report Filters -->
+            <div x-show="reportType === 'weekly'" x-cloak>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Week Starting
+                        </label>
+                        <input type="date" 
+                               x-model="filters.week_start"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Class (Optional)
+                        </label>
+                        <select x-model="filters.class_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Classes</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2 flex items-end">
+                        <button @click="generateReport()"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            <i class="fas fa-chart-line mr-2"></i> Generate Weekly Report
+                        </button>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-info-circle mr-1"></i> Report will show attendance for the 7 days starting from the selected date.
+                </p>
+            </div>
+
+            <!-- Monthly Report Filters -->
+            <div x-show="reportType === 'monthly'" x-cloak>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Month
+                        </label>
+                        <select x-model="filters.month"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Year
+                        </label>
+                        <select x-model="filters.year"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            {% for year in years %}
+                            <option value="{{ year }}">{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Class (Optional)
+                        </label>
+                        <select x-model="filters.class_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Classes</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button @click="generateReport()"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            <i class="fas fa-chart-line mr-2"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Termly Report Filters -->
+            <div x-show="reportType === 'termly'" x-cloak>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session
+                        </label>
+                        <select x-model="filters.session_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Term
+                        </label>
+                        <select x-model="filters.term_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Terms</option>
+                            <option value="1">First Term</option>
+                            <option value="2">Second Term</option>
+                            <option value="3">Third Term</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Class (Optional)
+                        </label>
+                        <select x-model="filters.class_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Classes</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button @click="generateReport()"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            <i class="fas fa-chart-line mr-2"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Report Filters -->
+            <div x-show="reportType === 'student'" x-cloak>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Student
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   x-model="studentSearch"
+                                   @input="searchStudents()"
+                                   placeholder="Search by name or admission number..."
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <div x-show="studentResults.length > 0" 
+                                 x-cloak
+                                 class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto">
+                                <template x-for="student in studentResults" :key="student.id">
+                                    <div @click="selectStudent(student)"
+                                         class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                        <p class="text-sm font-medium" x-text="student.name"></p>
+                                        <p class="text-xs text-gray-500" x-text="student.admission_number + ' - ' + student.class"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session (Optional)
+                        </label>
+                        <select x-model="filters.session_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Sessions</option>
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button @click="generateStudentReport()"
+                            :disabled="!selectedStudent"
+                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chart-line mr-2"></i> Generate Student Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Class Summary Filters -->
+            <div x-show="reportType === 'class'" x-cloak>
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Class
+                        </label>
+                        <select x-model="filters.class_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Select Class</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Session (Optional)
+                        </label>
+                        <select x-model="filters.session_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Sessions</option>
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Term (Optional)
+                        </label>
+                        <select x-model="filters.term_id"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">All Terms</option>
+                            <option value="1">First Term</option>
+                            <option value="2">Second Term</option>
+                            <option value="3">Third Term</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button @click="generateClassSummary()"
+                            :disabled="!filters.class_id"
+                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chart-bar mr-2"></i> Generate Class Summary
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Results -->
+    <div x-show="reportGenerated" x-cloak class="space-y-6">
+        <!-- Daily Report -->
+        <div x-show="reportType === 'daily'" x-cloak>
+            {% include "attendance/partials/report_daily.html" %}
+        </div>
+
+        <!-- Weekly Report -->
+        <div x-show="reportType === 'weekly'" x-cloak>
+            {% include "attendance/partials/report_weekly.html" %}
+        </div>
+
+        <!-- Monthly Report -->
+        <div x-show="reportType === 'monthly'" x-cloak>
+            {% include "attendance/partials/report_monthly.html" %}
+        </div>
+
+        <!-- Termly Report -->
+        <div x-show="reportType === 'termly'" x-cloak>
+            {% include "attendance/partials/report_termly.html" %}
+        </div>
+
+        <!-- Student Report -->
+        <div x-show="reportType === 'student'" x-cloak>
+            {% include "attendance/partials/report_student.html" %}
+        </div>
+
+        <!-- Class Summary -->
+        <div x-show="reportType === 'class'" x-cloak>
+            {% include "attendance/partials/report_class.html" %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function attendanceReports() {
+        return {
+            reportType: 'daily',
+            reportGenerated: false,
+            selectedStudent: null,
+            studentSearch: '',
+            studentResults: [],
+            filters: {
+                date: new Date().toISOString().split('T')[0],
+                week_start: new Date().toISOString().split('T')[0],
+                month: new Date().getMonth() + 1,
+                year: new Date().getFullYear(),
+                class_id: '',
+                session_id: '',
+                term_id: ''
+            },
+            
+            init() {
+                // Load initial report
+                this.generateReport();
+            },
+            
+            setReportType(type) {
+                this.reportType = type;
+                this.reportGenerated = false;
+                this.selectedStudent = null;
+                
+                // Reset filters based on type
+                if (type === 'daily') {
+                    this.filters.date = new Date().toISOString().split('T')[0];
+                } else if (type === 'weekly') {
+                    this.filters.week_start = new Date().toISOString().split('T')[0];
+                } else if (type === 'monthly') {
+                    this.filters.month = new Date().getMonth() + 1;
+                    this.filters.year = new Date().getFullYear();
+                }
+            },
+            
+            async generateReport() {
+                // Show loading state
+                this.reportGenerated = false;
+                
+                // Build query parameters
+                const params = new URLSearchParams({
+                    type: this.reportType,
+                    ...this.filters
+                });
+                
+                try {
+                    // Fetch report data via HTMX
+                    const response = await fetch(`/attendance/reports/?${params.toString()}`);
+                    const html = await response.text();
+                    
+                    // Update the report container
+                    document.getElementById('report-container').innerHTML = html;
+                    this.reportGenerated = true;
+                    
+                } catch (error) {
+                    console.error('Failed to generate report:', error);
+                    alert('Failed to generate report. Please try again.');
+                }
+            },
+            
+            async searchStudents() {
+                if (this.studentSearch.length < 2) {
+                    this.studentResults = [];
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/students/ajax/search/?q=${this.studentSearch}`);
+                    const data = await response.json();
+                    this.studentResults = data.students || [];
+                } catch (error) {
+                    console.error('Student search failed:', error);
+                }
+            },
+            
+            selectStudent(student) {
+                this.selectedStudent = student;
+                this.studentSearch = student.name;
+                this.studentResults = [];
+            },
+            
+            async generateStudentReport() {
+                if (!this.selectedStudent) return;
+                
+                this.reportGenerated = false;
+                
+                const params = new URLSearchParams({
+                    type: 'student',
+                    student_id: this.selectedStudent.id,
+                    session_id: this.filters.session_id || ''
+                });
+                
+                try {
+                    const response = await fetch(`/attendance/reports/?${params.toString()}`);
+                    const html = await response.text();
+                    document.getElementById('report-container').innerHTML = html;
+                    this.reportGenerated = true;
+                } catch (error) {
+                    console.error('Failed to generate student report:', error);
+                }
+            },
+            
+            async generateClassSummary() {
+                if (!this.filters.class_id) return;
+                
+                this.reportGenerated = false;
+                
+                const params = new URLSearchParams({
+                    type: 'class',
+                    class_id: this.filters.class_id,
+                    session_id: this.filters.session_id || '',
+                    term_id: this.filters.term_id || ''
+                });
+                
+                try {
+                    const response = await fetch(`/attendance/reports/?${params.toString()}`);
+                    const html = await response.text();
+                    document.getElementById('report-container').innerHTML = html;
+                    this.reportGenerated = true;
+                } catch (error) {
+                    console.error('Failed to generate class summary:', error);
+                }
+            },
+            
+            exportReport() {
+                const params = new URLSearchParams({
+                    type: this.reportType,
+                    export: 'csv',
+                    ...this.filters
+                });
+                
+                window.location.href = `/attendance/reports/export/?${params.toString()}`;
+            },
+            
+            printReport() {
+                window.print();
+            }
+        };
+    }
+</script>
+{% endblock %}

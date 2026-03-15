@@ -1,0 +1,675 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+*.pot
+*.pyc
+__pycache__/
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite3
+*.sql
+*.sql.gz
+
+# Uploads
+media/
+uploads/
+mediafiles/
+
+# Static files
+static_collected/
+staticfiles/
+static/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Logs and databases
+*.log
+*.pid
+*.seed
+*.pid.lock
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# Coverage
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+*.py,cover
+htmlcov/
+
+# pytest
+.pytest_cache/
+.cache
+test_*.py
+tests/.cache
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Celery beat schedule file
+celerybeat-schedule.db
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# pdm
+.pdm.toml
+
+# pdm.lock
+pdm.lock
+
+# poetry
+poetry.lock
+
+# PEP 582
+__pypackages__/
+
+# Django migrations
+# Uncomment if you want to ignore migration files
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Project specific
+*.pid
+*.seed
+*.pid.lock
+
+# Database fixtures
+fixtures/*.json
+!fixtures/initial_data.json
+!fixtures/example_data.json
+
+# Secrets
+secrets.py
+config/settings/secrets.py
+config/settings/local.py
+*.key
+*.pem
+*.crt
+
+# Static files served by whitenoise
+staticfiles/
+
+# Media files in development
+media/
+
+# Local development database
+*.sqlite3
+*.db
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+*.cover
+coverage.xml
+
+# Django logs
+logs/
+*.log
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# celery beat schedule file
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+!.vscode/*.code-snippets
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Project specific ignores
+# ------------------------
+
+# Local settings
+config/settings/local.py
+config/settings/development_local.py
+config/settings/production_local.py
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Database backups
+*.backup
+*.dump
+*.sql.gz
+
+# SSL certificates
+*.crt
+*.key
+*.pem
+
+# Secret files
+secrets/
+secrets.yaml
+secrets.yml
+secrets.json
+
+# Test outputs
+test_output/
+test_results/
+test-reports/
+
+# npm/node
+node_modules/
+package-lock.json
+yarn.lock
+
+# Static files built with webpack
+static/bundles/
+static/dist/
+
+# Uploaded files
+media/uploads/
+media/temp/
+media/cache/
+
+# Logs
+logs/
+*.log
+nginx_logs/
+gunicorn_logs/
+
+# Celery
+celerybeat-schedule.db
+celerybeat.pid
+
+# Redis dump
+dump.rdb
+
+# PostgreSQL dump
+*.sql
+*.backup
+
+# Docker
+.docker/
+docker-compose.override.yml
+Dockerfile
+docker-compose.yml
+!.dockerignore
+
+# Kubernetes
+*.kubeconfig
+helm/charts/
+
+# Ansible
+*.retry
+ansible/inventory/
+ansible/group_vars/
+ansible/host_vars/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+terraform.tfvars.json
+
+# Vagrant
+.vagrant/
+Vagrantfile
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# IDE settings - but keep shared settings
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.idea/workspace.xml
+!.idea/tasks.xml
+!.idea/dictionaries
+!.idea/vcs.xml
+!.idea/jsLibraryMappings.xml
+!.idea/codeStyles/
+!.idea/codeStyleSettings.xml
+!.idea/codeStyles/Project.xml
+!.idea/inspectionProfiles/
+!.idea/dataSources.xml
+!.idea/sqlDataSources.xml
+!.idea/dynamic.xml
+!.idea/uiDesigner.xml
+!.idea/gradle.xml
+!.idea/libraries
+
+# Media files (user uploaded content)
+media/
+!media/.keep
+
+# Static files (collected)
+staticfiles/
+!staticfiles/.keep
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.coverage.xml
+*.cover
+
+# Pytest
+.pytest_cache/
+pytest.debug
+.cache
+test_*.py
+tests/.cache
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# Pytype
+.pytype/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+logs/
+*.log
+
+# Local development database
+*.sqlite3
+*.db
+*.sql
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+celerybeat-schedule.db
+
+# Redis
+dump.rdb
+
+# Secret files
+secrets/
+secrets.*
+*.key
+*.pem
+*.crt
+*.cert
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Docker
+.docker/
+docker-compose.override.yml
+Dockerfile
+docker-compose.yml
+!.dockerignore
+
+# Kubernetes
+*.kubeconfig
+helm/charts/
+
+# Ansible
+*.retry
+ansible/inventory/
+ansible/group_vars/
+ansible/host_vars/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+terraform.tfvars.json
+
+# Vagrant
+.vagrant/
+Vagrantfile
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Test outputs
+test_output/
+test_results/
+test-reports/
+
+# npm/node
+node_modules/
+package-lock.json
+yarn.lock
+
+# Static files built with webpack
+static/bundles/
+static/dist/
+
+# Uploaded files
+media/uploads/
+media/temp/
+media/cache/
+
+# Celery
+celerybeat-schedule.db
+celerybeat.pid
+
+# Redis dump
+dump.rdb
+
+# PostgreSQL dump
+*.sql
+*.backup
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

@@ -1,0 +1,67 @@
+{% load static %}
+
+<div class="space-y-4">
+    {% if has_session and has_term %}
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Current Session</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ session_name }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Current Term</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ term_name }}</p>
+            </div>
+        </div>
+        
+        <div class="border-t border-light-border dark:border-dark-border pt-4">
+            <div class="flex justify-between text-sm mb-2">
+                <span class="text-gray-600 dark:text-gray-400">Term Progress</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ term_progress|default:"65" }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-primary-500 h-2 rounded-full transition-all duration-500" 
+                     style="width: {{ term_progress|default:"65" }}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <span>Started: {{ term_start|date:"M d, Y" }}</span>
+                <span>Ends: {{ term_end|date:"M d, Y" }}</span>
+            </div>
+        </div>
+        
+        <div class="flex space-x-2 pt-2">
+            <button hx-get="{% url 'corecode:ajax_term_details' %}?term_id={{ term_id }}"
+                    hx-target="#term-details"
+                    hx-swap="innerHTML"
+                    class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                View Details →
+            </button>
+            <span class="text-gray-300 dark:text-gray-600">|</span>
+            <a href="{% url 'corecode:term_manage' %}" 
+               class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                Manage Terms
+            </a>
+        </div>
+        
+        <div id="term-details"></div>
+        
+    {% else %}
+        <div class="text-center py-6">
+            <div class="text-4xl mb-3">📅</div>
+            <p class="text-gray-600 dark:text-gray-400 font-medium">No active academic period</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                Please set up academic sessions and terms
+            </p>
+            <a href="{% url 'corecode:session_create' %}" 
+               class="mt-4 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                Create Session
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // Auto-refresh every 5 minutes
+    setTimeout(function() {
+        htmx.trigger('#academic-period-content', 'reload');
+    }, 300000);
+</script>

@@ -1,0 +1,296 @@
+{% extends "parents/portal/base_portal.html" %}
+
+{% block title %}{{ student.full_name }} - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'parents:children' %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Children
+        </a>
+    </div>
+
+    <!-- Student Profile Header -->
+    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-6">
+            <div class="flex items-center">
+                <div class="h-20 w-20 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-lg">
+                    <span class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+                        {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+                    </span>
+                </div>
+                <div class="ml-6 text-white">
+                    <h1 class="text-3xl font-bold">{{ student.full_name }}</h1>
+                    <p class="text-primary-100">{{ student.current_class.display_name }} • {{ student.admission_number }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Info Tabs -->
+        <div class="border-b border-light-border dark:border-dark-border">
+            <nav class="flex -mb-px">
+                <button onclick="showTab('overview')" 
+                        class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
+                        id="tab-overview-btn">
+                    Overview
+                </button>
+                <button onclick="showTab('fees')" 
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        id="tab-fees-btn">
+                    Fees
+                </button>
+                <button onclick="showTab('results')" 
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        id="tab-results-btn">
+                    Results
+                </button>
+                <button onclick="showTab('attendance')" 
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        id="tab-attendance-btn">
+                    Attendance
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Overview -->
+    <div id="tab-overview" class="tab-panel space-y-6">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <i class="fas fa-calendar text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Enrollment Date</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {{ student.enrollment_date|date:"M d, Y" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                        <i class="fas fa-birthday-cake text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Age</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ student.age }} years</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <i class="fas fa-venus-mars text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Gender</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ student.gender_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Contact Information</h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {% if student.email %}{{ student.email }}{% else %}Not provided{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {% if student.phone %}{{ student.phone }}{% else %}Not provided{% endif %}
+                    </p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Address</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ student.address|default:"Not provided" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medical Information -->
+        {% if student.medical_notes or student.blood_group %}
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Medical Information</h2>
+            </div>
+            <div class="p-6">
+                {% if student.blood_group %}
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Blood Group</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.blood_group }}</p>
+                </div>
+                {% endif %}
+                {% if student.medical_notes %}
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Medical Notes</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.medical_notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Fees -->
+    <div id="tab-fees" class="tab-panel hidden space-y-6">
+        <!-- Balance Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Invoiced</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">₦{{ balance.total_invoiced|floatformat:2 }}</p>
+            </div>
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Paid</p>
+                <p class="text-2xl font-bold text-green-600 dark:text-green-400">₦{{ balance.total_paid|floatformat:2 }}</p>
+            </div>
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Balance</p>
+                <p class="text-2xl font-bold {% if balance.total_balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                    ₦{{ balance.total_balance|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Exam Clearance Status -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Exam Clearance</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Financial clearance for examinations</p>
+                </div>
+                {% if exam_clearance.is_cleared %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <i class="fas fa-check-circle mr-1"></i> Cleared
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> Not Cleared
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Invoices List -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Invoices</h2>
+            </div>
+            
+            {% if invoices %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Invoice #</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Description</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Due Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Paid</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Balance</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {{ invoice.invoice_number }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                {{ invoice.description }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                {{ invoice.due_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                ₦{{ invoice.total|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                                ₦{{ invoice.amount_paid|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if invoice.balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-900 dark:text-gray-100{% endif %}">
+                                ₦{{ invoice.balance|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if invoice.status == 'paid' %}bg-green-100 text-green-800
+                                    {% elif invoice.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif invoice.status == 'partial' %}bg-blue-100 text-blue-800
+                                    {% elif invoice.status == 'overdue' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                    {{ invoice.status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                <i class="fas fa-file-invoice text-3xl mb-2"></i>
+                <p>No invoices found</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Results (Placeholder until Results app is ready) -->
+    <div id="tab-results" class="tab-panel hidden">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-12 text-center">
+            <i class="fas fa-scroll text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Results Coming Soon</h3>
+            <p class="text-gray-500 dark:text-gray-400">Results will be displayed here once published.</p>
+        </div>
+    </div>
+
+    <!-- Tab: Attendance (Placeholder until Attendance app is ready) -->
+    <div id="tab-attendance" class="tab-panel hidden">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-12 text-center">
+            <i class="fas fa-calendar-check text-5xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Attendance Coming Soon</h3>
+            <p class="text-gray-500 dark:text-gray-400">Attendance records will be displayed here.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-panel').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        });
+        
+        // Activate clicked tab
+        document.getElementById(`tab-${tabName}-btn`).classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        document.getElementById(`tab-${tabName}-btn`).classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+    }
+</script>
+{% endblock %}

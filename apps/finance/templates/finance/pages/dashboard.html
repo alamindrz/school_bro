@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Finance Dashboard - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="mb-8 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Finance Dashboard</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Financial overview and key metrics
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-3">
+            {% if perms.finance.add_invoice %}
+            <a href="{% url 'finance:invoice_create' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                + New Invoice
+            </a>
+            {% endif %}
+            {% if perms.finance.add_payment %}
+            <a href="{% url 'finance:record_payment' %}" 
+               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                💰 Record Payment
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border px-6 py-4">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Invoiced</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">₦{{ stats.total_invoiced|floatformat:2 }}</dd>
+            <dd class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ stats.invoice_count }} invoices</dd>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border px-6 py-4">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Collected</dt>
+            <dd class="mt-1 text-3xl font-semibold text-green-600 dark:text-green-400">₦{{ stats.total_collected|floatformat:2 }}</dd>
+            <dd class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ stats.paid_count }} paid invoices</dd>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border px-6 py-4">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Outstanding</dt>
+            <dd class="mt-1 text-3xl font-semibold text-yellow-600 dark:text-yellow-400">₦{{ stats.outstanding|floatformat:2 }}</dd>
+            <dd class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ stats.pending_count }} pending</dd>
+        </div>
+        
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border px-6 py-4">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Collection Rate</dt>
+            <dd class="mt-1 text-3xl font-semibold text-blue-600 dark:text-blue-400">{{ stats.collection_rate }}%</dd>
+            <dd class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {% if pending_waivers > 0 %}
+                <span class="text-orange-600 dark:text-orange-400">{{ pending_waivers }} pending waivers</span>
+                {% endif %}
+            </dd>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Revenue Chart -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Revenue Overview</h3>
+            <div id="revenue-chart" class="h-64">
+                <!-- Chart will be rendered by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Outstanding by Class -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Outstanding by Class</h3>
+            <div id="outstanding-chart" class="h-64">
+                <!-- Chart will be rendered by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Two column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left column - Main content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Recent Payments -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Payments</h2>
+                    <a href="{% url 'finance:record_payment' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View All →</a>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Student</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Receipt</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Method</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                            {% for payment in recent_payments %}
+                            <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ payment.payment_date|date:"M d, Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ payment.student_name }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ payment.invoice_number }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <a href="{% url 'finance:receipt' payment.id %}" class="text-primary-600 dark:text-primary-400 hover:underline">
+                                        {{ payment.receipt_number }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    ₦{{ payment.amount|floatformat:2 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    {{ payment.method }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    No recent payments
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Overdue Invoices -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Overdue Invoices</h2>
+                    <a href="{% url 'finance:invoice_list' %}?overdue=true" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View All →</a>
+                </div>
+                
+                <div class="divide-y divide-light-border dark:divide-dark-border">
+                    {% for invoice in overdue_invoices %}
+                    <div class="p-4 hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.student_name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.invoice_number }} • Due {{ invoice.due_date|date:"M d, Y" }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-red-600 dark:text-red-400">₦{{ invoice.balance|floatformat:2 }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.fee_type }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No overdue invoices
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column - Sidebar -->
+        <div class="space-y-6">
+            <!-- Payment Methods Breakdown -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Payment Methods</h2>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for method in stats.payment_methods %}
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600 dark:text-gray-400">{{ method.method_display }}</span>
+                                <span class="font-medium text-gray-900 dark:text-gray-100">₦{{ method.total|floatformat:2 }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: {{ method.percentage }}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <span>{{ method.count }} transactions</span>
+                                <span>{{ method.percentage|floatformat:1 }}%</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center">No payment data</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aging Summary -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Aging Summary</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="space-y-3">
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600 dark:text-gray-400">Current</dt>
+                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">₦{{ efficiency.aging.current|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600 dark:text-gray-400">1-30 days</dt>
+                            <dd class="text-sm font-medium text-yellow-600 dark:text-yellow-400">₦{{ efficiency.aging.1_30_days|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600 dark:text-gray-400">31-60 days</dt>
+                            <dd class="text-sm font-medium text-orange-600 dark:text-orange-400">₦{{ efficiency.aging.31_60_days|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600 dark:text-gray-400">61-90 days</dt>
+                            <dd class="text-sm font-medium text-red-600 dark:text-red-400">₦{{ efficiency.aging.61_90_days|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600 dark:text-gray-400">90+ days</dt>
+                            <dd class="text-sm font-medium text-red-700 dark:text-red-500">₦{{ efficiency.aging.90_plus_days|floatformat:2 }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Quick Actions</h2>
+                </div>
+                <div class="p-6 grid grid-cols-2 gap-4">
+                    <a href="{% url 'finance:record_payment' %}" 
+                       class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <span class="block text-2xl mb-2">💰</span>
+                        <span class="text-sm">Record Payment</span>
+                    </a>
+                    <a href="{% url 'finance:invoice_create' %}" 
+                       class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <span class="block text-2xl mb-2">📄</span>
+                        <span class="text-sm">New Invoice</span>
+                    </a>
+                    <a href="{% url 'finance:bulk_invoice' %}" 
+                       class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <span class="block text-2xl mb-2">📊</span>
+                        <span class="text-sm">Bulk Invoicing</span>
+                    </a>
+                    <a href="{% url 'finance:export_transactions' %}?start_date={{ now|date:'Y-m-01' }}&end_date={{ now|date:'Y-m-d' }}" 
+                       class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <span class="block text-2xl mb-2">📥</span>
+                        <span class="text-sm">Export</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Load revenue chart data
+    fetch('{% url "finance:ajax_revenue_chart" %}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('revenue-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.monthly.map(item => item.month),
+                    datasets: [{
+                        label: 'Monthly Revenue',
+                        data: data.monthly.map(item => item.total),
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+    
+    // Load outstanding chart data
+    fetch('{% url "finance:ajax_outstanding_chart" %}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('outstanding-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.by_class.map(item => item.class),
+                    datasets: [{
+                        label: 'Outstanding Amount',
+                        data: data.by_class.map(item => item.total),
+                        backgroundColor: '#f59e0b',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+</script>
+{% endblock %}
