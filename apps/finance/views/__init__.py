@@ -28,6 +28,7 @@ from .ajax import (
     calculate_partial_payment,
     get_pending_waivers,
 )
+from .public import PaystackWebhookView  # ADDED
 
 __all__ = [
     # Staff views
@@ -59,4 +60,7 @@ __all__ = [
     'verify_payment_status',
     'calculate_partial_payment',
     'get_pending_waivers',
+    
+    # Public views
+    'PaystackWebhookView',
 ]

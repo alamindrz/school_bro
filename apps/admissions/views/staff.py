@@ -17,18 +17,20 @@ from django.contrib.auth.decorators import login_required, permission_required
 import logging
 
 from ..models import Application, ApplicationNote, ApplicationReview
-from ..selectors import ApplicationSelector, ApplicationPaymentSelector
-from ..services import ApplicationService, EnrollmentService, PaymentService
+from ..selectors import ApplicationSelector
+from ..services import ApplicationService, EnrollmentService
 from ..constants import ApplicationStatus
 from ..exceptions import (
     ApplicationNotFoundError,
     InvalidApplicationStatusError,
     EnrollmentHandoffError,
+    AdmissionsClosedError,
 )
 
-from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
+from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector, SiteConfigSelector
 from apps.corecode.services import SystemLogService
 from apps.corecode.models import SystemLog
+from apps.corecode.constants import SiteConfigKey
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,7 @@ class ApplicationListView(LoginRequiredMixin, PermissionRequiredMixin, ListView)
         context['selected_session'] = self.request.GET.get('session_id', '')
         context['search_query'] = self.request.GET.get('search', '')
         context['stats'] = ApplicationSelector.get_statistics()
+        context['admissions_open'] = SiteConfigSelector.get_config_value(SiteConfigKey.ADMISSIONS_OPEN, False)
         return context
 
 
@@ -77,7 +80,6 @@ class ApplicationDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['application_data'] = ApplicationSelector.get_by_id(self.object.id)
-        context['payment'] = ApplicationPaymentSelector.get_for_application(self.object.id)
         return context
 
 
@@ -85,34 +87,164 @@ class ApplicationCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
     """Create new application (staff-facing)"""
     model = Application
     template_name = 'admissions/pages/application_form.html'
-    fields = [
-        'first_name', 'last_name', 'middle_name', 'gender', 'date_of_birth',
-        'email', 'phone', 'alternate_phone', 'address', 'city', 'state_of_origin',
-        'nationality', 'applying_for_class', 'application_type',
-        'previous_school', 'previous_class',
-        'guardian_first_name', 'guardian_last_name', 'guardian_relationship',
-        'guardian_phone', 'guardian_email', 'guardian_address', 'guardian_occupation',
-    ]
     permission_required = 'admissions.add_application'
-    success_url = reverse_lazy('admissions:list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if admissions are open using AdmissionsPeriod"""
+        from ..selectors import AdmissionsPeriodSelector
+        
+        current_period = AdmissionsPeriodSelector.get_current_period()
+        if not current_period:
+            messages.error(request, 'No active admissions period found. Applications cannot be created.')
+            return redirect('admissions:list')
+        
+        # Store period in request for use in form_valid
+        request.current_admission_period = current_period
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_class(self):
+        """Import form here to avoid circular imports"""
+        from ..forms import StaffApplicationForm
+        return StaffApplicationForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from ..selectors import AdmissionsPeriodSelector
+        
+        classes = StudentClassSelector.get_all_classes(active_only=True)
+        current_period = AdmissionsPeriodSelector.get_current_period()
+        
+        context['classes'] = classes
+        context['admissions_period'] = current_period  # Pass period info to template
+        context['admissions_open'] = current_period is not None
+        context['application_fee'] = current_period.get('application_fee') if current_period else 5000
+        context['admissions_session'] = current_period.get('academic_session') if current_period else None
+        
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('admissions:detail', kwargs={'pk': self.object.pk})
+    
     
     def form_valid(self, form):
         try:
-            # Create application using service
-            application = ApplicationService.create_application(
-                **form.cleaned_data,
-                created_by_id=self.request.user.id
-            )
-            
-            messages.success(
-                self.request,
-                f'Application {application.application_number} created successfully.'
-            )
-            
-            return redirect('admissions:detail', pk=application.id)
-            
+            with transaction.atomic():
+                # Get the admissions period from request (set in dispatch)
+                current_period = getattr(self.request, 'current_admission_period', None)
+                
+                if not current_period:
+                    messages.error(self.request, 'No active admissions period found.')
+                    return self.form_invalid(form)
+                
+                # Create application using service (it handles everything)
+                cleaned_data = form.cleaned_data
+                
+                application = ApplicationService.create_application(
+                    first_name=cleaned_data['first_name'],
+                    last_name=cleaned_data['last_name'],
+                    middle_name=cleaned_data.get('middle_name', ''),
+                    gender=cleaned_data['gender'],
+                    date_of_birth=cleaned_data['date_of_birth'].isoformat(),
+                    email=cleaned_data.get('email', ''),
+                    phone=cleaned_data.get('phone', ''),
+                    alternate_phone=cleaned_data.get('alternate_phone', ''),
+                    address=cleaned_data.get('address', ''),
+                    city=cleaned_data.get('city', ''),
+                    state_of_origin=cleaned_data.get('state_of_origin', ''),
+                    nationality=cleaned_data.get('nationality', 'Nigerian'),
+                    applying_for_class_id=cleaned_data['applying_for_class'].id,
+                    application_type=cleaned_data.get('application_type', 'new'),
+                    previous_school=cleaned_data.get('previous_school', ''),
+                    previous_class=cleaned_data.get('previous_class', ''),
+                    guardian_first_name=cleaned_data['guardian_first_name'],
+                    guardian_last_name=cleaned_data['guardian_last_name'],
+                    guardian_relationship=cleaned_data['guardian_relationship'],
+                    guardian_phone=cleaned_data['guardian_phone'],
+                    guardian_email=cleaned_data.get('guardian_email', ''),
+                    guardian_address=cleaned_data.get('guardian_address', ''),
+                    guardian_occupation=cleaned_data.get('guardian_occupation', ''),
+                    created_by_id=self.request.user.id,
+                    skip_invoice=True
+                )
+                
+                messages.success(
+                    self.request,
+                    f'Application {application.application_number} created successfully.'
+                )
+                
+                # IMPORTANT: Redirect to detail page, don't call super().form_valid()
+                return redirect('admissions:detail', pk=application.id)
+                
+        except AdmissionsClosedError as e:
+            messages.error(self.request, str(e))
+            return redirect('admissions:list')
         except Exception as e:
+            logger.exception("Application creation failed")
             messages.error(self.request, f'Error creating application: {str(e)}')
+            return self.form_invalid(form)
+            
+    
+class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """Update existing application (staff-facing)"""
+    model = Application
+    template_name = 'admissions/pages/application_form.html'
+    permission_required = 'admissions.change_application'
+    
+    def get_form_class(self):
+        """Import form here to avoid circular imports"""
+        from ..forms import StaffApplicationForm
+        return StaffApplicationForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        classes = StudentClassSelector.get_all_classes(active_only=True)
+        context['classes'] = classes
+        context['current_session'] = AcademicSessionSelector.get_current_session()
+        context['is_edit'] = True
+        context['admissions_open'] = SiteConfigSelector.get_config_value(SiteConfigKey.ADMISSIONS_OPEN, False)
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy('admissions:detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                application = form.save(commit=False)
+                application.updated_at = timezone.now()
+                application.save()
+                
+                # Log the update
+                SystemLogService.log_action(
+                    user_id=self.request.user.id,
+                    action=SystemLog.ActionType.UPDATE,
+                    app_label=SystemLog.AppLabel.ADMISSIONS,
+                    model_name='Application',
+                    object_id=str(application.id),
+                    object_repr=application.application_number,
+                    changes=form.cleaned_data
+                )
+                
+                messages.success(
+                    self.request,
+                    f'Application {application.application_number} updated successfully.'
+                )
+                
+                return super().form_valid(form)
+                
+        except Exception as e:
+            logger.exception("Application update failed")
+            messages.error(self.request, f'Error updating application: {str(e)}')
             return self.form_invalid(form)
 
 
@@ -212,12 +344,17 @@ class PaymentInitializeView(LoginRequiredMixin, PermissionRequiredMixin, View):
         try:
             application = Application.objects.get(id=application_id)
             
+            if not application.invoice_id:
+                messages.error(request, 'No invoice found for this application.')
+                return redirect('admissions:detail', pk=application_id)
+            
+            # Delegate to finance app
+            from finance.services import PaymentService
             result = PaymentService.initialize_paystack_payment(
-                application_id=application_id,
-                email=application.email
+                invoice_id=application.invoice_id,
+                email=application.email or application.guardian_email
             )
             
-            # Redirect to Paystack
             return redirect(result['authorization_url'])
             
         except Application.DoesNotExist:
@@ -236,7 +373,6 @@ class PaymentCallbackView(TemplateView):
         reference = request.GET.get('reference')
         trxref = request.GET.get('trxref')
         
-        # Use reference or trxref
         ref = reference or trxref
         
         if not ref:
@@ -244,11 +380,22 @@ class PaymentCallbackView(TemplateView):
             return redirect('admissions:list')
         
         try:
-            result = PaymentService.verify_payment(ref)
+            from finance.services import PaymentService
+            result = PaymentService.verify_paystack_payment(ref)
             
             if result.get('success'):
+                invoice_id = result.get('invoice_id')
+                if invoice_id:
+                    try:
+                        application = Application.objects.get(invoice_id=invoice_id)
+                        messages.success(request, 'Payment verified successfully!')
+                        return redirect('admissions:detail', pk=application.id)
+                    except Application.DoesNotExist:
+                        messages.warning(request, 'Payment verified but application not found.')
+                        return redirect('admissions:list')
+                
                 messages.success(request, 'Payment verified successfully!')
-                return redirect('admissions:detail', pk=result['application_id'])
+                return redirect('admissions:list')
             else:
                 messages.error(request, f'Payment verification failed: {result.get("message")}')
                 return redirect('admissions:list')

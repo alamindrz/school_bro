@@ -7,25 +7,22 @@ Applicant-facing portal (no authentication required).
 Responsibilities:
 - Submit application
 - Check application status
-- Initialize payment
-- Handle payment callback
-- Handle Paystack webhook
+- Initialize payment (delegated to finance app)
+- Handle payment callback (delegated to finance app)
 
 Architecture:
 - Business logic lives in services
 - Data retrieval via selectors (read models / dicts)
+- Payment handling delegated to finance app
 - Views handle HTTP concerns only
 """
 
-import json
-import hmac
-import hashlib
 import logging
 from datetime import datetime
 
 from django.conf import settings
 from django.db import transaction
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -36,14 +33,12 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import CreateView, TemplateView, FormView
 from django.contrib import messages
 
-from ..models import ApplicationPayment
-from ..services import ApplicationService, PaymentService
+from ..services import ApplicationService
 from ..selectors import ApplicationSelector
 from ..constants import ApplicationStatus
 from ..exceptions import (
     AdmissionsClosedError,
     DuplicateApplicationError,
-    PaymentVerificationError,
 )
 
 from apps.corecode.selectors import (
@@ -52,6 +47,10 @@ from apps.corecode.selectors import (
 )
 from apps.corecode.services import SiteConfigService
 from apps.corecode.constants import SiteConfigKey
+
+# Import finance services for payment handling
+from apps.finance.services import PaymentService
+from apps.finance.constants import InvoiceStatus
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +75,6 @@ class PublicApplicationCreateView(FormView):
         "guardian_email", "guardian_address",
         "guardian_occupation",
     ]
-
 
     # -------------------------
     # Guard Admissions Status
@@ -162,6 +160,10 @@ class PublicApplicationCreateView(FormView):
                     extra={"application_number": application.application_number}
                 )
 
+                # Store application number in session for success page
+                self.request.session['last_application_number'] = application.application_number
+
+                # Redirect to payment page
                 return redirect(
                     "admissions:public_payment",
                     application_number=application.application_number,
@@ -215,7 +217,7 @@ class PublicApplicationStatusView(TemplateView):
 
         elif email:
             apps = ApplicationSelector.list_applications(
-                email=email,
+                search=email,  # Use search to find by email
                 limit=1
             )
             application = apps[0] if apps else None
@@ -229,6 +231,7 @@ class PublicApplicationStatusView(TemplateView):
 class PublicPaymentView(TemplateView):
     """
     Handles payment initialization.
+    Delegates to finance app for actual payment processing.
     """
 
     template_name = "admissions/public/payment.html"
@@ -243,16 +246,27 @@ class PublicPaymentView(TemplateView):
             context["error"] = "Application not found"
             return context
 
-        if application.get("payment", {}).get("status") == "completed":
+        # Check if payment is already completed via invoice
+        if application.get("payment_completed"):
             context["already_paid"] = True
+            context["invoice_paid"] = True
+
+        # Get invoice details from apps.finance app if invoice exists
+        invoice_id = application.get("invoice_id")
+        invoice = None
+        if invoice_id:
+            from apps.finance.selectors import InvoiceSelector
+            invoice = InvoiceSelector.get_by_id(invoice_id)
 
         context.update({
             "application": application,
+            "invoice": invoice,
             "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
-            "amount": application.get("payment", {}).get("amount", 5000),
+            "amount": invoice.get("total", 5000) if invoice else 5000,
         })
 
-        context["amount_in_kobo"] = int(context["amount"] * 100)
+        if context["amount"]:
+            context["amount_in_kobo"] = int(context["amount"] * 100)
 
         return context
 
@@ -264,27 +278,35 @@ class PublicPaymentView(TemplateView):
             messages.error(request, "Application not found.")
             return redirect("admissions:public_apply")
 
-        if application.get("payment", {}).get("status") == "completed":
+        # Check if already paid
+        if application.get("payment_completed"):
             messages.info(request, "Payment already completed.")
             return redirect("admissions:public_success",
                             application_number=app_number)
 
+        # Get invoice ID from application
+        invoice_id = application.get("invoice_id")
+        if not invoice_id:
+            messages.error(request, "No invoice found for this application.")
+            return redirect("admissions:public_apply")
+
         try:
+            # Delegate to finance app for payment initialization
             result = PaymentService.initialize_paystack_payment(
-                application_id=application["id"],
-                email=application["email"],
+                invoice_id=invoice_id,
+                email=application["email"] or application["guardian_email"]
             )
 
             logger.info(
                 "Payment initialized",
-                extra={"application_number": app_number}
+                extra={"application_number": app_number, "invoice_id": invoice_id}
             )
 
             return redirect(result["authorization_url"])
 
-        except Exception:
-            logger.exception("Payment initialization failed.")
-            messages.error(request, "Unable to initialize payment.")
+        except Exception as e:
+            logger.exception(f"Payment initialization failed: {e}")
+            messages.error(request, f"Unable to initialize payment: {str(e)}")
             return redirect(
                 "admissions:public_payment",
                 application_number=app_number,
@@ -295,6 +317,7 @@ class PublicPaymentView(TemplateView):
 class PublicPaymentCallbackView(TemplateView):
     """
     Handles Paystack redirect callback.
+    Delegates to finance app for verification.
     """
 
     def get(self, request, *args, **kwargs):
@@ -305,25 +328,42 @@ class PublicPaymentCallbackView(TemplateView):
             return redirect("admissions:public_apply")
 
         try:
-            result = PaymentService.verify_payment(reference)
+            # Delegate to finance app for payment verification
+            result = PaymentService.verify_paystack_payment(reference)
 
             if not result.get("success"):
                 messages.error(request, result.get("message", "Verification failed"))
                 return redirect("admissions:public_payment_failed")
 
-            app_id = result.get("application_id")
-            app = ApplicationSelector.get_by_id(app_id)
+            # Get the invoice to find associated application
+            invoice_id = result.get("invoice_id")
+            if invoice_id:
+                from admissions.models import Application
+                try:
+                    application = Application.objects.get(invoice_id=invoice_id)
+                    # Auto-submit application after successful payment
+                    if application.status == ApplicationStatus.DRAFT:
+                        ApplicationService.submit_application(
+                            application_id=application.id,
+                            submitted_by_id=None  # System submission
+                        )
+                        logger.info(f"Application {application.application_number} auto-submitted after payment")
+                    
+                    return redirect(
+                        "admissions:public_success",
+                        application_number=application.application_number
+                    )
+                except Application.DoesNotExist:
+                    logger.warning(f"No application found for invoice {invoice_id}")
+                    messages.error(request, "Application not found.")
+                    return redirect("admissions:public_apply")
 
-            logger.info("Payment verified", extra={"reference": reference})
+            messages.success(request, "Payment verified successfully!")
+            return redirect("admissions:public_apply")
 
-            return redirect(
-                "admissions:public_success",
-                application_number=app["application_number"],
-            )
-
-        except Exception:
-            logger.exception("Payment callback error.")
-            messages.error(request, "Error verifying payment.")
+        except Exception as e:
+            logger.exception(f"Payment callback error: {e}")
+            messages.error(request, f"Error verifying payment: {str(e)}")
             return redirect("admissions:public_payment_failed")
             
 
@@ -332,71 +372,47 @@ class PublicPaymentCallbackView(TemplateView):
 class PaystackWebhookView(View):
     """
     Secure Paystack webhook endpoint.
+    Delegates to finance app for processing.
     """
 
     def post(self, request, *args, **kwargs):
-        signature = (
-            request.headers.get("x-paystack-signature")
-            or request.META.get("HTTP_X_PAYSTACK_SIGNATURE")
-        )
-
-        if not self._verify_signature(signature, request.body):
+        # Verify signature
+        if not PaymentService.verify_webhook(request):
             logger.warning("Invalid webhook signature.")
             return HttpResponse(status=401)
 
         try:
+            import json
             payload = json.loads(request.body)
             event = payload.get("event")
 
             logger.info(f"Webhook received: {event}")
 
-            if event == "charge.success":
-                return self._handle_success(payload["data"])
+            # Delegate to finance app for processing
+            result = PaymentService.handle_webhook(payload)
 
-            if event == "charge.failed":
-                return self._handle_failure(payload["data"])
+            # If payment was successful and we have invoice_id, check for application
+            if event == "charge.success" and result.get("success"):
+                invoice_id = result.get("invoice_id")
+                if invoice_id:
+                    from admissions.models import Application
+                    try:
+                        application = Application.objects.get(invoice_id=invoice_id)
+                        if application.status == ApplicationStatus.DRAFT:
+                            ApplicationService.submit_application(
+                                application_id=application.id,
+                                submitted_by_id=None
+                            )
+                            logger.info(f"Application {application.application_number} auto-submitted via webhook")
+                    except Application.DoesNotExist:
+                        logger.warning(f"No application found for invoice {invoice_id}")
 
-            return JsonResponse({"status": "ignored"})
-
-        except Exception:
-            logger.exception("Webhook processing error.")
-            return JsonResponse({"status": "error"}, status=200)
-
-    def _verify_signature(self, signature, payload):
-        if not signature or not settings.PAYSTACK_SECRET_KEY:
-            return False
-
-        expected = hmac.new(
-            settings.PAYSTACK_SECRET_KEY.encode(),
-            payload,
-            hashlib.sha512,
-        ).hexdigest()
-
-        return hmac.compare_digest(signature, expected)
-
-    def _handle_success(self, data):
-        reference = data.get("reference")
-
-        try:
-            PaymentService.verify_payment(reference)
             return JsonResponse({"status": "success"})
-        except Exception:
-            logger.exception("Webhook payment verification failed.")
+
+        except Exception as e:
+            logger.exception(f"Webhook processing error: {e}")
             return JsonResponse({"status": "error"}, status=200)
 
-    def _handle_failure(self, data):
-        reference = data.get("reference")
-
-        try:
-            payment = ApplicationPayment.objects.get(
-                paystack_reference=reference
-            )
-            payment.mark_failed(data)
-        except ApplicationPayment.DoesNotExist:
-            logger.warning("Payment record not found.")
-
-        return JsonResponse({"status": "recorded"})
-        
 
 class PublicSuccessView(TemplateView):
     """
@@ -411,7 +427,7 @@ class PublicSuccessView(TemplateView):
 
         application_number = kwargs.get("application_number")
 
-        # Fallback to session (optional convenience only)
+        # Fallback to session
         if not application_number:
             application_number = self.request.session.get(
                 "last_application_number"
@@ -437,8 +453,12 @@ class PublicSuccessView(TemplateView):
             extra={"application_number": application_number}
         )
 
+        # Clear session
+        self.request.session.pop('last_application_number', None)
+
         context["application"] = application
         context["application_number"] = application_number
+        context["payment_completed"] = application.get("payment_completed")
 
         return context
         

@@ -66,40 +66,6 @@ class ApplicationType:
     ]
 
 
-class PaymentStatus:
-    """Application fee payment status"""
-    
-    PENDING = 'pending'
-    PROCESSING = 'processing'
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    REFUNDED = 'refunded'
-    
-    CHOICES = [
-        (PENDING, _('Pending')),
-        (PROCESSING, _('Processing')),
-        (COMPLETED, _('Completed')),
-        (FAILED, _('Failed')),
-        (REFUNDED, _('Refunded')),
-    ]
-
-
-class PaymentMethod:
-    """Payment methods supported"""
-    
-    PAYSTACK = 'paystack'
-    BANK_TRANSFER = 'bank_transfer'
-    CASH = 'cash'
-    POS = 'pos'
-    
-    CHOICES = [
-        (PAYSTACK, _('Paystack Online')),
-        (BANK_TRANSFER, _('Bank Transfer')),
-        (CASH, _('Cash')),
-        (POS, _('POS')),
-    ]
-
-
 class DocumentType:
     """Types of documents that can be uploaded"""
     
@@ -120,6 +86,17 @@ class DocumentType:
     ]
 
 
-# Application fee configuration (can be overridden in SiteConfig)
-DEFAULT_APPLICATION_FEE = 5000  # Naira
-DEFAULT_ADMISSION_DEADLINE_DAYS = 30  # Days from approval to enrollment
+class AdmissionsPeriodType:
+    """Standard admission period types"""
+    
+    EARLY = 'early'
+    REGULAR = 'regular'
+    LATE = 'late'
+    TRANSFER = 'transfer'
+    
+    CHOICES = [
+        (EARLY, 'Early Admission'),
+        (REGULAR, 'Regular Admission'),
+        (LATE, 'Late Admission'),
+        (TRANSFER, 'Transfer Admission'),
+    ]

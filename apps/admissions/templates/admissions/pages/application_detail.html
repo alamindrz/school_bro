@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Application {{ application.application_number }} - Admissions - School Bro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-file-alt text-primary-500 mr-3"></i>
+                    Application Details
+                </h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Application #: {{ application.application_number }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'admissions:list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to List
+                </a>
+                {% if perms.admissions.change_application and application.status == 'draft' %}
+                <a href="{% url 'admissions:edit' application.pk %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    <i class="fas fa-edit mr-2"></i> Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="mb-6 rounded-lg p-4 
+        {% if application.status == 'enrolled' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800
+        {% elif application.status == 'approved' %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800
+        {% elif application.status == 'rejected' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
+        {% elif application.status == 'submitted' %}bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800
+        {% elif application.status == 'under_review' %}bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800
+        {% else %}bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+        {% endif %}">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">
+                    {% if application.status == 'enrolled' %}✅
+                    {% elif application.status == 'approved' %}✓
+                    {% elif application.status == 'rejected' %}✗
+                    {% elif application.status == 'submitted' %}⏳
+                    {% elif application.status == 'under_review' %}🔍
+                    {% elif application.status == 'draft' %}📝
+                    {% else %}📄
+                    {% endif %}
+                </span>
+                <div>
+                    <h3 class="text-lg font-semibold 
+                        {% if application.status == 'enrolled' %}text-green-800 dark:text-green-200
+                        {% elif application.status == 'approved' %}text-blue-800 dark:text-blue-200
+                        {% elif application.status == 'rejected' %}text-red-800 dark:text-red-200
+                        {% elif application.status == 'submitted' %}text-yellow-800 dark:text-yellow-200
+                        {% elif application.status == 'under_review' %}text-purple-800 dark:text-purple-200
+                        {% else %}text-gray-800 dark:text-gray-200
+                        {% endif %}">
+                        Status: {{ application.get_status_display }}
+                    </h3>
+                    {% if application.submitted_at %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Submitted: {{ application.submitted_at|date:"F d, Y H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Review Actions -->
+            {% if application.status == 'submitted' and perms.admissions.change_application %}
+            <div class="flex space-x-2">
+                <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="approved">
+                    <input type="hidden" name="notes" value="Approved">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                        <i class="fas fa-check mr-1"></i> Approve
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="rejected">
+                    <input type="hidden" name="notes" value="Rejected">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                        <i class="fas fa-times mr-1"></i> Reject
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="under_review">
+                    <input type="hidden" name="notes" value="Started review">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700">
+                        <i class="fas fa-search mr-1"></i> Start Review
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            {% if application.status == 'approved' and perms.admissions.enroll_applicant %}
+            <form method="post" action="{% url 'admissions:enroll' application.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        onclick="return confirm('Enroll this applicant as a student?')"
+                        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                    <i class="fas fa-user-graduate mr-1"></i> Enroll Student
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column - Student Info -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Personal Information Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-user text-primary-500 mr-2"></i> Personal Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.full_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Gender</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.get_gender_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Date of Birth</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.date_of_birth|date:"F d, Y" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Age</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                {% now "Y" as current_year %}
+                                {{ application.date_of_birth|date:"Y"|add:current_year|add:"-1" }} years
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Nationality</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.nationality|default:"Nigerian" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">State of Origin</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.state_of_origin }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Contact Information Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-phone text-primary-500 mr-2"></i> Contact Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.email|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.phone|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Alternate Phone</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.alternate_phone|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Address</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.address|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">City</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.city|default:"Not provided" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Academic Information Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-graduation-cap text-primary-500 mr-2"></i> Academic Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Applying for Class</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.applying_for_class.display_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Application Type</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.get_application_type_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Academic Session</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.applying_for_session.name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Previous School</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.previous_school|default:"N/A" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Previous Class</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.previous_class|default:"N/A" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Guardian Information Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-user-shield text-primary-500 mr-2"></i> Guardian Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_first_name }} {{ application.guardian_last_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Relationship</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_relationship }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_phone }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_email|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Occupation</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_occupation|default:"Not provided" }}</dd>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Address</dt>
+                            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ application.guardian_address|default:"Not provided" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Review Notes Card -->
+            {% if application.review_notes %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-sticky-note text-primary-500 mr-2"></i> Review Notes
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ application.review_notes }}</p>
+                    {% if application.reviewed_by %}
+                    <p class="mt-2 text-xs text-gray-500">Reviewed by {{ application.reviewed_by.get_full_name }} on {{ application.reviewed_at|date:"F d, Y H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Column - Sidebar -->
+        <div class="space-y-6">
+            
+            <!-- Payment Status Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-credit-card text-primary-500 mr-2"></i> Payment Status
+                    </h2>
+                </div>
+                <div class="p-6">
+                    {% if application.invoice_id %}
+                        {% if application.payment_completed %}
+                            <div class="text-center">
+                                <div class="text-4xl text-green-500 mb-2">✓</div>
+                                <p class="text-sm font-medium text-green-600 dark:text-green-400">Payment Completed</p>
+                                <p class="text-xs text-gray-500 mt-2">Invoice #{{ application.invoice_id }}</p>
+                            </div>
+                        {% else %}
+                            <div class="text-center">
+                                <div class="text-4xl text-yellow-500 mb-2">⏳</div>
+                                <p class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Payment Pending</p>
+                                <p class="text-xs text-gray-500 mt-2">Invoice #{{ application.invoice_id }}</p>
+                                <button class="mt-4 px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700">
+                                    <i class="fas fa-credit-card mr-1"></i> Pay Now
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center">
+                            <div class="text-4xl text-gray-400 mb-2">💳</div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">No payment required</p>
+                            <p class="text-xs text-gray-500 mt-1">Staff-created application</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Metadata Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-info-circle text-primary-500 mr-2"></i> Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ application.created_at|date:"F d, Y H:i" }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Created by</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ application.created_by.get_full_name|default:"System" }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Last updated</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ application.updated_at|date:"F d, Y H:i" }}</dd>
+                        </div>
+                        {% if application.enrolled_student_id %}
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Student ID</dt>
+                            <dd class="text-gray-900 dark:text-gray-100">{{ application.enrolled_student_id }}</dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <i class="fas fa-bolt text-primary-500 mr-2"></i> Quick Actions
+                    </h2>
+                </div>
+                <div class="p-6 space-y-3">
+                    <a href="{% url 'admissions:add_note' application.pk %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                        <i class="fas fa-plus mr-2"></i> Add Note
+                    </a>
+                    
+                    {% if application.status == 'draft' and perms.admissions.change_application %}
+                    <a href="{% url 'admissions:edit' application.pk %}" 
+                       class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <i class="fas fa-edit mr-2"></i> Edit Application
+                    </a>
+                    {% endif %}
+                    
+                    {% if application.status == 'approved' and not application.enrolled_student_id %}
+                    <form method="post" action="{% url 'admissions:enroll' application.pk %}" class="w-full">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                onclick="return confirm('Enroll this applicant as a student?')"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                            <i class="fas fa-user-graduate mr-2"></i> Enroll Student
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notes Section -->
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <i class="fas fa-comments text-primary-500 mr-2"></i> Internal Notes
+            </h2>
+        </div>
+        <div class="p-6">
+            <form method="post" action="{% url 'admissions:add_note' application.pk %}" class="mb-6">
+                {% csrf_token %}
+                <div class="flex flex-col space-y-3">
+                    <textarea name="note" rows="3" 
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              placeholder="Add an internal note..."></textarea>
+                    <div class="flex justify-end">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700">
+                            <i class="fas fa-paper-plane mr-2"></i> Add Note
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            {% if application.notes.all %}
+                <div class="space-y-4">
+                    {% for note in application.notes.all %}
+                    <div class="border-l-4 border-primary-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
+                        <div class="flex justify-between items-start">
+                            <p class="text-sm text-gray-700 dark:text-gray-300">{{ note.note }}</p>
+                            <span class="text-xs text-gray-500">{{ note.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">— {{ note.created_by.get_full_name|default:"System" }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No notes yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}  

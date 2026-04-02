@@ -5,7 +5,7 @@ Depends on: students (via student_id only, not direct model)
 """
 
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
@@ -103,7 +103,9 @@ class Invoice(models.Model):
     # Student reference (decoupled)
     student_id = models.IntegerField(
         db_index=True,
-        help_text=_("Student ID from students app")
+        null=True,
+        blank=True,
+        help_text=_("Student ID from students app (null for application fees)")
     )
     student_name = models.CharField(
         max_length=200,
@@ -223,6 +225,7 @@ class Invoice(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['due_date']),
             models.Index(fields=['academic_session', 'academic_term']),
+            models.Index(fields=['fee_type']),  # ADDED for faster filtering
         ]
         verbose_name = _('Invoice')
         verbose_name_plural = _('Invoices')

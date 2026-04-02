@@ -277,7 +277,7 @@ class SystemLog(models.Model):
     # Changes
     changes = models.JSONField(default=dict, blank=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
-    user_agent = models.TextField(blank=True)
+    user_agent = models.TextField(blank=True, null=True)
     
     # When
     timestamp = models.DateTimeField(default=timezone.now)

@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 import logging
 
-from ..models import Application, ApplicationPayment
+from ..models import Application
 from ..services import ApplicationService
 
 logger = logging.getLogger(__name__)
@@ -36,9 +36,7 @@ def application_pre_save(sender, instance, **kwargs):
         pass
 
 
-@receiver(post_save, sender=ApplicationPayment)
-def payment_post_save(sender, instance, created, **kwargs):
-    """Handle payment completion"""
-    if created and instance.status == 'completed':
-        logger.info(f"Payment completed for application {instance.application.application_number}")
-        # Could trigger enrollment if auto-enroll is enabled
+# REMOVED: payment_post_save signal for ApplicationPayment
+# Payment handling is now delegated to the finance app.
+# When payment is completed in finance, the webhook will trigger
+# ApplicationService.submit_application() via the callback.

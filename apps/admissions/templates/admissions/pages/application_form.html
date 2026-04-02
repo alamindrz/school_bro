@@ -2,22 +2,20 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}{% if object %}Edit{% else %}New{% endif %} Application - Admissions - DETs Toolkit{% endblock %}
+{% block title %}{% if object %}Edit{% else %}New{% endif %} Application - Admissions - School Bro{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-     x-data="applicationForm()"
-     x-init="init()">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8" id="app-form-container">
     
     <!-- Page Header -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
+    <div class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    <i class="fas fa-clipboard-list text-primary-500 mr-3"></i>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-clipboard-list text-primary-500 mr-2 sm:mr-3"></i>
                     {% if object %}Edit Application{% else %}New Application{% endif %}
                 </h1>
-                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <p class="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {% if object %}
                         Update application details for {{ object.full_name }}
                     {% else %}
@@ -26,11 +24,24 @@
                 </p>
             </div>
             <a href="{% url 'admissions:list' %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Applications
+               class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-1 sm:mr-2"></i> Back
             </a>
         </div>
     </div>
+
+    <!-- Admissions Closed Warning -->
+    {% if not admissions_open %}
+    <div class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div class="flex items-center">
+            <i class="fas fa-ban text-red-500 text-xl mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Admissions are currently closed</h3>
+                <p class="text-sm text-red-700 dark:text-red-300">No new applications can be created at this time.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Application Form -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -39,358 +50,225 @@
             
             <!-- Progress Bar (for new applications) -->
             {% if not object %}
-            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2 sm:space-x-4">
-                        <!-- Step 1: Personal Info -->
-                        <div class="flex items-center" :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 1 }">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2"
-                                 :class="{
-                                     'border-primary-600 bg-primary-600 text-white': currentStep > 1,
-                                     'border-primary-600 text-primary-600': currentStep === 1,
-                                     'border-gray-300 text-gray-400': currentStep < 1
-                                 }">
-                                <span x-show="currentStep > 1" class="text-white">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                                <span x-show="currentStep <= 1">1</span>
+            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+                <div class="flex items-center justify-between min-w-max sm:min-w-0">
+                    <div class="flex items-center space-x-1 sm:space-x-4" id="progress-steps">
+                        <div class="flex items-center" data-step="1">
+                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="1">
+                                <span class="step-text text-xs sm:text-sm">1</span>
                             </div>
-                            <span class="ml-2 text-sm hidden sm:block"
-                                  :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 1, 'text-gray-500': currentStep < 1 }">
-                                Personal
-                            </span>
+                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="1">Personal</span>
                         </div>
-                        
-                        <i class="fas fa-chevron-right text-gray-400"></i>
-                        
-                        <!-- Step 2: Contact -->
-                        <div class="flex items-center" :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 2 }">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2"
-                                 :class="{
-                                     'border-primary-600 bg-primary-600 text-white': currentStep > 2,
-                                     'border-primary-600 text-primary-600': currentStep === 2,
-                                     'border-gray-300 text-gray-400': currentStep < 2
-                                 }">
-                                <span x-show="currentStep > 2" class="text-white">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                                <span x-show="currentStep <= 2">2</span>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
+                        <div class="flex items-center" data-step="2">
+                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="2">
+                                <span class="step-text text-xs sm:text-sm">2</span>
                             </div>
-                            <span class="ml-2 text-sm hidden sm:block"
-                                  :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 2, 'text-gray-500': currentStep < 2 }">
-                                Contact
-                            </span>
+                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="2">Contact</span>
                         </div>
-                        
-                        <i class="fas fa-chevron-right text-gray-400"></i>
-                        
-                        <!-- Step 3: Academic -->
-                        <div class="flex items-center" :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 3 }">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2"
-                                 :class="{
-                                     'border-primary-600 bg-primary-600 text-white': currentStep > 3,
-                                     'border-primary-600 text-primary-600': currentStep === 3,
-                                     'border-gray-300 text-gray-400': currentStep < 3
-                                 }">
-                                <span x-show="currentStep > 3" class="text-white">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                                <span x-show="currentStep <= 3">3</span>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
+                        <div class="flex items-center" data-step="3">
+                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="3">
+                                <span class="step-text text-xs sm:text-sm">3</span>
                             </div>
-                            <span class="ml-2 text-sm hidden sm:block"
-                                  :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 3, 'text-gray-500': currentStep < 3 }">
-                                Academic
-                            </span>
+                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="3">Academic</span>
                         </div>
-                        
-                        <i class="fas fa-chevron-right text-gray-400"></i>
-                        
-                        <!-- Step 4: Guardian -->
-                        <div class="flex items-center" :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 4 }">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2"
-                                 :class="{
-                                     'border-primary-600 bg-primary-600 text-white': currentStep > 4,
-                                     'border-primary-600 text-primary-600': currentStep === 4,
-                                     'border-gray-300 text-gray-400': currentStep < 4
-                                 }">
-                                <span x-show="currentStep > 4" class="text-white">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                                <span x-show="currentStep <= 4">4</span>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
+                        <div class="flex items-center" data-step="4">
+                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="4">
+                                <span class="step-text text-xs sm:text-sm">4</span>
                             </div>
-                            <span class="ml-2 text-sm hidden sm:block"
-                                  :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 4, 'text-gray-500': currentStep < 4 }">
-                                Guardian
-                            </span>
+                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="4">Guardian</span>
                         </div>
-                        
-                        <i class="fas fa-chevron-right text-gray-400"></i>
-                        
-                        <!-- Step 5: Review -->
-                        <div class="flex items-center" :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 5 }">
-                            <div class="flex items-center justify-center w-8 h-8 rounded-full border-2"
-                                 :class="{
-                                     'border-primary-600 bg-primary-600 text-white': currentStep > 5,
-                                     'border-primary-600 text-primary-600': currentStep === 5,
-                                     'border-gray-300 text-gray-400': currentStep < 5
-                                 }">
-                                5
+                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
+                        <div class="flex items-center" data-step="5">
+                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="5">
+                                <span class="step-text text-xs sm:text-sm">5</span>
                             </div>
-                            <span class="ml-2 text-sm hidden sm:block"
-                                  :class="{ 'text-primary-600 dark:text-primary-400': currentStep >= 5, 'text-gray-500': currentStep < 5 }">
-                                Review
-                            </span>
+                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="5">Review</span>
                         </div>
                     </div>
-                    
-                    <!-- Step Counter -->
-                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                        Step <span x-text="currentStep"></span> of 5
-                    </span>
+                    <span class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-4" id="step-counter">Step 1 of 5</span>
                 </div>
             </div>
             {% endif %}
 
             <!-- Form Fields -->
-            <div class="p-6 space-y-6">
+            <div class="p-4 sm:p-6 space-y-6 sm:space-y-8">
+                
                 <!-- Personal Information Section -->
-                <div x-show="currentStep === 1 || {{ object|yesno:'true,false' }}" 
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100">
-                    
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-2">1</span>
+                <div class="form-section" data-section="1">
+                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">1</span>
                         Personal Information
                     </h2>
                     
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 First Name <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   name="first_name" 
-                                   id="{{ form.first_name.id_for_label }}"
+                            <input type="text" name="first_name" id="id_first_name"
                                    value="{{ form.first_name.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   :class="{ 'border-red-500': errors.first_name }"
-                                   @input="validateField('first_name', $event.target.value)"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
                             {% if form.first_name.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
                             {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Last Name <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   name="last_name" 
-                                   id="{{ form.last_name.id_for_label }}"
+                            <input type="text" name="last_name" id="id_last_name"
                                    value="{{ form.last_name.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   :class="{ 'border-red-500': errors.last_name }"
-                                   @input="validateField('last_name', $event.target.value)"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
                             {% if form.last_name.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
                             {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.middle_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Middle Name
                             </label>
-                            <input type="text" 
-                                   name="middle_name" 
-                                   id="{{ form.middle_name.id_for_label }}"
+                            <input type="text" name="middle_name" id="id_middle_name"
                                    value="{{ form.middle_name.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div>
-                            <label for="{{ form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Gender <span class="text-red-500">*</span>
                             </label>
-                            <select name="gender" 
-                                    id="{{ form.gender.id_for_label }}"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    :class="{ 'border-red-500': errors.gender }"
-                                    @change="validateField('gender', $event.target.value)"
-                                    required>
+                            <select name="gender" id="id_gender" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select Gender</option>
                                 <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
                                 <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
                             </select>
                             {% if form.gender.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.gender.errors.0 }}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.gender.errors.0 }}</p>
                             {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Date of Birth <span class="text-red-500">*</span>
                             </label>
-                            <input type="date" 
-                                   name="date_of_birth" 
-                                   id="{{ form.date_of_birth.id_for_label }}"
+                            <input type="date" name="date_of_birth" id="id_date_of_birth"
                                    value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   :class="{ 'border-red-500': errors.date_of_birth }"
-                                   @change="validateField('date_of_birth', $event.target.value)"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
+                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="age-hint">
+                                <i class="fas fa-info-circle mr-1"></i> 
+                                <span id="calculated-age"></span>
+                                <span id="age-warning" class="hidden ml-2"></span>
+                            </div>
                             {% if form.date_of_birth.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.date_of_birth.errors.0 }}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.date_of_birth.errors.0 }}</p>
                             {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.nationality.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Nationality
                             </label>
-                            <input type="text" 
-                                   name="nationality" 
-                                   id="{{ form.nationality.id_for_label }}"
-                                   value="{{ form.nationality.value|default:'Nigerian' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <input type="text" name="nationality" id="id_nationality" value="Nigerian"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div>
-                            <label for="{{ form.state_of_origin.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 State of Origin <span class="text-red-500">*</span>
                             </label>
-                            <select name="state_of_origin" 
-                                    id="{{ form.state_of_origin.id_for_label }}"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    required>
+                            <select name="state_of_origin" id="id_state_of_origin" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select State</option>
                                 {% include "admissions/includes/nigerian_states_options.html" %}
                             </select>
+                            {% if form.state_of_origin.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.state_of_origin.errors.0 }}</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- Contact Information Section -->
-                <div x-show="currentStep === 2 || {{ object|yesno:'true,false' }}" 
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100">
-                    
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-2">2</span>
+                <!-- Contact Information Section (Optional) -->
+                <div class="form-section hidden" data-section="2">
+                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 flex flex-wrap items-center gap-2">
+                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">2</span>
                         Contact Information
+                        <span class="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">(Optional - for student's own account)</span>
                     </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-8">If provided, the student can log in to view their records</p>
                     
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div class="sm:col-span-2">
-                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Email Address <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Email Address
                             </label>
-                            <input type="email" 
-                                   name="email" 
-                                   id="{{ form.email.id_for_label }}"
+                            <input type="email" name="email" id="id_email"
                                    value="{{ form.email.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   :class="{ 'border-red-500': errors.email }"
-                                   @input="validateField('email', $event.target.value)"
-                                   required>
-                            {% if form.email.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
-                            {% endif %}
+                                   placeholder="student@example.com"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div>
-                            <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Phone Number <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Phone Number
                             </label>
-                            <input type="tel" 
-                                   name="phone" 
-                                   id="{{ form.phone.id_for_label }}"
+                            <input type="tel" name="phone" id="id_phone"
                                    value="{{ form.phone.value|default:'' }}"
                                    placeholder="08012345678"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   :class="{ 'border-red-500': errors.phone }"
-                                   @input="validateField('phone', $event.target.value)"
-                                   required>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Nigerian format: 08012345678</p>
-                            {% if form.phone.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.phone.errors.0 }}</p>
-                            {% endif %}
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div>
-                            <label for="{{ form.alternate_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Alternate Phone
                             </label>
-                            <input type="tel" 
-                                   name="alternate_phone" 
-                                   id="{{ form.alternate_phone.id_for_label }}"
+                            <input type="tel" name="alternate_phone" id="id_alternate_phone"
                                    value="{{ form.alternate_phone.value|default:'' }}"
                                    placeholder="08012345678"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div class="sm:col-span-2">
-                            <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Residential Address <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Residential Address
                             </label>
-                            <textarea name="address" 
-                                      id="{{ form.address.id_for_label }}"
-                                      rows="2"
-                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                      required>{{ form.address.value|default:'' }}</textarea>
+                            <textarea name="address" id="id_address" rows="2"
+                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ form.address.value|default:'' }}</textarea>
                         </div>
                         
                         <div>
-                            <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                City <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                City
                             </label>
-                            <input type="text" 
-                                   name="city" 
-                                   id="{{ form.city.id_for_label }}"
+                            <input type="text" name="city" id="id_city"
                                    value="{{ form.city.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   required>
-                        </div>
-                        
-                        <div>
-                            <label for="{{ form.lga.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                LGA
-                            </label>
-                            <input type="text" 
-                                   name="lga" 
-                                   id="{{ form.lga.id_for_label }}"
-                                   value="{{ form.lga.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Academic Information Section -->
-                <div x-show="currentStep === 3 || {{ object|yesno:'true,false' }}" 
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100">
-                    
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-2">3</span>
+                <div class="form-section hidden" data-section="3">
+                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">3</span>
                         Academic Information
                     </h2>
                     
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div>
-                            <label for="{{ form.applying_for_class.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Applying for Class <span class="text-red-500">*</span>
                             </label>
-                            <select name="applying_for_class" 
-                                    id="{{ form.applying_for_class.id_for_label }}"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    @change="checkClassAvailability($event.target.value)"
-                                    required>
+                            <select name="applying_for_class" id="class-select" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select Class</option>
                                 {% for class in classes %}
                                 <option value="{{ class.id }}" {% if form.applying_for_class.value == class.id %}selected{% endif %}>
@@ -398,58 +276,41 @@
                                 </option>
                                 {% endfor %}
                             </select>
-                            
-                            <!-- Class Availability Indicator -->
-                            <div x-show="selectedClassId" x-cloak class="mt-2">
-                                <div x-show="classAvailability.loading" class="text-sm text-gray-500">
-                                    <i class="fas fa-spinner fa-spin mr-1"></i> Checking availability...
-                                </div>
-                                <div x-show="!classAvailability.loading && classAvailability.available !== undefined" 
-                                     class="text-sm"
-                                     :class="classAvailability.available > 0 ? 'text-green-600' : 'text-red-600'">
-                                    <i class="fas" :class="classAvailability.available > 0 ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
-                                    <span x-text="classAvailability.available > 0 ? classAvailability.available + ' spots available' : 'Class is full'"></span>
-                                </div>
-                            </div>
+                            <div id="class-availability" class="mt-1 text-xs"></div>
+                            {% if form.applying_for_class.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.applying_for_class.errors.0 }}</p>
+                            {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.application_type.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Application Type <span class="text-red-500">*</span>
                             </label>
-                            <select name="application_type" 
-                                    id="{{ form.application_type.id_for_label }}"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    @change="togglePreviousSchool($event.target.value)"
-                                    required>
+                            <select name="application_type" id="app-type" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="new" {% if form.application_type.value == 'new' %}selected{% endif %}>New Student</option>
-                                <option value="transfer" {% if form.application_type.value == 'transfer' %}selected{% endif %}>Transfer from Another School</option>
+                                <option value="transfer" {% if form.application_type.value == 'transfer' %}selected{% endif %}>Transfer Student</option>
                                 <option value="re_admission" {% if form.application_type.value == 're_admission' %}selected{% endif %}>Re-admission</option>
                             </select>
                         </div>
-                      <!-- Previous School (shows for transfer/re_admission) -->
-                        <div x-show="showPreviousSchool" x-cloak class="sm:col-span-2">
-                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        
+                        <div id="previous-school-fields" class="sm:col-span-2" style="display: none;">
+                            <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                                 <div>
-                                    <label for="{{ form.previous_school.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         Previous School
                                     </label>
-                                    <input type="text" 
-                                           name="previous_school" 
-                                           id="{{ form.previous_school.id_for_label }}"
+                                    <input type="text" name="previous_school" id="id_previous_school"
                                            value="{{ form.previous_school.value|default:'' }}"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 </div>
-                                
                                 <div>
-                                    <label for="{{ form.previous_class.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         Previous Class
                                     </label>
-                                    <input type="text" 
-                                           name="previous_class" 
-                                           id="{{ form.previous_class.id_for_label }}"
+                                    <input type="text" name="previous_class" id="id_previous_class"
                                            value="{{ form.previous_class.value|default:'' }}"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 </div>
                             </div>
                         </div>
@@ -459,221 +320,185 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Supporting Documents
                             </label>
-                            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
-                                <div class="text-center">
-                                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        Drag and drop files here, or <button type="button" 
-                                                                           @click="documentInput.click()"
-                                                                           class="text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
-                                            browse
-                                        </button>
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        PDF, JPG, PNG up to 5MB each
-                                    </p>
-                                    <input type="file" 
-                                           id="documents" 
-                                           name="documents" 
-                                           multiple 
-                                           class="hidden"
-                                           accept=".pdf,.jpg,.jpeg,.png"
-                                           @change="handleDocumentUpload">
-                                </div>
-                                
-                                <!-- Uploaded Files List -->
-                                <div x-show="uploadedFiles.length > 0" class="mt-4 space-y-2">
-                                    <template x-for="(file, index) in uploadedFiles" :key="index">
-                                        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                                            <div class="flex items-center">
-                                                <i class="fas" :class="file.icon"></i>
-                                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300" x-text="file.name"></span>
-                                                <span class="ml-2 text-xs text-gray-500" x-text="file.size"></span>
-                                            </div>
-                                            <button type="button" @click="removeFile(index)" class="text-red-500 hover:text-red-700">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </div>
+                            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 sm:p-6 text-center" id="dropzone">
+                                <i class="fas fa-cloud-upload-alt text-3xl sm:text-4xl text-gray-400 mb-2 sm:mb-3"></i>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    Drag & drop files here, or
+                                </p>
+                                <button type="button" id="browse-btn"
+                                        class="mt-2 inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    <i class="fas fa-folder-open mr-2"></i> Browse Files
+                                </button>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    PDF, JPG, PNG up to 5MB each
+                                </p>
+                                <input type="file" id="file-input" name="documents" multiple class="hidden"
+                                       accept=".pdf,.jpg,.jpeg,.png">
                             </div>
+                            <div id="file-list" class="mt-4 space-y-2"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Guardian Information Section -->
-                <div x-show="currentStep === 4 || {{ object|yesno:'true,false' }}" 
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100">
-                    
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-2">4</span>
+                <div class="form-section hidden" data-section="4">
+                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">4</span>
                         Guardian Information
+                        <span class="ml-2 text-xs sm:text-sm font-normal text-red-500">* Required</span>
                     </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-8">Primary contact for all communications</p>
                     
-                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div>
-                            <label for="{{ form.guardian_first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian First Name <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                First Name <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   name="guardian_first_name" 
-                                   id="{{ form.guardian_first_name.id_for_label }}"
+                            <input type="text" name="guardian_first_name" id="id_guardian_first_name"
                                    value="{{ form.guardian_first_name.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
+                            {% if form.guardian_first_name.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_first_name.errors.0 }}</p>
+                            {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.guardian_last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian Last Name <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Last Name <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   name="guardian_last_name" 
-                                   id="{{ form.guardian_last_name.id_for_label }}"
+                            <input type="text" name="guardian_last_name" id="id_guardian_last_name"
                                    value="{{ form.guardian_last_name.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
+                            {% if form.guardian_last_name.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_last_name.errors.0 }}</p>
+                            {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.guardian_relationship.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Relationship <span class="text-red-500">*</span>
                             </label>
-                            <select name="guardian_relationship" 
-                                    id="{{ form.guardian_relationship.id_for_label }}"
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    required>
+                            <select name="guardian_relationship" id="id_guardian_relationship" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select Relationship</option>
-                                <option value="father" {% if form.guardian_relationship.value == 'father' %}selected{% endif %}>Father</option>
-                                <option value="mother" {% if form.guardian_relationship.value == 'mother' %}selected{% endif %}>Mother</option>
-                                <option value="guardian" {% if form.guardian_relationship.value == 'guardian' %}selected{% endif %}>Legal Guardian</option>
-                                <option value="grandparent" {% if form.guardian_relationship.value == 'grandparent' %}selected{% endif %}>Grandparent</option>
-                                <option value="other" {% if form.guardian_relationship.value == 'other' %}selected{% endif %}>Other</option>
+                                <option value="Father" {% if form.guardian_relationship.value == 'Father' %}selected{% endif %}>Father</option>
+                                <option value="Mother" {% if form.guardian_relationship.value == 'Mother' %}selected{% endif %}>Mother</option>
+                                <option value="Guardian" {% if form.guardian_relationship.value == 'Guardian' %}selected{% endif %}>Legal Guardian</option>
+                                <option value="Grandparent" {% if form.guardian_relationship.value == 'Grandparent' %}selected{% endif %}>Grandparent</option>
+                                <option value="Other" {% if form.guardian_relationship.value == 'Other' %}selected{% endif %}>Other</option>
                             </select>
+                            {% if form.guardian_relationship.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_relationship.errors.0 }}</p>
+                            {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.guardian_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian Phone <span class="text-red-500">*</span>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Phone Number <span class="text-red-500">*</span>
                             </label>
-                            <input type="tel" 
-                                   name="guardian_phone" 
-                                   id="{{ form.guardian_phone.id_for_label }}"
+                            <input type="tel" name="guardian_phone" id="id_guardian_phone"
                                    value="{{ form.guardian_phone.value|default:'' }}"
                                    placeholder="08012345678"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
+                            {% if form.guardian_phone.errors %}
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_phone.errors.0 }}</p>
+                            {% endif %}
                         </div>
                         
                         <div>
-                            <label for="{{ form.guardian_email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian Email
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Email Address
                             </label>
-                            <input type="email" 
-                                   name="guardian_email" 
-                                   id="{{ form.guardian_email.id_for_label }}"
+                            <input type="email" name="guardian_email" id="id_guardian_email"
                                    value="{{ form.guardian_email.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                   placeholder="parent@example.com"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div>
-                            <label for="{{ form.guardian_occupation.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian Occupation
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Occupation
                             </label>
-                            <input type="text" 
-                                   name="guardian_occupation" 
-                                   id="{{ form.guardian_occupation.id_for_label }}"
+                            <input type="text" name="guardian_occupation" id="id_guardian_occupation"
                                    value="{{ form.guardian_occupation.value|default:'' }}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div class="sm:col-span-2">
-                            <label for="{{ form.guardian_address.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Guardian Address
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Address
                             </label>
-                            <textarea name="guardian_address" 
-                                      id="{{ form.guardian_address.id_for_label }}"
-                                      rows="2"
-                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ form.guardian_address.value|default:'' }}</textarea>
+                            <textarea name="guardian_address" id="id_guardian_address" rows="2"
+                                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ form.guardian_address.value|default:'' }}</textarea>
                         </div>
                     </div>
                 </div>
                   
-                <!-- Review Section (for new applications) -->
+                <!-- Review Section -->
                 {% if not object %}
-                <div x-show="currentStep === 5" 
-                     x-cloak
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100">
-                    
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-2">5</span>
+                <div class="form-section hidden" data-section="5">
+                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">5</span>
                         Review & Submit
                     </h2>
                     
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 space-y-4">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 space-y-4">
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Please review all information before submitting. You can go back to previous steps to make changes.
+                            Please review all information before submitting.
                         </p>
                         
-                        <!-- Summary Cards -->
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
                                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     <i class="fas fa-user text-primary-500 mr-1"></i> Personal Info
                                 </h3>
-                                <div class="space-y-1 text-sm">
-                                    <p><span class="text-gray-500">Name:</span> <span x-text="reviewData.firstName + ' ' + reviewData.lastName"></span></p>
-                                    <p><span class="text-gray-500">Gender:</span> <span x-text="reviewData.gender"></span></p>
-                                    <p><span class="text-gray-500">DOB:</span> <span x-text="reviewData.dob"></span></p>
+                                <div class="space-y-1 text-xs sm:text-sm">
+                                    <p><span class="text-gray-500">Name:</span> <span data-review="name"></span></p>
+                                    <p><span class="text-gray-500">Gender:</span> <span data-review="gender"></span></p>
+                                    <p><span class="text-gray-500">DOB:</span> <span data-review="dob"></span></p>
+                                    <p><span class="text-gray-500">Age:</span> <span data-review="age"></span></p>
                                 </div>
                             </div>
                             
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
                                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     <i class="fas fa-phone text-primary-500 mr-1"></i> Contact
                                 </h3>
-                                <div class="space-y-1 text-sm">
-                                    <p><span class="text-gray-500">Email:</span> <span x-text="reviewData.email"></span></p>
-                                    <p><span class="text-gray-500">Phone:</span> <span x-text="reviewData.phone"></span></p>
-                                    <p><span class="text-gray-500">Address:</span> <span x-text="reviewData.address"></span></p>
+                                <div class="space-y-1 text-xs sm:text-sm">
+                                    <p><span class="text-gray-500">Email:</span> <span data-review="email" class="break-all"></span></p>
+                                    <p><span class="text-gray-500">Phone:</span> <span data-review="phone"></span></p>
                                 </div>
                             </div>
                             
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
                                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     <i class="fas fa-graduation-cap text-primary-500 mr-1"></i> Academic
                                 </h3>
-                                <div class="space-y-1 text-sm">
-                                    <p><span class="text-gray-500">Class:</span> <span x-text="reviewData.class"></span></p>
-                                    <p><span class="text-gray-500">Type:</span> <span x-text="reviewData.appType"></span></p>
+                                <div class="space-y-1 text-xs sm:text-sm">
+                                    <p><span class="text-gray-500">Class:</span> <span data-review="class"></span></p>
+                                    <p><span class="text-gray-500">Type:</span> <span data-review="app-type"></span></p>
                                 </div>
                             </div>
                             
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
                                 <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     <i class="fas fa-user-shield text-primary-500 mr-1"></i> Guardian
                                 </h3>
-                                <div class="space-y-1 text-sm">
-                                    <p><span class="text-gray-500">Name:</span> <span x-text="reviewData.guardianName"></span></p>
-                                    <p><span class="text-gray-500">Phone:</span> <span x-text="reviewData.guardianPhone"></span></p>
+                                <div class="space-y-1 text-xs sm:text-sm">
+                                    <p><span class="text-gray-500">Name:</span> <span data-review="guardian"></span></p>
+                                    <p><span class="text-gray-500">Phone:</span> <span data-review="guardian-phone"></span></p>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Terms and Conditions -->
                         <div class="mt-6">
                             <label class="flex items-start">
-                                <input type="checkbox" 
-                                       x-model="termsAccepted"
-                                       class="mt-1 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                                    I confirm that all information provided is true and accurate. I understand that 
-                                    providing false information may result in disqualification of the application.
+                                <input type="checkbox" id="terms-checkbox" class="mt-0.5 mr-2 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500">
+                                <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                    I confirm that all information provided is true and accurate.
                                 </span>
                             </label>
                         </div>
@@ -683,46 +508,31 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-between">
-                <!-- Previous Button (for multi-step) -->
+            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
                 {% if not object %}
-                <button type="button" 
-                        @click="previousStep()"
-                        x-show="currentStep > 1"
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <button type="button" id="prevBtn" class="hidden inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                     <i class="fas fa-arrow-left mr-2"></i> Previous
                 </button>
-                <div x-show="currentStep === 1" class="flex-1"></div>
+                <div id="prevPlaceholder" class="hidden sm:block flex-1"></div>
                 {% endif %}
                 
-                <!-- Right side buttons -->
-                <div class="flex space-x-3">
-                    <button type="button" 
-                            onclick="window.location.href='{% url 'admissions:list' %}'"
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button type="button" onclick="window.location.href='{% url 'admissions:list' %}'"
                             class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                         Cancel
                     </button>
                     
                     {% if not object %}
-                    <!-- Next/Submit for multi-step -->
-                    <button type="button" 
-                            @click="nextStep()"
-                            x-show="currentStep < 5"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <button type="button" id="nextBtn" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
                         Next <i class="fas fa-arrow-right ml-2"></i>
                     </button>
                     
-                    <button type="submit" 
-                            x-show="currentStep === 5"
-                            :disabled="!termsAccepted"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="fas fa-paper-plane mr-2"></i> Submit Application
+                    <button type="submit" id="submitBtn" class="hidden inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit
                     </button>
                     {% else %}
-                    <!-- Single submit for edit -->
-                    <button type="submit" 
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        <i class="fas fa-save mr-2"></i> Update Application
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <i class="fas fa-save mr-2"></i> Update
                     </button>
                     {% endif %}
                 </div>
@@ -731,155 +541,415 @@
     </div>
 </div>
 
+<!-- JavaScript -->
+{% if not object %}
 <script>
-    function applicationForm() {
-        return {
-            // Multi-step form
-            currentStep: {{ object|yesno:'5,1' }},
-            showPreviousSchool: {{ form.application_type.value|default:'new' }} === 'transfer' || {{ form.application_type.value|default:'new' }} === 're_admission',
-            
-            // Validation
-            errors: {},
-            
-            // Class availability
-            selectedClassId: {{ form.applying_for_class.value|default:'null' }},
-            classAvailability: {
-                loading: false,
-                available: null
-            },
-            
-            // Document upload
-            uploadedFiles: [],
-            
-            // Review data
-            reviewData: {
-                firstName: '',
-                lastName: '',
-                gender: '',
-                dob: '',
-                email: '',
-                phone: '',
-                address: '',
-                class: '',
-                appType: '',
-                guardianName: '',
-                guardianPhone: ''
-            },
-            
-            // Terms
-            termsAccepted: false,
-            
-            init() {
-                // Initialize review data with form values
-                this.updateReviewData();
-                
-                // Check class availability if class is selected
-                if (this.selectedClassId) {
-                    this.checkClassAvailability(this.selectedClassId);
-                }
-            },
-            
-            nextStep() {
-                if (this.validateCurrentStep()) {
-                    this.updateReviewData();
-                    this.currentStep++;
-                }
-            },
-            
-            previousStep() {
-                this.currentStep--;
-            },
-            
-            validateCurrentStep() {
-                // Add validation logic for each step
-                return true;
-            },
-            
-            validateField(field, value) {
-                // Add field validation
-                if (!value && ['first_name', 'last_name', 'email', 'phone'].includes(field)) {
-                    this.errors[field] = 'This field is required';
-                } else {
-                    delete this.errors[field];
-                }
-            },
-            
-            updateReviewData() {
-                // Update review data with current form values
-                this.reviewData.firstName = document.querySelector('[name="first_name"]')?.value || '';
-                this.reviewData.lastName = document.querySelector('[name="last_name"]')?.value || '';
-                this.reviewData.gender = document.querySelector('[name="gender"] option:checked')?.text || '';
-                this.reviewData.dob = document.querySelector('[name="date_of_birth"]')?.value || '';
-                this.reviewData.email = document.querySelector('[name="email"]')?.value || '';
-                this.reviewData.phone = document.querySelector('[name="phone"]')?.value || '';
-                this.reviewData.address = document.querySelector('[name="address"]')?.value || '';
-                
-                const classSelect = document.querySelector('[name="applying_for_class"] option:checked');
-                this.reviewData.class = classSelect?.text || '';
-                
-                const typeSelect = document.querySelector('[name="application_type"] option:checked');
-                this.reviewData.appType = typeSelect?.text || '';
-                
-                const guardianFirst = document.querySelector('[name="guardian_first_name"]')?.value || '';
-                const guardianLast = document.querySelector('[name="guardian_last_name"]')?.value || '';
-                this.reviewData.guardianName = guardianFirst + ' ' + guardianLast;
-                this.reviewData.guardianPhone = document.querySelector('[name="guardian_phone"]')?.value || '';
-            },
-            
-            togglePreviousSchool(value) {
-                this.showPreviousSchool = value === 'transfer' || value === 're_admission';
-            },
-            
-            async checkClassAvailability(classId) {
-                if (!classId) return;
-                
-                this.selectedClassId = classId;
-                this.classAvailability.loading = true;
-                
-                try {
-                    const response = await fetch(`/admissions/ajax/class-availability/?class_id=${classId}`);
-                    const data = await response.json();
-                    this.classAvailability.available = data.available;
-                } catch (error) {
-                    console.error('Failed to check class availability:', error);
-                } finally {
-                    this.classAvailability.loading = false;
-                }
-            },
-            
-            handleDocumentUpload(event) {
-                const files = Array.from(event.target.files);
-                files.forEach(file => {
-                    const fileSize = (file.size / 1024).toFixed(1) + ' KB';
-                    const fileType = file.type.split('/')[1];
-                    const icon = this.getFileIcon(fileType);
-                    
-                    this.uploadedFiles.push({
-                        name: file.name,
-                        size: fileSize,
-                        type: fileType,
-                        icon: icon
-                    });
-                });
-            },
-            
-            getFileIcon(fileType) {
-                const icons = {
-                    'pdf': 'fa-file-pdf text-red-500',
-                    'jpg': 'fa-file-image text-blue-500',
-                    'jpeg': 'fa-file-image text-blue-500',
-                    'png': 'fa-file-image text-blue-500',
-                    'default': 'fa-file text-gray-500'
-                };
-                return icons[fileType] || icons.default;
-            },
-            
-            removeFile(index) {
-                this.uploadedFiles.splice(index, 1);
-            }
-        };
+(function() {
+    'use strict';
+    
+    const sections = document.querySelectorAll('.form-section');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const stepCounter = document.getElementById('step-counter');
+    const stepIndicators = document.querySelectorAll('.step-indicator');
+    const stepLabels = document.querySelectorAll('.step-label');
+    const classSelect = document.getElementById('class-select');
+    const appTypeSelect = document.getElementById('app-type');
+    const previousSchoolDiv = document.getElementById('previous-school-fields');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const dropzone = document.getElementById('dropzone');
+    const fileList = document.getElementById('file-list');
+    const termsCheckbox = document.getElementById('terms-checkbox');
+    const dobInput = document.getElementById('id_date_of_birth');
+    const ageHintSpan = document.getElementById('calculated-age');
+    const ageWarningSpan = document.getElementById('age-warning');
+    
+    let currentStep = 1;
+    const totalSteps = 5;
+    let selectedFiles = [];
+    
+    // Age ranges for classes
+    const ageRanges = {
+        'Nursery 1': { min: 3, max: 4 },
+        'Nursery 2': { min: 4, max: 5 },
+        'Nursery 3': { min: 5, max: 6 },
+        'Primary 1': { min: 6, max: 7 },
+        'Primary 2': { min: 7, max: 8 },
+        'Primary 3': { min: 8, max: 9 },
+        'Primary 4': { min: 9, max: 10 },
+        'Primary 5': { min: 10, max: 11 },
+        'Primary 6': { min: 11, max: 12 },
+        'JSS 1': { min: 12, max: 13 },
+        'JSS 2': { min: 13, max: 14 },
+        'JSS 3': { min: 14, max: 15 },
+        'SS 1': { min: 15, max: 16 },
+        'SS 2': { min: 16, max: 17 },
+        'SS 3': { min: 17, max: 18 },
+    };
+    
+    function calculateAge(dateOfBirth) {
+        if (!dateOfBirth) return null;
+        const today = new Date();
+        const birthDate = new Date(dateOfBirth);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
     }
+    
+    function getExpectedAgeRangeForClass() {
+        if (!classSelect || !classSelect.value) return null;
+        const selectedOption = classSelect.options[classSelect.selectedIndex];
+        if (!selectedOption) return null;
+        
+        const className = selectedOption.text.trim();
+        for (const [key, range] of Object.entries(ageRanges)) {
+            if (className.includes(key) || key.includes(className.split(' ')[0])) {
+                return range;
+            }
+        }
+        return null;
+    }
+    
+    function validateAgeAndClass() {
+        if (!dobInput || !classSelect) return;
+        
+        const dob = dobInput.value;
+        if (!dob) {
+            if (ageHintSpan) ageHintSpan.textContent = 'Enter date of birth to see age';
+            if (ageWarningSpan) ageWarningSpan.classList.add('hidden');
+            return;
+        }
+        
+        const age = calculateAge(dob);
+        if (ageHintSpan) ageHintSpan.textContent = `Age: ${age} years`;
+        
+        const expectedRange = getExpectedAgeRangeForClass();
+        if (expectedRange && age) {
+            if (age < expectedRange.min || age > expectedRange.max) {
+                if (ageWarningSpan) {
+                    ageWarningSpan.classList.remove('hidden');
+                    ageWarningSpan.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> Expected age for this class is ${expectedRange.min}-${expectedRange.max} years.`;
+                    ageWarningSpan.className = 'text-yellow-600 dark:text-yellow-400 ml-2';
+                }
+            } else {
+                if (ageWarningSpan) {
+                    ageWarningSpan.classList.add('hidden');
+                }
+            }
+        }
+    }
+    
+    function init() {
+        showStep(1);
+        setupEventListeners();
+        validateAgeAndClass();
+    }
+    
+    function setupEventListeners() {
+        if (nextBtn) nextBtn.addEventListener('click', handleNext);
+        if (prevBtn) prevBtn.addEventListener('click', handlePrev);
+        if (classSelect) classSelect.addEventListener('change', validateAgeAndClass);
+        if (dobInput) {
+            dobInput.addEventListener('change', validateAgeAndClass);
+            dobInput.addEventListener('input', validateAgeAndClass);
+        }
+        if (appTypeSelect) {
+            appTypeSelect.addEventListener('change', togglePreviousSchool);
+            togglePreviousSchool();
+        }
+        if (termsCheckbox) termsCheckbox.addEventListener('change', toggleSubmitButton);
+        
+        // File upload - both click and drag/drop
+        if (browseBtn) browseBtn.addEventListener('click', () => fileInput.click());
+        if (fileInput) fileInput.addEventListener('change', handleFileSelect);
+        
+        if (dropzone) {
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+            });
+            dropzone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+                const files = Array.from(e.dataTransfer.files);
+                addFiles(files);
+            });
+        }
+    }
+    
+    function showStep(step) {
+        sections.forEach(section => {
+            const sectionNum = parseInt(section.dataset.section);
+            section.classList.toggle('hidden', sectionNum !== step);
+        });
+        
+        if (step === 1) {
+            prevBtn?.classList.add('hidden');
+        } else {
+            prevBtn?.classList.remove('hidden');
+        }
+        
+        if (step === totalSteps) {
+            nextBtn?.classList.add('hidden');
+            submitBtn?.classList.remove('hidden');
+            updateReviewData();
+        } else {
+            nextBtn?.classList.remove('hidden');
+            submitBtn?.classList.add('hidden');
+        }
+        
+        if (stepCounter) stepCounter.textContent = `Step ${step} of ${totalSteps}`;
+        updateProgressSteps(step);
+        updateStepLabels(step);
+    }
+    
+    function updateProgressSteps(step) {
+        stepIndicators.forEach((indicator, index) => {
+            const stepNum = index + 1;
+            const circle = indicator;
+            const text = circle.querySelector('.step-text');
+            circle.className = 'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator';
+            
+            if (stepNum < step) {
+                circle.classList.add('border-primary-600', 'bg-primary-600', 'text-white');
+                if (text) text.innerHTML = '<i class="fas fa-check text-white text-xs"></i>';
+            } else if (stepNum === step) {
+                circle.classList.add('border-primary-600', 'text-primary-600');
+                if (text) text.textContent = stepNum;
+            } else {
+                circle.classList.add('border-gray-300', 'text-gray-400');
+                if (text) text.textContent = stepNum;
+            }
+        });
+    }
+    
+    function updateStepLabels(step) {
+        stepLabels.forEach((label, index) => {
+            const stepNum = index + 1;
+            if (stepNum <= step) {
+                label.classList.add('text-primary-600', 'dark:text-primary-400');
+                label.classList.remove('text-gray-500');
+            } else {
+                label.classList.remove('text-primary-600', 'dark:text-primary-400');
+                label.classList.add('text-gray-500');
+            }
+        });
+    }
+    
+    function handleNext() {
+        if (validateStep(currentStep)) {
+            currentStep++;
+            showStep(currentStep);
+        }
+    }
+    
+    function handlePrev() {
+        if (currentStep > 1) {
+            currentStep--;
+            showStep(currentStep);
+        }
+    }
+    
+    function validateStep(step) {
+        const currentSection = document.querySelector(`.form-section[data-section="${step}"]`);
+        const requiredFields = currentSection.querySelectorAll('[required]');
+        let isValid = true;
+        
+        currentSection.querySelectorAll('.error-message').forEach(el => el.remove());
+        currentSection.querySelectorAll('.border-red-500').forEach(el => {
+            el.classList.remove('border-red-500');
+        });
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('border-red-500');
+                isValid = false;
+                const errorMsg = document.createElement('p');
+                errorMsg.className = 'error-message mt-1 text-xs text-red-600 dark:text-red-400';
+                errorMsg.textContent = 'This field is required';
+                field.parentNode.appendChild(errorMsg);
+            }
+        });
+        
+        // Age validation on step 1
+        if (step === 1 && dobInput && classSelect) {
+            const age = calculateAge(dobInput.value);
+            const expectedRange = getExpectedAgeRangeForClass();
+            if (expectedRange && age && (age < expectedRange.min || age > expectedRange.max)) {
+                isValid = false;
+                const ageError = document.createElement('p');
+                ageError.className = 'error-message mt-1 text-xs text-red-600 dark:text-red-400';
+                ageError.textContent = `Age ${age} is outside expected range (${expectedRange.min}-${expectedRange.max}) for this class.`;
+                dobInput.parentNode.appendChild(ageError);
+                dobInput.classList.add('border-red-500');
+            }
+        }
+        
+        return isValid;
+    }
+    
+    function handleClassChange() {
+        const classId = classSelect?.value;
+        if (!classId) return;
+        
+        const indicator = document.getElementById('class-availability');
+        if (!indicator) return;
+        
+        indicator.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
+        indicator.className = 'mt-1 text-xs text-gray-500';
+        
+        fetch(`/admissions/ajax/class-availability/?class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available > 0) {
+                    indicator.innerHTML = `<i class="fas fa-check-circle text-green-600"></i> ${data.available} spots available`;
+                    indicator.className = 'mt-1 text-xs text-green-600';
+                } else {
+                    indicator.innerHTML = '<i class="fas fa-exclamation-circle text-red-600"></i> Class is full';
+                    indicator.className = 'mt-1 text-xs text-red-600';
+                }
+            })
+            .catch(() => {
+                indicator.innerHTML = 'Unable to check availability';
+                indicator.className = 'mt-1 text-xs text-yellow-600';
+            });
+        
+        validateAgeAndClass();
+    }
+    
+    function togglePreviousSchool() {
+        if (!appTypeSelect || !previousSchoolDiv) return;
+        const val = appTypeSelect.value;
+        previousSchoolDiv.style.display = (val === 'transfer' || val === 're_admission') ? 'block' : 'none';
+    }
+    
+    function handleFileSelect(event) {
+        const files = Array.from(event.target.files);
+        addFiles(files);
+    }
+    
+    function addFiles(files) {
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        const maxSize = 5 * 1024 * 1024;
+        
+        files.forEach(file => {
+            if (!validTypes.includes(file.type)) {
+                alert(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
+                return;
+            }
+            if (file.size > maxSize) {
+                alert(`File too large: ${file.name}. Maximum 5MB.`);
+                return;
+            }
+            if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                alert(`File already selected: ${file.name}`);
+                return;
+            }
+            selectedFiles.push(file);
+        });
+        
+        displayFileList();
+        updateFileInput();
+    }
+    
+    function displayFileList() {
+        if (!fileList) return;
+        
+        if (selectedFiles.length === 0) {
+            fileList.innerHTML = '';
+            return;
+        }
+        
+        fileList.innerHTML = selectedFiles.map((file, index) => {
+            const size = (file.size / 1024).toFixed(1);
+            const ext = file.name.split('.').pop().toLowerCase();
+            const icon = ext === 'pdf' ? 'fa-file-pdf text-red-500' : 'fa-file-image text-blue-500';
+            
+            return `
+                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <div class="flex items-center flex-1 min-w-0">
+                        <i class="fas ${icon} mr-2 flex-shrink-0"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate">${file.name}</span>
+                        <span class="ml-2 text-xs text-gray-500 flex-shrink-0">${size} KB</span>
+                    </div>
+                    <button type="button" class="remove-file text-red-500 hover:text-red-700 ml-2 flex-shrink-0" data-index="${index}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+        
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                selectedFiles.splice(index, 1);
+                displayFileList();
+                updateFileInput();
+            });
+        });
+    }
+    
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+    }
+    
+    function updateReviewData() {
+        const firstName = document.querySelector('[name="first_name"]')?.value || '';
+        const lastName = document.querySelector('[name="last_name"]')?.value || '';
+        document.querySelector('[data-review="name"]').textContent = firstName + ' ' + lastName;
+        
+        const gender = document.querySelector('[name="gender"] option:checked')?.text || '';
+        document.querySelector('[data-review="gender"]').textContent = gender;
+        
+        const dob = document.querySelector('[name="date_of_birth"]')?.value || '';
+        document.querySelector('[data-review="dob"]').textContent = dob;
+        
+        const age = calculateAge(dob);
+        document.querySelector('[data-review="age"]').textContent = age ? `${age} years` : 'Not calculated';
+        
+        document.querySelector('[data-review="email"]').textContent = 
+            document.querySelector('[name="email"]')?.value || 'Not provided';
+        document.querySelector('[data-review="phone"]').textContent = 
+            document.querySelector('[name="phone"]')?.value || 'Not provided';
+        
+        const classOption = document.querySelector('[name="applying_for_class"] option:checked');
+        document.querySelector('[data-review="class"]').textContent = classOption?.text || '';
+        
+        const typeOption = document.querySelector('[name="application_type"] option:checked');
+        document.querySelector('[data-review="app-type"]').textContent = typeOption?.text || '';
+        
+        const guardianFirst = document.querySelector('[name="guardian_first_name"]')?.value || '';
+        const guardianLast = document.querySelector('[name="guardian_last_name"]')?.value || '';
+        document.querySelector('[data-review="guardian"]').textContent = guardianFirst + ' ' + guardianLast;
+        document.querySelector('[data-review="guardian-phone"]').textContent = 
+            document.querySelector('[name="guardian_phone"]')?.value || '';
+    }
+    
+    function toggleSubmitButton() {
+        if (submitBtn) {
+            submitBtn.disabled = !termsCheckbox?.checked;
+        }
+    }
+    
+    // Override class change handler
+    if (classSelect) {
+        classSelect.addEventListener('change', handleClassChange);
+        classSelect.addEventListener('change', validateAgeAndClass);
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+})();
 </script>
-{% endblock %}                  
-                  
-                  
+{% endif %}
+{% endblock %}

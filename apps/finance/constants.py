@@ -97,6 +97,7 @@ class FeeType:
     UNIFORM = 'uniform'
     TRANSPORT = 'transport'
     ICT = 'ict'
+    APPLICATION = 'application'  # ADDED for application fees
     OTHER = 'other'
     
     CHOICES = [
@@ -110,12 +111,13 @@ class FeeType:
         (UNIFORM, _('Uniform Fee')),
         (TRANSPORT, _('Transport Fee')),
         (ICT, _('ICT Fee')),
+        (APPLICATION, _('Application Fee')),
         (OTHER, _('Other Fee')),
     ]
     
     # Fee categories for grouping
     CATEGORIES = {
-        'mandatory': [TUITION, DEVELOPMENT, REGISTRATION],
+        'mandatory': [TUITION, DEVELOPMENT, REGISTRATION, APPLICATION],
         'academic': [LIBRARY, LABORATORY, EXAM, ICT],
         'ancillary': [SPORTS, UNIFORM, TRANSPORT, OTHER],
     }

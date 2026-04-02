@@ -13,6 +13,9 @@
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 Session: {{ current_session }} • Application Fee: ₦{{ application_fee }}
             </p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <i class="fas fa-info-circle"></i> Guardian contact is required. Student contact details are optional.
+            </p>
         </div>
         
         <!-- Progress Steps -->
@@ -37,7 +40,7 @@
         
         <!-- Application Form -->
         <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-            <form method="post" class="space-y-8 p-6" novalidate>
+            <form method="post" class="space-y-8 p-6" novalidate id="application-form">
                 {% csrf_token %}
                 
                 {% if form.non_field_errors %}
@@ -84,21 +87,31 @@
                             <input type="text" name="nationality" value="Nigerian"
                                    class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State of Origin *</label>
+                            <input type="text" name="state_of_origin" required
+                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Contact Information -->
+                <!-- Contact Information (Optional) -->
                 <div class="pt-6 border-t border-light-border dark:border-dark-border">
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Contact Information</h2>
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Contact Information 
+                        <span class="text-sm font-normal text-gray-500 dark:text-gray-400">(Optional - for student's own account)</span>
+                    </h2>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address *</label>
-                            <input type="email" name="email" required
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                            <input type="email" name="email"
+                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   placeholder="student@example.com">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">If provided, student will get access to their records</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number *</label>
-                            <input type="tel" name="phone" required
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                            <input type="tel" name="phone"
                                    class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
                                    placeholder="08012345678">
                         </div>
@@ -108,18 +121,13 @@
                                    class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
                         </div>
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
-                            <textarea name="address" rows="2" required
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                            <textarea name="address" rows="2"
                                       class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"></textarea>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
-                            <input type="text" name="city" required
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State of Origin *</label>
-                            <input type="text" name="state_of_origin" required
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                            <input type="text" name="city"
                                    class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
                         </div>
                     </div>
@@ -131,39 +139,48 @@
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Applying for Class *</label>
-                            <select name="applying_for_class" required
+                            <select name="applying_for_class" required id="class-select"
                                     class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
                                 <option value="">Select class...</option>
                                 {% for class in classes %}
                                 <option value="{{ class.id }}">{{ class.display_name }}</option>
                                 {% endfor %}
                             </select>
+                            <div id="class-availability" class="mt-1 text-xs"></div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Application Type *</label>
-                            <select name="application_type" required
+                            <select name="application_type" required id="app-type"
                                     class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
                                 <option value="new">New Student</option>
                                 <option value="transfer">Transfer from Another School</option>
                                 <option value="re_admission">Re-admission</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous School</label>
-                            <input type="text" name="previous_school"
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous Class</label>
-                            <input type="text" name="previous_class"
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <div id="previous-school-fields" class="sm:col-span-2" style="display: none;">
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous School</label>
+                                    <input type="text" name="previous_school"
+                                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous Class</label>
+                                    <input type="text" name="previous_class"
+                                           class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Guardian Information -->
+                <!-- Guardian Information (Required - Primary Contact) -->
                 <div class="pt-6 border-t border-light-border dark:border-dark-border">
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Guardian Information</h2>
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Guardian Information 
+                        <span class="text-sm font-normal text-red-500">* Required</span>
+                    </h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">This is the primary contact for all communications</p>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian First Name *</label>
@@ -184,12 +201,14 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Phone *</label>
                             <input type="tel" name="guardian_phone" required
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   placeholder="08012345678">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Email</label>
                             <input type="email" name="guardian_email"
-                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                                   class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   placeholder="parent@example.com">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Occupation</label>
@@ -202,6 +221,34 @@
                                       class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"></textarea>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Document Upload -->
+                <div class="pt-6 border-t border-light-border dark:border-dark-border">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Supporting Documents</h2>
+                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center" id="dropzone">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Drag and drop files here, or 
+                            <button type="button" 
+                                    id="browse-btn"
+                                    class="text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
+                                click to browse
+                            </button>
+                         </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            PDF, JPG, PNG up to 5MB each
+                        </p>
+                        <input type="file" 
+                               id="file-input" 
+                               name="documents" 
+                               multiple 
+                               class="hidden"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    
+                    <!-- File List -->
+                    <div id="file-list" class="mt-4 space-y-2"></div>
                 </div>
                 
                 <!-- Terms and Submit -->
@@ -220,8 +267,9 @@
                                 class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
                             Clear
                         </button>
-                        <button type="submit"
-                                class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <button type="submit" id="submit-btn"
+                                class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>
                             Submit Application
                         </button>
                     </div>
@@ -230,4 +278,182 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Toggle previous school fields based on application type
+    const appType = document.getElementById('app-type');
+    const previousSchoolFields = document.getElementById('previous-school-fields');
+    
+    if (appType) {
+        appType.addEventListener('change', function() {
+            if (this.value === 'transfer' || this.value === 're_admission') {
+                previousSchoolFields.style.display = 'block';
+            } else {
+                previousSchoolFields.style.display = 'none';
+            }
+        });
+    }
+    
+    // Class availability check
+    const classSelect = document.getElementById('class-select');
+    const classAvailability = document.getElementById('class-availability');
+    
+    if (classSelect) {
+        classSelect.addEventListener('change', function() {
+            const classId = this.value;
+            if (classId) {
+                classAvailability.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking availability...';
+                fetch(`/admissions/ajax/class-availability/?class_id=${classId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.available > 0) {
+                            classAvailability.innerHTML = `<span class="text-green-600">✓ ${data.available} spots available</span>`;
+                        } else {
+                            classAvailability.innerHTML = `<span class="text-red-600">✗ Class is full</span>`;
+                        }
+                    })
+                    .catch(() => {
+                        classAvailability.innerHTML = '<span class="text-yellow-600">Unable to check availability</span>';
+                    });
+            } else {
+                classAvailability.innerHTML = '';
+            }
+        });
+    }
+    
+    // Document upload - supports both drag/drop and click
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const fileList = document.getElementById('file-list');
+    const termsCheckbox = document.getElementById('terms');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    let selectedFiles = [];
+    
+    // Click to browse
+    if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            fileInput.click();
+        });
+        
+        // Also make the whole dropzone clickable
+        dropzone.addEventListener('click', function(e) {
+            if (e.target === dropzone || e.target.closest('#dropzone') && !e.target.closest('#browse-btn')) {
+                fileInput.click();
+            }
+        });
+    }
+    
+    // File selection via input
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(Array.from(e.target.files));
+        });
+    }
+    
+    // Drag and drop
+    if (dropzone) {
+        dropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzone.classList.add('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+        });
+        
+        dropzone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+        });
+        
+        dropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
+    }
+    
+    function handleFiles(files) {
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        
+        files.forEach(file => {
+            // Validate file type
+            if (!validTypes.includes(file.type)) {
+                alert(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
+                return;
+            }
+            
+            // Validate file size
+            if (file.size > maxSize) {
+                alert(`File too large: ${file.name}. Maximum 5MB.`);
+                return;
+            }
+            
+            // Check for duplicate
+            if (selectedFiles.some(f => f.name === file.name)) {
+                alert(`File already selected: ${file.name}`);
+                return;
+            }
+            
+            selectedFiles.push(file);
+            displayFileList();
+        });
+        
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        fileInput.files = dataTransfer.files;
+    }
+    
+    function displayFileList() {
+        if (!fileList) return;
+        
+        if (selectedFiles.length === 0) {
+            fileList.innerHTML = '';
+            return;
+        }
+        
+        fileList.innerHTML = selectedFiles.map((file, index) => {
+            const size = (file.size / 1024).toFixed(1);
+            const fileType = file.type.split('/')[1] || file.name.split('.').pop();
+            const icon = fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-image';
+            const iconColor = fileType === 'pdf' ? 'text-red-500' : 'text-blue-500';
+            
+            return `
+                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                    <div class="flex items-center">
+                        <i class="fas ${icon} ${iconColor} mr-2"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">${file.name}</span>
+                        <span class="ml-2 text-xs text-gray-500">${size} KB</span>
+                    </div>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-file" data-index="${index}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+        
+        // Add remove handlers
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                selectedFiles.splice(index, 1);
+                displayFileList();
+                
+                // Update file input
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+            });
+        });
+    }
+    
+    // Terms checkbox - enable submit button
+    if (termsCheckbox && submitBtn) {
+        termsCheckbox.addEventListener('change', function() {
+            submitBtn.disabled = !this.checked;
+        });
+    }
+</script>
 {% endblock %}

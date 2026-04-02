@@ -17,6 +17,16 @@ class AcademicSessionSelector:
     def get_current_session() -> Optional[AcademicSession]:
         """Get the currently active academic session"""
         return AcademicSession.objects.filter(is_current=True).first()
+        
+        
+    @staticmethod
+    def get_by_id(session_id: int) -> Optional[AcademicSession]:
+        """Get academic session by ID. Returns model instance or None."""
+        try:
+            return AcademicSession.objects.get(id=session_id)
+        except AcademicSession.DoesNotExist:
+            return None    
+    
     
     @staticmethod
     def get_session_by_code(code: str) -> Optional[AcademicSession]:

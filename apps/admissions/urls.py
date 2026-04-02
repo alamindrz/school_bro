@@ -9,6 +9,7 @@ urlpatterns = [
     
     
     path('create/', staff.ApplicationCreateView.as_view(), name='create'),
+    path('update/<int:pk>', staff.ApplicationUpdateView.as_view(), name='edit'),
     path('<int:pk>/', staff.ApplicationDetailView.as_view(), name='detail'),
     path('<int:pk>/review/', staff.ApplicationReviewView.as_view(), name='review'),
     path('<int:pk>/enroll/', staff.ApplicationEnrollView.as_view(), name='enroll'),

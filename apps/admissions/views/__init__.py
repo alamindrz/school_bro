@@ -2,6 +2,7 @@ from .staff import (
     ApplicationListView,
     ApplicationDetailView,
     ApplicationCreateView,
+    ApplicationUpdateView,
     ApplicationReviewView,
     ApplicationEnrollView,
     ApplicationAddNoteView,
@@ -25,6 +26,7 @@ from .ajax import (
     update_status_ajax,
     check_admissions_status,
     get_class_availability,
+    get_application_payment_status,  # ADDED
 )
 
 __all__ = [
@@ -32,6 +34,8 @@ __all__ = [
     'ApplicationListView',
     'ApplicationDetailView',
     'ApplicationCreateView',
+    'ApplicationUpdateView',
+    'ApplicationEditView',
     'ApplicationReviewView',
     'ApplicationEnrollView',
     'ApplicationAddNoteView',
@@ -55,4 +59,5 @@ __all__ = [
     'update_status_ajax',
     'check_admissions_status',
     'get_class_availability',
+    'get_application_payment_status',  # ADDED
 ]

@@ -39,7 +39,7 @@
             </div>
         </div>
         
-        {% if already_paid %}
+        {% if already_paid or invoice.status == 'paid' %}
         <!-- Already Paid Message -->
         <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 text-center border border-green-200 dark:border-green-800">
             <div class="text-5xl mb-4">✅</div>
@@ -65,7 +65,12 @@
                 <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Applicant</h3>
                     <p class="text-gray-900 dark:text-gray-100">{{ application.full_name }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ application.email }} • {{ application.phone }}</p>
+                    {% if application.email %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ application.email }}</p>
+                    {% endif %}
+                    {% if application.phone %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ application.phone }}</p>
+                    {% endif %}
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Class: {{ application.applying_for_class.display_name }}</p>
                 </div>
                 
@@ -73,13 +78,27 @@
                 <div class="mb-6">
                     <div class="flex justify-between items-center py-2">
                         <span class="text-gray-600 dark:text-gray-400">Application Fee:</span>
-                        <span class="text-gray-900 dark:text-gray-100 font-medium">₦{{ amount }}</span>
+                        <span class="text-gray-900 dark:text-gray-100 font-medium">₦{{ amount|floatformat:2 }}</span>
                     </div>
+                    {% if invoice and invoice.discount_amount > 0 %}
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-gray-600 dark:text-gray-400">Discount:</span>
+                        <span class="text-green-600 dark:text-green-400">-₦{{ invoice.discount_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
                     <div class="flex justify-between items-center py-2 border-t border-light-border dark:border-dark-border">
                         <span class="text-gray-900 dark:text-gray-100 font-medium">Total:</span>
-                        <span class="text-xl font-bold text-primary-600 dark:text-primary-400">₦{{ amount }}</span>
+                        <span class="text-xl font-bold text-primary-600 dark:text-primary-400">₦{{ amount|floatformat:2 }}</span>
                     </div>
                 </div>
+                
+                <!-- Invoice Reference -->
+                {% if invoice %}
+                <div class="mb-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Invoice Reference</p>
+                    <p class="text-sm font-mono text-gray-700 dark:text-gray-300">{{ invoice.invoice_number }}</p>
+                </div>
+                {% endif %}
                 
                 <!-- Payment Button -->
                 <form method="post" id="payment-form">
@@ -87,7 +106,7 @@
                     <button type="button" onclick="payWithPaystack()"
                             class="w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                         <span class="mr-2">💰</span>
-                        Pay ₦{{ amount }} Now
+                        Pay ₦{{ amount|floatformat:2 }} Now
                     </button>
                 </form>
                 
@@ -100,33 +119,56 @@
         <!-- Help Text -->
         <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
             <p class="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> After successful payment, you will receive a confirmation email. 
-                Your application will be reviewed and you'll be notified of the decision.
+                <strong>Note:</strong> After successful payment, your application will be automatically submitted for review.
+                You will receive a confirmation email (if email provided) and can track your application status.
             </p>
         </div>
+        
+        <!-- Contact Info Note -->
+        {% if not application.email and not application.phone %}
+        <div class="mt-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                <i class="fas fa-info-circle mr-1"></i>
+                <strong>Note:</strong> No contact details were provided for the student. All communications will be sent to the guardian's contact information.
+            </p>
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 </div>
 
 <script>
     function payWithPaystack() {
+        const amount = {{ amount_in_kobo }};
+        const email = "{{ application.email|default:application.guardian_email }}";
+        const applicationNumber = "{{ application.application_number }}";
+        const invoiceId = {{ invoice.id|default:0 }};
+        
+        if (!email) {
+            alert("No email address found. Please contact the school to complete payment.");
+            return;
+        }
+        
         let handler = PaystackPop.setup({
             key: '{{ paystack_public_key }}',
-            email: '{{ email }}',
-            amount: {{ amount_in_kobo }},
+            email: email,
+            amount: amount,
             currency: 'NGN',
-            ref: '{{ application.application_number }}-' + Math.floor((Math.random() * 1000000000) + 1),
+            ref: 'APP-' + applicationNumber + '-' + Math.floor((Math.random() * 1000000000) + 1),
             metadata: {
                 application_id: {{ application.id }},
                 application_number: '{{ application.application_number }}',
-                applicant_name: '{{ application.full_name }}'
+                applicant_name: '{{ application.full_name }}',
+                invoice_id: invoiceId
             },
             callback: function(response) {
                 // Redirect to callback URL with reference
                 window.location.href = "{% url 'admissions:public_callback' %}?reference=" + response.reference;
             },
             onClose: function() {
-                alert('Payment window closed. You can complete your payment later.');
+                if (confirm('Payment window closed. You can continue your payment later using the same link.')) {
+                    // Stay on page
+                }
             }
         });
         handler.openIframe();

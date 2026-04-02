@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import staff, ajax
+from .views import staff, ajax, public
 
 app_name = 'finance'
 
@@ -29,6 +29,9 @@ urlpatterns = [
     
     # Reports
     path('export/', staff.ExportTransactionsView.as_view(), name='export_transactions'),
+    
+    # Public webhook (CRITICAL - must be accessible without auth)
+    path('webhook/paystack/', public.PaystackWebhookView.as_view(), name='paystack_webhook'),
     
     # AJAX endpoints
     path('ajax/search/', ajax.search_invoices, name='ajax_search'),

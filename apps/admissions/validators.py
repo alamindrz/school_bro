@@ -14,6 +14,7 @@ from .exceptions import (
     DuplicateApplicationError,
     DocumentTypeError,
     DocumentSizeError,
+    ClassFullError,
 )
 from apps.corecode.selectors import SiteConfigSelector, StudentClassSelector
 from apps.corecode.constants import SiteConfigKey
@@ -28,29 +29,42 @@ class ApplicationValidator:
     
     @classmethod
     def validate_admissions_open(cls):
-        """Check if admissions are currently open"""
-        is_open = SiteConfigSelector.get_config_value(
-            SiteConfigKey.ADMISSIONS_OPEN, 
-            False
-        )
-        if not is_open:
-            raise AdmissionsClosedError("Admissions are currently closed")
+        """Check if admissions are currently open using AdmissionsPeriod"""
+        from .selectors import AdmissionsPeriodSelector
         
-        # Check deadline
-        deadline = SiteConfigSelector.get_config_value(
-            SiteConfigKey.ADMISSION_DEADLINE,
-            None
-        )
-        if deadline:
-            try:
-                from datetime import datetime
-                deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
-                if date.today() > deadline_date:
-                    raise DeadlineExceededError(
-                        f"Application deadline of {deadline_date} has passed"
-                    )
-            except (ValueError, TypeError):
-                pass  # Invalid deadline format, ignore
+        current_period = AdmissionsPeriodSelector.get_current_period()
+        
+        if not current_period:
+            raise AdmissionsClosedError(
+                "No active admissions period found. Please check back later."
+            )
+        
+        # Also check if we're within the period dates
+        now = timezone.now()
+        start_date = datetime.fromisoformat(current_period['start_date'])
+        end_date = datetime.fromisoformat(current_period['end_date']) if current_period['end_date'] else None
+        
+        if now < start_date:
+            raise AdmissionsClosedError(
+                f"Admissions for {current_period['name']} will open on "
+                f"{start_date.strftime('%B %d, %Y')}"
+            )
+        
+        if end_date and now > end_date:
+            raise AdmissionsClosedError(
+                f"Admissions period '{current_period['name']}' closed on "
+                f"{end_date.strftime('%B %d, %Y')}"
+            )
+        
+        if not current_period.get('has_capacity', True):
+            raise AdmissionsClosedError(
+                f"The {current_period['name']} admissions period has reached its maximum capacity."
+            )
+        
+        # Store the current period info for later use (like application_fee)
+        cls.current_admission_period = current_period
+    
+    
     
     @classmethod
     def validate_duplicate_application(cls, email: str, phone: str, session_id: int):
@@ -60,27 +74,29 @@ class ApplicationValidator:
         from .models import Application
         from .constants import ApplicationStatus
         
-        existing = Application.objects.filter(
-            email=email,
-            applying_for_session_id=session_id,
-            status__in=ApplicationStatus.ACTIVE_STATES
-        ).exists()
+        if email:
+            existing = Application.objects.filter(
+                email=email,
+                applying_for_session_id=session_id,
+                status__in=ApplicationStatus.ACTIVE_STATES
+            ).exists()
+            
+            if existing:
+                raise DuplicateApplicationError(
+                    "An active application already exists for this email address"
+                )
         
-        if existing:
-            raise DuplicateApplicationError(
-                "An active application already exists for this email address"
-            )
-        
-        existing_phone = Application.objects.filter(
-            phone=phone,
-            applying_for_session_id=session_id,
-            status__in=ApplicationStatus.ACTIVE_STATES
-        ).exists()
-        
-        if existing_phone:
-            raise DuplicateApplicationError(
-                "An active application already exists for this phone number"
-            )
+        if phone:
+            existing_phone = Application.objects.filter(
+                phone=phone,
+                applying_for_session_id=session_id,
+                status__in=ApplicationStatus.ACTIVE_STATES
+            ).exists()
+            
+            if existing_phone:
+                raise DuplicateApplicationError(
+                    "An active application already exists for this phone number"
+                )
     
     @classmethod
     def validate_class_availability(cls, class_id: int, session_id: int):
@@ -94,6 +110,10 @@ class ApplicationValidator:
         if not student_class:
             raise ValidationError(f"Class with id {class_id} not found")
         
+        # Get max_students from dict - FIXED for dict return type
+        max_students = student_class.get('max_students', 40)
+        class_name = student_class.get('display_name', 'Unknown')
+        
         # Count existing approved applications
         approved_count = Application.objects.filter(
             applying_for_class_id=class_id,
@@ -104,16 +124,15 @@ class ApplicationValidator:
         # Count existing enrolled students
         enrolled_students = Student.objects.filter(
             current_class_id=class_id,
-            enrollment_session_id=session_id,
             status='active'
         ).count()
         
         total_taken = approved_count + enrolled_students
         
-        if total_taken >= student_class.max_students:
+        if total_taken >= max_students:
             raise ClassFullError(
-                f"{student_class.display_name} has reached maximum capacity "
-                f"({student_class.max_students} students)"
+                f"{class_name} has reached maximum capacity "
+                f"({max_students} students)"
             )
     
     @classmethod
@@ -124,7 +143,9 @@ class ApplicationValidator:
         student_class = StudentClassSelector.get_by_id(class_id)
         if student_class:
             age = (date.today() - date_of_birth).days // 365
-            StudentValidator.validate_class_for_age(student_class.name, age)
+            # Get class name from dict - FIXED for dict return type
+            class_name = student_class.get('name', '')
+            StudentValidator.validate_class_for_age(class_name, age)
 
 
 class DocumentValidator:
@@ -161,3 +182,4 @@ class DocumentValidator:
             return True
         
         raise DocumentTypeError(f"Document type not required for {application_type} applications")
+        
