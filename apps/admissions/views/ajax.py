@@ -92,11 +92,10 @@ def check_admissions_status(request):
     })
 
 
-@login_required
-@permission_required('admissions.view_application', raise_exception=True)
+
 @require_http_methods(["GET"])
 def get_class_availability(request):
-    """Get class availability for admissions"""
+    """Get class availability for admissions - Public endpoint (no login required)"""
     class_id = request.GET.get('class_id')
     
     if not class_id:
@@ -121,6 +120,8 @@ def get_class_availability(request):
             return JsonResponse({'error': 'Class not found'}, status=404)
         
         # Count approved applications
+        from ..models import Application
+        from ..constants import ApplicationStatus
         approved_count = Application.objects.filter(
             applying_for_class_id=class_id,
             applying_for_session_id=current_session.id,
@@ -160,7 +161,7 @@ def get_class_availability(request):
 @login_required
 @require_http_methods(["GET"])
 def get_application_payment_status(request):
-    """Get payment status for an application (from finance)"""
+    """Get payment status for an application (from apps.finance)"""
     application_id = request.GET.get('application_id')
     
     if not application_id:
@@ -176,8 +177,8 @@ def get_application_payment_status(request):
                 'message': 'No invoice found'
             })
         
-        # Get invoice from finance
-        from finance.selectors import InvoiceSelector
+        # Get invoice from apps.finance
+        from apps.finance.selectors import InvoiceSelector
         invoice = InvoiceSelector.get_by_id(application.invoice_id)
         
         if invoice:

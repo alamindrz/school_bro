@@ -42,6 +42,7 @@
         {% elif application.status == 'under_review' %}bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800
         {% else %}bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
         {% endif %}">
+        
         <div class="flex items-center justify-between flex-wrap gap-4">
             <div class="flex items-center">
                 <span class="text-2xl mr-3">
@@ -71,14 +72,15 @@
                 </div>
             </div>
             
-            <!-- Review Actions -->
+            <!-- Review Actions for SUBMITTED status -->
             {% if application.status == 'submitted' and perms.admissions.change_application %}
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-2">
                 <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
                     {% csrf_token %}
                     <input type="hidden" name="status" value="approved">
-                    <input type="hidden" name="notes" value="Approved">
+                    <input type="hidden" name="notes" value="Approved by staff">
                     <button type="submit" 
+                            onclick="return confirm('Approve this application? The student can then be enrolled.')"
                             class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
                         <i class="fas fa-check mr-1"></i> Approve
                     </button>
@@ -86,8 +88,9 @@
                 <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
                     {% csrf_token %}
                     <input type="hidden" name="status" value="rejected">
-                    <input type="hidden" name="notes" value="Rejected">
+                    <input type="hidden" name="notes" value="Rejected by staff">
                     <button type="submit" 
+                            onclick="return confirm('Reject this application?')"
                             class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
                         <i class="fas fa-times mr-1"></i> Reject
                     </button>
@@ -104,17 +107,59 @@
             </div>
             {% endif %}
             
+            <!-- Review Actions for UNDER_REVIEW status -->
+            {% if application.status == 'under_review' and perms.admissions.change_application %}
+            <div class="flex flex-wrap gap-2">
+                <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="approved">
+                    <input type="hidden" name="notes" value="Approved after review">
+                    <button type="submit" 
+                            onclick="return confirm('Approve this application?')"
+                            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                        <i class="fas fa-check mr-1"></i> Approve
+                    </button>
+                </form>
+                <form method="post" action="{% url 'admissions:review' application.pk %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="rejected">
+                    <input type="hidden" name="notes" value="Rejected after review">
+                    <button type="submit" 
+                            onclick="return confirm('Reject this application?')"
+                            class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                        <i class="fas fa-times mr-1"></i> Reject
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- Enroll button for APPROVED status -->
             {% if application.status == 'approved' and perms.admissions.enroll_applicant %}
             <form method="post" action="{% url 'admissions:enroll' application.pk %}" class="inline">
                 {% csrf_token %}
                 <button type="submit" 
-                        onclick="return confirm('Enroll this applicant as a student?')"
+                        onclick="return confirm('Enroll this applicant as a student? This will create a student record.')"
                         class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
                     <i class="fas fa-user-graduate mr-1"></i> Enroll Student
                 </button>
             </form>
             {% endif %}
         </div>
+        
+        <!-- Review Notes Input (for staff to add notes during review) -->
+        {% if application.status in 'submitted,under_review' and perms.admissions.change_application %}
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+            <form method="post" action="{% url 'admissions:review' application.pk %}" class="flex flex-col sm:flex-row gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="{{ application.status }}">
+                <input type="text" name="notes" placeholder="Add review notes (optional)..." 
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-primary-500 focus:border-primary-500">
+                <button type="submit" class="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700">
+                    <i class="fas fa-save mr-1"></i> Save Note
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Main Content Grid -->
@@ -266,7 +311,7 @@
                 </div>
             </div>
             
-            <!-- Review Notes Card -->
+            <!-- Review Notes Card (display existing notes) -->
             {% if application.review_notes %}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -307,9 +352,6 @@
                                 <div class="text-4xl text-yellow-500 mb-2">⏳</div>
                                 <p class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Payment Pending</p>
                                 <p class="text-xs text-gray-500 mt-2">Invoice #{{ application.invoice_id }}</p>
-                                <button class="mt-4 px-4 py-2 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700">
-                                    <i class="fas fa-credit-card mr-1"></i> Pay Now
-                                </button>
                             </div>
                         {% endif %}
                     {% else %}
@@ -388,7 +430,7 @@
         </div>
     </div>
     
-    <!-- Notes Section -->
+    <!-- Internal Notes Section -->
     <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -429,4 +471,4 @@
         </div>
     </div>
 </div>
-{% endblock %}  
+{% endblock %}

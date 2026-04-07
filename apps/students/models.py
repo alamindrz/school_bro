@@ -57,6 +57,20 @@ class Student(models.Model):
     city = models.CharField(max_length=50, blank=True)
     state_of_origin = models.CharField(max_length=50, blank=True)
     nationality = models.CharField(max_length=50, default='Nigerian')
+ 
+    
+    application_id = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="ID of the admissions application that created this student"
+    )
+    application_number = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True,
+        help_text="Application number from admissions app"
+    )   
+        
     
     # Academic Information
     current_class = models.ForeignKey(

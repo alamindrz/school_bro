@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='application',
             name='invoice_id',
-            field=models.IntegerField(blank=True, help_text='ID of created invoice from finance app', null=True),
+            field=models.IntegerField(blank=True, help_text='ID of created invoice from apps.finance app', null=True),
         ),
         migrations.AlterField(
             model_name='application',

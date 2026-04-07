@@ -38,34 +38,19 @@ class EnrollmentService:
     def enroll_applicant(cls, application_id: int, enrolled_by_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Enroll an approved applicant as a student
-        
-        This method:
-        1. Validates the application is approved
-        2. Prepares data contract for students app
-        3. Calls StudentService.create_from_admission()
-        4. Updates application status to ENROLLED
-        5. Stores the created student ID
-        
-        Args:
-            application_id: ID of approved application
-            enrolled_by_id: User ID performing enrollment
-            
-        Returns:
-            Dict with enrollment details including student_id
-            
-        Raises:
-            ApplicationNotFoundError: If application doesn't exist
-            InvalidApplicationStatusError: If application not approved
-            EnrollmentHandoffError: If student creation fails
         """
+        print(f"=== ENROLLMENT STARTED for application {application_id} ===")
+        
         # Lock the application row
         try:
             application = Application.objects.select_for_update().get(id=application_id)
+            print(f"Application found: {application.application_number}, status: {application.status}")
         except Application.DoesNotExist:
             raise ApplicationNotFoundError(f"Application {application_id} not found")
         
         # Validate status
         if application.status != ApplicationStatus.APPROVED:
+            print(f"Invalid status: {application.status}, expected APPROVED")
             raise InvalidApplicationStatusError(
                 from_status=application.status,
                 to_status=ApplicationStatus.ENROLLED,
@@ -74,6 +59,7 @@ class EnrollmentService:
         
         # Check if already enrolled
         if application.enrolled_student_id:
+            print(f"Already enrolled with student_id: {application.enrolled_student_id}")
             logger.info(f"Application {application.application_number} already enrolled")
             return {
                 'success': True,
@@ -84,11 +70,13 @@ class EnrollmentService:
         
         # Prepare data contract for students app
         applicant_data = cls._prepare_student_data_contract(application)
+        print(f"Prepared applicant data: {applicant_data}")
         
         try:
             # CRITICAL: Call students app service
-            # This is the ONLY cross-app call allowed
+            print("Calling StudentService.create_from_admission...")
             student = StudentService.create_from_admission(applicant_data.to_dict())
+            print(f"Student created: ID={student.id}, Name={student.get_full_name}, Admission={student.admission_number}")
             
             # Store the student ID
             application.enrolled_student_id = student.id
@@ -97,14 +85,12 @@ class EnrollmentService:
             application.save(update_fields=[
                 'enrolled_student_id', 'enrolled_at', 'status', 'updated_at'
             ])
-            
-            # Create guardian records
-            cls._create_guardian_records(application, student.id, enrolled_by_id)
+            print(f"Application updated to ENROLLED")
             
             # Log the enrollment
             SystemLogService.log_action(
-                user_id=enrolled_by_id,
-                action=SystemLog.ActionType.PROMOTION,  # Using PROMOTION as enrollment action
+                user=enrolled_by_id,
+                action=SystemLog.ActionType.PROMOTION,
                 app_label=SystemLog.AppLabel.ADMISSIONS,
                 model_name='Application',
                 object_id=str(application.id),
@@ -121,6 +107,8 @@ class EnrollmentService:
                 f"student {student.admission_number}"
             )
             
+            print(f"=== ENROLLMENT SUCCESS ===")
+            
             return {
                 'success': True,
                 'application_id': application.id,
@@ -131,25 +119,26 @@ class EnrollmentService:
             }
             
         except Exception as e:
+            print(f"=== ENROLLMENT FAILED: {e} ===")
+            import traceback
+            traceback.print_exc()
             logger.error(f"Enrollment failed for {application.application_number}: {e}")
             raise EnrollmentHandoffError(f"Failed to create student record: {str(e)}")
-    
+
+
     @classmethod
     def _prepare_student_data_contract(cls, application: Application) -> ApplicantDataContract:
         """
         Prepare data contract for students app
         Maps application fields to StudentDataContract format
         """
-        # Get class ID (already stored)
-        class_id = application.applying_for_class_id
-        
         return ApplicantDataContract(
             first_name=application.first_name,
             last_name=application.last_name,
             middle_name=application.middle_name,
             date_of_birth=application.date_of_birth.isoformat(),
             gender=application.gender,
-            current_class_id=class_id,
+            current_class_id=application.applying_for_class_id,
             email=application.email,
             phone=application.phone,
             address=application.address,
@@ -161,9 +150,13 @@ class EnrollmentService:
             guardian_relationship=application.guardian_relationship,
             guardian_phone=application.guardian_phone,
             guardian_email=application.guardian_email,
+            guardian_address=application.guardian_address,
+            guardian_occupation=application.guardian_occupation,
             application_id=application.id,
             application_number=application.application_number,
+            enrollment_session_id=application.applying_for_session_id
         )
+        
     
     @classmethod
     def _create_guardian_records(cls, application: Application, student_id: int, created_by_id: Optional[int] = None):

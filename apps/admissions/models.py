@@ -93,7 +93,7 @@ class Application(models.Model):
     invoice_id = models.IntegerField(
         null=True,
         blank=True,
-        help_text=_("ID of created invoice from finance app")
+        help_text=_("ID of created invoice from apps.finance app")
     )
     
     # Review Tracking
@@ -153,7 +153,7 @@ class Application(models.Model):
     def payment_completed(self) -> bool:
         """Check if associated invoice is paid"""
         if self.invoice_id:
-            from finance.selectors import InvoiceSelector
+            from apps.finance.selectors import InvoiceSelector
             invoice = InvoiceSelector.get_by_id(self.invoice_id)
             return invoice and invoice.get('status') == 'paid'
         return False

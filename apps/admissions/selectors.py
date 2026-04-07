@@ -26,10 +26,10 @@ class ApplicationSelector:
                 'applying_for_class', 'applying_for_session', 'reviewed_by'
             ).prefetch_related('documents', 'notes').get(id=application_id)
             
-            # Get payment status from finance invoice if linked
+            # Get payment status from apps.finance invoice if linked
             payment_info = None
             if app.invoice_id:
-                from finance.selectors import InvoiceSelector
+                from apps.finance.selectors import InvoiceSelector
                 invoice = InvoiceSelector.get_by_id(app.invoice_id)
                 if invoice:
                     payment_info = {
@@ -165,15 +165,16 @@ class ApplicationSelector:
         
         applications = []
         for app in queryset.order_by('-created_at')[:limit]:
-            # Check payment status from finance
+            # Check payment status from apps.finance
             payment_completed = False
             payment_status = None
             if app.invoice_id:
-                from finance.selectors import InvoiceSelector
+                from apps.finance.selectors import InvoiceSelector
                 invoice = InvoiceSelector.get_by_id(app.invoice_id)
                 if invoice:
                     payment_completed = invoice.get('status') == 'paid'
                     payment_status = invoice.get('status_display')
+            
             
             applications.append({
                 'id': app.id,
@@ -186,10 +187,10 @@ class ApplicationSelector:
                 'status_display': app.get_status_display(),
                 'payment_completed': payment_completed,
                 'payment_status': payment_status,
-                'submitted_at': app.submitted_at.isoformat() if app.submitted_at else None,
-                'created_at': app.created_at.isoformat(),
+                'submitted_at': app.submitted_at,  # <-- CHANGED: keep as datetime, not string
+                'created_at': app.created_at,      # <-- CHANGED: keep as datetime, not string
             })
-        
+                    
         return applications
     
     @staticmethod

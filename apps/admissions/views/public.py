@@ -63,56 +63,35 @@ class PublicApplicationCreateView(FormView):
     template_name = "admissions/public/apply.html"
     success_url = reverse_lazy("admissions:public_success")
 
-    fields = [
-        "first_name", "last_name", "middle_name",
-        "gender", "date_of_birth",
-        "email", "phone", "alternate_phone",
-        "address", "city", "state_of_origin", "nationality",
-        "applying_for_class", "application_type",
-        "previous_school", "previous_class",
-        "guardian_first_name", "guardian_last_name",
-        "guardian_relationship", "guardian_phone",
-        "guardian_email", "guardian_address",
-        "guardian_occupation",
-    ]
-
     # -------------------------
     # Guard Admissions Status
     # -------------------------
 
     def dispatch(self, request, *args, **kwargs):
-        if not self._admissions_open():
+        """Check if admissions are open using AdmissionsPeriod"""
+        print(f"DISPATCH CALLED - User authenticated: {request.user.is_authenticated}")
+        print(f"DISPATCH CALLED - Path: {request.path}")
+        
+        from ..selectors import AdmissionsPeriodSelector
+        
+        current_period = AdmissionsPeriodSelector.get_current_period()
+        print(f"DISPATCH CALLED - Current period: {current_period is not None}")
+        
+        if not current_period:
+            print("DISPATCH CALLED - No period, redirecting to closed")
             return redirect("admissions:public_closed")
+        
+        # Store period in request for use in form_valid
+        request.current_admission_period = current_period
         return super().dispatch(request, *args, **kwargs)
 
-    def _admissions_open(self) -> bool:
-        is_open = SiteConfigService.get_config(
-            SiteConfigKey.ADMISSIONS_OPEN, False
-        )
+    # -------------------------
+    # Form Class
+    # -------------------------
 
-        if not is_open:
-            logger.info("Admissions attempt while closed.")
-            messages.error(self.request, "Admissions are currently closed.")
-            return False
-
-        deadline = SiteConfigService.get_config(
-            SiteConfigKey.ADMISSION_DEADLINE
-        )
-
-        if deadline:
-            try:
-                deadline_date = datetime.strptime(deadline, "%Y-%m-%d").date()
-                if timezone.now().date() > deadline_date:
-                    logger.info("Admissions attempt after deadline.")
-                    messages.error(
-                        self.request,
-                        f"Application deadline ({deadline_date}) has passed."
-                    )
-                    return False
-            except ValueError:
-                logger.warning("Invalid ADMISSION_DEADLINE config.")
-
-        return True
+    def get_form_class(self):
+        from ..forms import PublicApplicationForm
+        return PublicApplicationForm
 
     # -------------------------
     # Context
@@ -120,17 +99,21 @@ class PublicApplicationCreateView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        context["classes"] = StudentClassSelector.get_all_classes(
-            active_only=True
-        )
-
-        session = AcademicSessionSelector.get_current_session()
-        context["current_session"] = session.name if session else "Not configured"
-
-        context["application_fee"] = SiteConfigService.get_config(
-            SiteConfigKey.APPLICATION_FEE, 5000
-        )
+        from ..selectors import AdmissionsPeriodSelector
+        
+        current_period = AdmissionsPeriodSelector.get_current_period()
+        
+        context["classes"] = StudentClassSelector.get_all_classes(active_only=True)
+        
+        # Use session from admissions period
+        if current_period:
+            session_name = current_period['academic_session']['name']
+            context["current_session"] = session_name
+            context["application_fee"] = current_period['application_fee']
+            context["admissions_period_name"] = current_period['name']
+        else:
+            context["current_session"] = "Not configured"
+            context["application_fee"] = 5000
 
         return context
 
@@ -141,28 +124,55 @@ class PublicApplicationCreateView(FormView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
-
-                session = AcademicSessionSelector.get_current_session()
-                if not session:
-                    logger.error("No active academic session configured.")
-                    messages.error(
-                        self.request,
-                        "System configuration error. Try again later."
-                    )
-                    return self.form_invalid(form)
-
+                # Get the admissions period from request
+                current_period = getattr(self.request, 'current_admission_period', None)
+                
+                if not current_period:
+                    messages.error(self.request, "Admissions are currently closed.")
+                    return redirect("admissions:public_closed")
+                
+                # Get session ID from the admissions period
+                admissions_session_id = current_period['academic_session']['id']
+                
+                # Create application using service (NO skip_invoice for public)
+                cleaned_data = form.cleaned_data
+                
                 application = ApplicationService.create_application(
-                    **self._build_application_payload(form)
+                    first_name=cleaned_data['first_name'],
+                    last_name=cleaned_data['last_name'],
+                    middle_name=cleaned_data.get('middle_name', ''),
+                    gender=cleaned_data['gender'],
+                    date_of_birth=cleaned_data['date_of_birth'].isoformat(),
+                    email=cleaned_data.get('email', ''),
+                    phone=cleaned_data.get('phone', ''),
+                    alternate_phone=cleaned_data.get('alternate_phone', ''),
+                    address=cleaned_data.get('address', ''),
+                    city=cleaned_data.get('city', ''),
+                    state_of_origin=cleaned_data.get('state_of_origin', ''),
+                    nationality=cleaned_data.get('nationality', 'Nigerian'),
+                    applying_for_class_id=cleaned_data['applying_for_class'].id,
+                    application_type=cleaned_data.get('application_type', 'new'),
+                    previous_school=cleaned_data.get('previous_school', ''),
+                    previous_class=cleaned_data.get('previous_class', ''),
+                    guardian_first_name=cleaned_data['guardian_first_name'],
+                    guardian_last_name=cleaned_data['guardian_last_name'],
+                    guardian_relationship=cleaned_data['guardian_relationship'],
+                    guardian_phone=cleaned_data['guardian_phone'],
+                    guardian_email=cleaned_data.get('guardian_email', ''),
+                    guardian_address=cleaned_data.get('guardian_address', ''),
+                    guardian_occupation=cleaned_data.get('guardian_occupation', ''),
+                    created_by_id=None,  # Public user, no staff account
+                    skip_invoice=False  # Public applications require payment
                 )
-
-                logger.info(
-                    "Application created",
-                    extra={"application_number": application.application_number}
-                )
-
+                
                 # Store application number in session for success page
                 self.request.session['last_application_number'] = application.application_number
-
+                
+                logger.info(
+                    "Public application created",
+                    extra={"application_number": application.application_number}
+                )
+                
                 # Redirect to payment page
                 return redirect(
                     "admissions:public_payment",
@@ -179,14 +189,16 @@ class PublicApplicationCreateView(FormView):
             messages.error(self.request, str(e))
             return self.form_invalid(form)
 
-        except Exception:
-            logger.exception("Unexpected application creation error.")
-            messages.error(self.request, "An unexpected error occurred.")
+        except Exception as e:
+            logger.exception(f"Unexpected application creation error: {e}")
+            import traceback
+            traceback.print_exc()  # This will print to console
+            messages.error(self.request, f"An unexpected error occurred: {str(e)}")
             return self.form_invalid(form)
 
     def _build_application_payload(self, form):
+        """Legacy method - kept for compatibility"""
         cleaned = form.cleaned_data
-
         return {
             **cleaned,
             "date_of_birth": cleaned["date_of_birth"].isoformat(),
@@ -315,46 +327,50 @@ class PublicPaymentView(TemplateView):
 
 
 class PublicPaymentCallbackView(TemplateView):
-    """
-    Handles Paystack redirect callback.
-    Delegates to finance app for verification.
-    """
+    """Handles Paystack redirect callback."""
 
     def get(self, request, *args, **kwargs):
         reference = request.GET.get("reference") or request.GET.get("trxref")
-
+        
+        print(f"=== CALLBACK RECEIVED ===")
+        print(f"Reference: {reference}")
+        
         if not reference:
             messages.error(request, "Missing payment reference.")
             return redirect("admissions:public_apply")
 
         try:
-            # Delegate to finance app for payment verification
             result = PaymentService.verify_paystack_payment(reference)
+            print(f"Verification result: {result}")
 
             if not result.get("success"):
                 messages.error(request, result.get("message", "Verification failed"))
                 return redirect("admissions:public_payment_failed")
 
-            # Get the invoice to find associated application
             invoice_id = result.get("invoice_id")
+            print(f"Invoice ID: {invoice_id}")
+            
             if invoice_id:
-                from admissions.models import Application
+                from apps.admissions.models import Application
                 try:
                     application = Application.objects.get(invoice_id=invoice_id)
+                    print(f"Found application: {application.application_number}, status: {application.status}")
+                    
                     # Auto-submit application after successful payment
                     if application.status == ApplicationStatus.DRAFT:
+                        print("Attempting to auto-submit...")
                         ApplicationService.submit_application(
                             application_id=application.id,
-                            submitted_by_id=None  # System submission
+                            submitted_by_id=None
                         )
-                        logger.info(f"Application {application.application_number} auto-submitted after payment")
+                        print(f"Application auto-submitted, new status: {application.status}")
                     
                     return redirect(
                         "admissions:public_success",
                         application_number=application.application_number
                     )
                 except Application.DoesNotExist:
-                    logger.warning(f"No application found for invoice {invoice_id}")
+                    print(f"No application found for invoice {invoice_id}")
                     messages.error(request, "Application not found.")
                     return redirect("admissions:public_apply")
 
@@ -362,7 +378,9 @@ class PublicPaymentCallbackView(TemplateView):
             return redirect("admissions:public_apply")
 
         except Exception as e:
-            logger.exception(f"Payment callback error: {e}")
+            print(f"Callback error: {e}")
+            import traceback
+            traceback.print_exc()
             messages.error(request, f"Error verifying payment: {str(e)}")
             return redirect("admissions:public_payment_failed")
             

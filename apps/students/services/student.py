@@ -30,84 +30,87 @@ class StudentService:
     This is the ONLY place where Student objects are created/updated.
     """
     
-    @staticmethod
+    @classmethod
     @transaction.atomic
-    def create_from_admission(applicant_data: Dict[str, Any]) -> Student:
+    def create_from_admission(cls, applicant_data: Dict[str, Any]) -> Student:
         """
-        The SINGLE source of truth for creating students from admissions.
-        Other apps MUST call this method - never create Student objects directly.
+        Create a student from admission application data.
+        This is the ONLY entry point for converting applications to students.
+        """
+        from apps.corecode.selectors import StudentClassSelector
         
-        Args:
-            applicant_data: Dictionary matching StudentDataContract format
-            
-        Returns:
-            Student: Created student instance
-        """
-        # Validate data contract
+        # Create contract from dict
         contract = StudentDataContract(**applicant_data)
         contract.validate()
         
-        
-        current_session = AcademicSessionSelector.get_current_session()
-        if not current_session:
-            raise ValidationError("No active academic session configured")
+        # Get target class info (as dict, not model)
+        target_class = StudentClassSelector.get_by_id(contract.current_class_id)
+        class_label = target_class.get('name') if target_class else str(contract.current_class_id)
         
         # Generate admission number if not provided
-        admission_number = applicant_data.get('admission_number')
+        admission_number = contract.admission_number
         if not admission_number:
             from ..services.admission_number import AdmissionNumberService
-            
-            target_class = StudentClassSelector.get_by_id(contract.current_class_id)
-            class_label = target_class.name if target_class else str(contract.current_class_id)
-            
             admission_number = AdmissionNumberService.generate_admission_number(
-                class_name=class_label, 
-                session_code=current_session.code
+                class_name=class_label,
+                session_code=None
             )
 
-        # Create the student
+
+        # Get the academic session from the application data
+        # The application was created with a specific session (from admissions period)
+        enrollment_session_id = contract.enrollment_session_id if hasattr(contract, 'enrollment_session_id') else None
+        
+        # If not provided, get current session
+        if not enrollment_session_id:
+            from apps.corecode.selectors import AcademicSessionSelector
+            current_session = AcademicSessionSelector.get_current_session()
+            enrollment_session_id = current_session.id if current_session else None        
+                
+        
+        # Create student (using class_id, not class object)
+
         student = Student.objects.create(
-            # Core fields
-            admission_number=admission_number,
             first_name=contract.first_name,
             last_name=contract.last_name,
             middle_name=contract.middle_name or '',
-            date_of_birth=contract.date_of_birth,
             gender=contract.gender,
-            current_class_id=contract.current_class_id,
-            enrollment_date=contract.enrollment_date or timezone.now().date(),
-            enrollment_session=current_session,
-            
-            # Contact (optional)
+            date_of_birth=contract.date_of_birth,
             email=contract.email or '',
             phone=contract.phone or '',
             address=contract.address or '',
-            
-            # Metadata
+            city=contract.city or '',
+            state_of_origin=contract.state_of_origin or '',
+            nationality=contract.nationality or 'Nigerian',
+            current_class_id=contract.current_class_id,
+            admission_number=admission_number,
+            enrollment_date=contract.enrollment_date or timezone.now().date(),
+            enrollment_session_id=enrollment_session_id,  
             created_via=contract.created_via,
             created_by_id=contract.created_by_id,
-            status=StudentStatus.ACTIVE,
+            status='active'
         )
+
+        # Create guardian if provided
+        if contract.guardian_first_name and contract.guardian_last_name:
+            from ..models import Guardian
+            Guardian.objects.create(
+                student=student,
+                first_name=contract.guardian_first_name,
+                last_name=contract.guardian_last_name,
+                relationship=contract.guardian_relationship or 'guardian',
+                phone=contract.guardian_phone or '',
+                email=contract.guardian_email or '',
+                address=contract.guardian_address or '',
+                occupation=contract.guardian_occupation or '',
+                is_primary=True,
+                is_emergency_contact=True
+            )
         
-        # Create history entry
-        from ..services.history import StudentHistoryService
-        StudentHistoryService.record_enrollment(
-            student=student,
-            performed_by_id=contract.created_by_id
-        )
-        
-        SystemLogService.log_action(
-            user=contract.created_by_id,
-            action=SystemLog.ActionType.CREATE,
-            app_label=SystemLog.AppLabel.STUDENTS,
-            model_name='Student',
-            object_id=str(student.id),
-            object_repr=student.admission_number,
-            changes={'applicant_data': contract.to_dict()}
-        )
-        
-        logger.info(f"Student created from admission: {student.admission_number}")
+        logger.info(f"Student created from application {contract.application_number}: {admission_number}")
         return student
+
+
     
     @staticmethod
     @transaction.atomic

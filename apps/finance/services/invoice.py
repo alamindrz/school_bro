@@ -49,11 +49,14 @@ class InvoiceService:
         due_date: Optional[str] = None,
         created_by_id: Optional[int] = None
     ) -> Invoice:
-        """
-        Create a single invoice for a student
         
-        CRITICAL: This is the ONLY entry point for creating invoices
-        """
+        print("=== INVOICE CREATION STARTED ===")
+        print(f"student_id: {student_id}")
+        print(f"student_name: {student_name}")
+        print(f"class_id: {class_id}")
+        print(f"fee_type: {fee_type}")
+        print(f"amount: {amount}")
+        
         # Get academic context
         if not session_id:
             current_session = AcademicSessionSelector.get_current_session()
@@ -61,37 +64,48 @@ class InvoiceService:
                 raise ValidationError("No active academic session configured")
             session_id = current_session.id
         
-        # Validate student exists (via selector)
-        student = StudentSelector.get_by_id(student_id)
-        if not student:
-            raise StudentNotEligibleError(f"Student with id {student_id} not found")
+        print(f"session_id: {session_id}")
+        
+        # Validate student exists ONLY if student_id is provided
+        if student_id is not None:
+            print(f"Validating student_id: {student_id}")
+            student = StudentSelector.get_by_id(student_id)
+            if not student:
+                raise StudentNotEligibleError(f"Student with id {student_id} not found")
+            print("Student validation passed")
         
         # Validate class
         student_class = StudentClassSelector.get_by_id(class_id)
         if not student_class:
             raise ValidationError(f"Class with id {class_id} not found")
+        print("Class validation passed")
         
-        # Check for duplicate invoice
-        existing = Invoice.objects.filter(
-            student_id=student_id,
-            academic_session_id=session_id,
-            academic_term_id=term_id,
-            fee_type=fee_type
-        ).exists()
-        
-        if existing:
-            raise DuplicateInvoiceError(
-                f"An invoice for {fee_type} already exists for this student in this session/term"
-            )
+        # Check for duplicate invoice (skip if no student_id)
+        if student_id is not None:
+            existing = Invoice.objects.filter(
+                student_id=student_id,
+                academic_session_id=session_id,
+                academic_term_id=term_id,
+                fee_type=fee_type
+            ).exists()
+            
+            if existing:
+                raise DuplicateInvoiceError(
+                    f"An invoice for {fee_type} already exists for this student in this session/term"
+                )
+            print("Duplicate check passed")
         
         # Generate invoice number
         invoice_number = InvoiceService._generate_invoice_number()
+        print(f"invoice_number: {invoice_number}")
         
         # Calculate due date
         if not due_date:
             due_date = timezone.now().date() + timezone.timedelta(days=DEFAULT_DUE_DAYS)
+        print(f"due_date: {due_date}")
         
         # Create invoice
+        print("Creating invoice object...")
         invoice = Invoice.objects.create(
             invoice_number=invoice_number,
             student_id=student_id,
@@ -108,24 +122,61 @@ class InvoiceService:
             status=InvoiceStatus.PENDING,
             created_by_id=created_by_id
         )
+        print(f"Invoice created with ID: {invoice.id}")
         
         # Log creation
-        SystemLogService.log_action(
-            user_id=created_by_id,
-            action=SystemLog.ActionType.CREATE,
-            app_label=SystemLog.AppLabel.FINANCE,
-            model_name='Invoice',
-            object_id=str(invoice.id),
-            object_repr=invoice.invoice_number,
-            changes={
-                'student_id': student_id,
-                'student_name': student_name,
-                'amount': float(amount),
-                'fee_type': fee_type,
-            }
-        )
+        try:
+            SystemLogService.log_action(
+                user=created_by_id,
+                action=SystemLog.ActionType.CREATE,
+                app_label=SystemLog.AppLabel.FINANCE,
+                model_name='Invoice',
+                object_id=str(invoice.id),
+                object_repr=invoice.invoice_number,
+                changes={
+                    'student_id': student_id if student_id else 'PENDING_APPLICATION',
+                    'student_name': student_name,
+                    'amount': float(amount),
+                    'fee_type': fee_type,
+                }
+            )
+            print("Logging succeeded")
+        except Exception as e:
+            print(f"Logging failed: {e}")
+            # Don't fail the whole operation for logging error
         
-        logger.info(f"Invoice created: {invoice.invoice_number} for student {student_id}")
+        print("=== INVOICE CREATION SUCCESS ===")
+        return invoice
+
+
+    @staticmethod
+    @transaction.atomic
+    def update_invoice_student_id(
+        invoice_id: int,
+        student_id: int,
+        student_name: str = None
+    ) -> Invoice:
+        """
+        Update an invoice with the actual student ID after enrollment
+        Used for application fees that were created before the student existed
+        """
+        try:
+            invoice = Invoice.objects.select_for_update().get(id=invoice_id)
+        except Invoice.DoesNotExist:
+            raise InvoiceNotFoundError(f"Invoice {invoice_id} not found")
+        
+        # Verify the invoice is for an application fee (student_id was None)
+        if invoice.student_id is not None:
+            logger.warning(f"Invoice {invoice.invoice_number} already has student_id {invoice.student_id}")
+            return invoice
+        
+        # Update the invoice
+        invoice.student_id = student_id
+        if student_name:
+            invoice.student_name = student_name
+        invoice.save(update_fields=['student_id', 'student_name', 'updated_at'])
+        
+        logger.info(f"Updated invoice {invoice.invoice_number} with student_id {student_id}")
         return invoice
     
     @staticmethod
@@ -222,7 +273,7 @@ class InvoiceService:
         
         # Log bulk operation
         SystemLogService.log_action(
-            user_id=created_by_id,
+            user=created_by_id,
             action=SystemLog.ActionType.CREATE,
             app_label=SystemLog.AppLabel.FINANCE,
             model_name='Invoice',
@@ -384,7 +435,7 @@ class InvoiceService:
         
         # Log status change
         SystemLogService.log_action(
-            user_id=updated_by_id,
+            user=updated_by_id,
             action=SystemLog.ActionType.UPDATE,
             app_label=SystemLog.AppLabel.FINANCE,
             model_name='Invoice',

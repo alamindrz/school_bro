@@ -68,7 +68,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     def payment_status(self, obj):
         """Display payment status from linked invoice"""
         if obj.invoice_id:
-            from finance.selectors import InvoiceSelector
+            from apps.finance.selectors import InvoiceSelector
             invoice = InvoiceSelector.get_by_id(obj.invoice_id)
             if invoice:
                 status = invoice.get('status_display', 'Unknown')

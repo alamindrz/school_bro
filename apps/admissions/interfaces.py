@@ -27,8 +27,8 @@ class ApplicantDataContract:
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-    city: Optional[str] = None
-    state_of_origin: Optional[str] = None
+    city: Optional[str] = None  # ADD THIS
+    state_of_origin: Optional[str] = None  # ADD THIS
     nationality: Optional[str] = 'Nigerian'
     
     # Guardian info (will be passed to guardian creation)
@@ -37,10 +37,14 @@ class ApplicantDataContract:
     guardian_relationship: Optional[str] = None
     guardian_phone: Optional[str] = None
     guardian_email: Optional[str] = None
+    guardian_address: Optional[str] = None  # ADD THIS
+    guardian_occupation: Optional[str] = None  # ADD THIS
     
     # Metadata
     application_id: Optional[int] = None
     application_number: Optional[str] = None
+    enrollment_session_id: Optional[int] = None 
+
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for service layer"""

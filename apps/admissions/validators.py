@@ -1,12 +1,12 @@
 """
 Admissions Validators - Pure validation functions
 """
-
+from datetime import datetime
 import re
 from datetime import date
 from typing import Optional, List
 from django.core.exceptions import ValidationError
-
+from django.utils import timezone
 from .constants import ApplicationStatus, DocumentType
 from .exceptions import (
     AdmissionsClosedError,

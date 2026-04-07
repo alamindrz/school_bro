@@ -30,11 +30,29 @@ class StudentDataContract:
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None  # ADDED
+    state_of_origin: Optional[str] = None  # ADDED
+    nationality: Optional[str] = 'Nigerian'  # ADDED
     enrollment_date: Optional[str] = None
+    
+    # Guardian info (for creating guardian alongside student)
+    guardian_first_name: Optional[str] = None  # ADDED
+    guardian_last_name: Optional[str] = None  # ADDED
+    guardian_relationship: Optional[str] = None  # ADDED
+    guardian_phone: Optional[str] = None  # ADDED
+    guardian_email: Optional[str] = None  # ADDED
+    guardian_address: Optional[str] = None  # ADDED
+    guardian_occupation: Optional[str] = None  # ADDED
+    
+    # Academic context
+    enrollment_session_id: Optional[int] = None  # ADD THIS
+    
     
     # Metadata (set by caller)
     created_via: str = 'admission'
     created_by_id: Optional[int] = None
+    application_id: Optional[int] = None  # ADDED
+    application_number: Optional[str] = None  # ADDED
     
     def validate(self) -> bool:
         """Basic validation of required fields"""

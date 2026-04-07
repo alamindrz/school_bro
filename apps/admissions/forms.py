@@ -10,6 +10,10 @@ from crispy_tailwind.layout import Submit as TailwindSubmit
 from .models import Application
 from .validators import ApplicationValidator
 from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
+from apps.students.constants import GuardianRelationship
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DateInput(forms.DateInput):
@@ -17,7 +21,7 @@ class DateInput(forms.DateInput):
 
 
 class PublicApplicationForm(forms.ModelForm):
-    """Public-facing application form"""
+    """Public-facing application form with clear error handling"""
     
     terms_agreed = forms.BooleanField(
         required=True,
@@ -37,8 +41,8 @@ class PublicApplicationForm(forms.ModelForm):
         ]
         widgets = {
             'date_of_birth': DateInput(),
-            'address': forms.Textarea(attrs={'rows': 2}),
-            'guardian_address': forms.Textarea(attrs={'rows': 2}),
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'w-full'}),
+            'guardian_address': forms.Textarea(attrs={'rows': 2, 'class': 'w-full'}),
         }
         help_texts = {
             'phone': "Nigerian format: 08012345678",
@@ -48,15 +52,44 @@ class PublicApplicationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Limit class choices to active classes
-        self.fields['applying_for_class'].queryset = StudentClassSelector.get_all_classes_queryset()
+        # Set class choices
+        self.fields['applying_for_class'].queryset = StudentClassSelector.get_queryset_for_forms(active_only=True)
+        self.fields['applying_for_class'].empty_label = "Select a class"
         
+        # Convert guardian_relationship to ChoiceField
+      
+        self.fields['guardian_relationship'] = forms.ChoiceField(
+            choices=[
+                ('father', 'Father'),
+                ('mother', 'Mother'),
+                ('guardian', 'Guardian'),  # Note: value is 'guardian', display is 'Guardian'
+                ('sibling', 'Sibling'),
+                ('other', 'Other'),
+            ],
+            required=True,
+            label="Relationship",
+            initial='other'
+        )
+
+        # Make email and phone optional for student
+        self.fields['email'].required = False
+        self.fields['phone'].required = False
+        self.fields['alternate_phone'].required = False
+        self.fields['address'].required = False
+        self.fields['city'].required = False
+        
+        # Make guardian email optional
+        self.fields['guardian_email'].required = False
+        self.fields['guardian_address'].required = False
+        self.fields['guardian_occupation'].required = False
+        
+        # Crispy Forms layout
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.form_class = 'space-y-6'
         self.helper.layout = Layout(
             Fieldset(
-                'Personal Information',
+                'Student Personal Information',
                 Row(
                     Column('first_name', css_class='w-1/3 pr-2'),
                     Column('last_name', css_class='w-1/3 px-1'),
@@ -72,7 +105,8 @@ class PublicApplicationForm(forms.ModelForm):
                 ),
             ),
             Fieldset(
-                'Contact Information',
+                'Student Contact Information (Optional)',
+                HTML('<p class="text-sm text-gray-500 mb-3">If provided, the student can log in to view their records</p>'),
                 Row(
                     Column('email', css_class='w-1/2 pr-2'),
                     Column('phone', css_class='w-1/2 pl-2'),
@@ -93,7 +127,8 @@ class PublicApplicationForm(forms.ModelForm):
                 ),
             ),
             Fieldset(
-                'Guardian Information',
+                'Guardian Information (Primary Contact)',
+                HTML('<p class="text-sm text-red-500 mb-3">* All fields marked with * are required</p>'),
                 Row(
                     Column('guardian_first_name', css_class='w-1/3 pr-2'),
                     Column('guardian_last_name', css_class='w-1/3 px-1'),
@@ -110,28 +145,66 @@ class PublicApplicationForm(forms.ModelForm):
                 'Terms and Conditions',
                 'terms_agreed',
             ),
-            TailwindSubmit('submit', 'Submit Application', css_class='bg-primary-600 hover:bg-primary-700 text-white')
+            TailwindSubmit('submit', 'Submit Application', css_class='bg-primary-600 hover:bg-primary-700 text-white w-full')
         )
     
+    def clean_email(self):
+        """Validate email format if provided"""
+        email = self.cleaned_data.get('email')
+        if email and '@' not in email:
+            raise forms.ValidationError("Enter a valid email address")
+        return email
+    
+    def clean_phone(self):
+        """Validate phone number format if provided"""
+        phone = self.cleaned_data.get('phone')
+        if phone and len(phone) < 10:
+            raise forms.ValidationError("Enter a valid phone number (minimum 10 digits)")
+        return phone
+    
+    def clean_guardian_phone(self):
+        """Validate guardian phone number"""
+        phone = self.cleaned_data.get('guardian_phone')
+        if not phone:
+            raise forms.ValidationError("Guardian phone number is required")
+        if len(phone) < 10:
+            raise forms.ValidationError("Enter a valid phone number (minimum 10 digits)")
+        return phone
+    
     def clean(self):
+        """Cross-field validation"""
         cleaned_data = super().clean()
         
-        # Check if admissions are open
-        ApplicationValidator.validate_admissions_open()
+        logger.info("PublicApplicationForm.clean() called")
         
-        # Check for duplicate application
+        # Check if admissions are open
+        try:
+            ApplicationValidator.validate_admissions_open()
+            logger.info("Admissions open check passed")
+        except Exception as e:
+            logger.error(f"Admissions open check failed: {e}")
+            raise forms.ValidationError(str(e))
+        
+        # Check for duplicate application (only if email provided)
         email = cleaned_data.get('email')
         phone = cleaned_data.get('phone')
-        current_session = AcademicSessionSelector.get_current_session()
         
-        if email and current_session:
-            ApplicationValidator.validate_duplicate_application(
-                email=email,
-                phone=phone,
-                session_id=current_session.id
-            )
+        if email or phone:
+            try:
+                current_session = AcademicSessionSelector.get_current_session()
+                if current_session:
+                    ApplicationValidator.validate_duplicate_application(
+                        email=email if email else None,
+                        phone=phone if phone else None,
+                        session_id=current_session.id
+                    )
+                    logger.info("Duplicate check passed")
+            except Exception as e:
+                logger.error(f"Duplicate check failed: {e}")
+                raise forms.ValidationError(str(e))
         
         return cleaned_data
+
 
 
 class StaffApplicationForm(forms.ModelForm):
@@ -165,6 +238,22 @@ class StaffApplicationForm(forms.ModelForm):
         # Set class queryset
         self.fields['applying_for_class'].queryset = StudentClassSelector.get_queryset_for_forms(active_only=True)
         self.fields['applying_for_class'].empty_label = "Select a class"
+        # Convert guardian_relationship to ChoiceField
+
+
+        self.fields['guardian_relationship'] = forms.ChoiceField(
+            choices=[
+                ('father', 'Father'),
+                ('mother', 'Mother'),
+                ('guardian', 'Guardian'), 
+                ('sibling', 'Sibling'),
+                ('other', 'Other'),
+            ],
+            required=True,
+            label="Relationship",
+            initial='other'
+        )
+
         
         # Make student name fields NOT pre-populated - staff enters them manually
         # Only pre-populate GUARDIAN fields from the logged-in staff user (for new applications)

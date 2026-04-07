@@ -226,7 +226,7 @@ class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
                 
                 # Log the update
                 SystemLogService.log_action(
-                    user_id=self.request.user.id,
+                    user=self.request.user.id,
                     action=SystemLog.ActionType.UPDATE,
                     app_label=SystemLog.AppLabel.ADMISSIONS,
                     model_name='Application',
@@ -349,7 +349,7 @@ class PaymentInitializeView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 return redirect('admissions:detail', pk=application_id)
             
             # Delegate to finance app
-            from finance.services import PaymentService
+            from apps.finance.services import PaymentService
             result = PaymentService.initialize_paystack_payment(
                 invoice_id=application.invoice_id,
                 email=application.email or application.guardian_email
@@ -380,7 +380,7 @@ class PaymentCallbackView(TemplateView):
             return redirect('admissions:list')
         
         try:
-            from finance.services import PaymentService
+            from apps.finance.services import PaymentService
             result = PaymentService.verify_paystack_payment(ref)
             
             if result.get('success'):
