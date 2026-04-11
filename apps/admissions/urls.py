@@ -15,7 +15,7 @@ urlpatterns = [
     path('<int:pk>/pay/', staff.PaymentInitializeView.as_view(), name='initiate_payment'),
     
     # Payment callbacks and webhooks
-    # path('payment/callback/', staff.PaymentCallbackView.as_view(), name='payment_callback'),
+    path('payment/callback/', staff.PaymentCallbackView.as_view(), name='payment_callback'),
     path('payment/webhook/', public.PaystackWebhookView.as_view(), name='paystack_webhook'),
     
     # Bulk operations
@@ -24,10 +24,10 @@ urlpatterns = [
     # Public URLs (application portal)
     path('apply/', public.PublicApplicationCreateView.as_view(), name='public_apply'),
     path('apply/<str:application_number>/', public.PublicApplicationStatusView.as_view(), name='public_status'),
-    path('apply/<str:application_number>/pay/', public.PublicPaymentView.as_view(), name='public_payment'),  
-    path('apply/success/<str:application_number>/', public.PublicSuccessView.as_view(), name='public_success'), 
-    path('apply/closed/', public.PublicClosedView.as_view(), name='public_closed'),  
-    path('apply/payment-failed/', public.PublicPaymentFailedView.as_view(), name='public_payment_failed'),  
+    path('apply/<str:application_number>/pay/', public.PublicPaymentView.as_view(), name='public_payment'),
+    path('apply/success/<str:application_number>/', public.PublicSuccessView.as_view(), name='public_success'),
+    path('apply/closed/', public.PublicClosedView.as_view(), name='public_closed'),
+    path('apply/payment-failed/', public.PublicPaymentFailedView.as_view(), name='public_payment_failed'),
     path('payment/callback/', public.PublicPaymentCallbackView.as_view(), name='public_callback'),
     
     # AJAX endpoints
@@ -36,4 +36,7 @@ urlpatterns = [
     path('ajax/update-status/', ajax.update_status_ajax, name='ajax_update_status'),
     path('ajax/admissions-status/', ajax.check_admissions_status, name='ajax_admissions_status'),
     path('ajax/class-availability/', ajax.get_class_availability, name='ajax_class_availability'),
+    path('ajax/validate-age/', ajax.validate_age_for_class, name='ajax_validate_age'),
+    path('ajax/staff-children/', ajax.get_staff_children, name='ajax_staff_children'),
+    path('ajax/sibling-details/', ajax.get_sibling_details, name='ajax_sibling_details'),
 ]

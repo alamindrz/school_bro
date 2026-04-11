@@ -3,6 +3,7 @@ Admissions Forms - ALL forms for admissions app
 Using crispy-tailwind for consistent styling
 """
 
+import logging
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, HTML, Fieldset
@@ -10,8 +11,6 @@ from crispy_tailwind.layout import Submit as TailwindSubmit
 from .models import Application
 from .validators import ApplicationValidator
 from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
-from apps.students.constants import GuardianRelationship
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -56,21 +55,6 @@ class PublicApplicationForm(forms.ModelForm):
         self.fields['applying_for_class'].queryset = StudentClassSelector.get_queryset_for_forms(active_only=True)
         self.fields['applying_for_class'].empty_label = "Select a class"
         
-        # Convert guardian_relationship to ChoiceField
-      
-        self.fields['guardian_relationship'] = forms.ChoiceField(
-            choices=[
-                ('father', 'Father'),
-                ('mother', 'Mother'),
-                ('guardian', 'Guardian'),  # Note: value is 'guardian', display is 'Guardian'
-                ('sibling', 'Sibling'),
-                ('other', 'Other'),
-            ],
-            required=True,
-            label="Relationship",
-            initial='other'
-        )
-
         # Make email and phone optional for student
         self.fields['email'].required = False
         self.fields['phone'].required = False
@@ -82,6 +66,15 @@ class PublicApplicationForm(forms.ModelForm):
         self.fields['guardian_email'].required = False
         self.fields['guardian_address'].required = False
         self.fields['guardian_occupation'].required = False
+        
+        # Convert guardian_relationship to ChoiceField
+        from apps.students.constants import GuardianRelationship
+        self.fields['guardian_relationship'] = forms.ChoiceField(
+            choices=GuardianRelationship.CHOICES,
+            required=True,
+            label="Relationship",
+            initial='other'
+        )
         
         # Crispy Forms layout
         self.helper = FormHelper()
@@ -206,9 +199,22 @@ class PublicApplicationForm(forms.ModelForm):
         return cleaned_data
 
 
-
 class StaffApplicationForm(forms.ModelForm):
-    """Staff-facing application form - staff creates application for a student (child/ward)"""
+    """Staff-facing application form with sibling copy feature"""
+    
+    copy_from_sibling = forms.ChoiceField(
+        choices=[],
+        required=False,
+        label="Copy from existing child",
+        help_text="Select a sibling to copy guardian information"
+    )
+    
+    use_same_last_name = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Same last name as sibling",
+        help_text="Uncheck if this child has a different last name"
+    )
     
     class Meta:
         model = Application
@@ -231,50 +237,51 @@ class StaffApplicationForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
-        # Pop user from kwargs before super().__init__
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         # Set class queryset
         self.fields['applying_for_class'].queryset = StudentClassSelector.get_queryset_for_forms(active_only=True)
         self.fields['applying_for_class'].empty_label = "Select a class"
-        # Convert guardian_relationship to ChoiceField
-
-
+        
+        # Make student contact fields optional
+        self.fields['email'].required = False
+        self.fields['phone'].required = False
+        self.fields['alternate_phone'].required = False
+        self.fields['address'].required = False
+        self.fields['city'].required = False
+        
+        # Make guardian email optional
+        self.fields['guardian_email'].required = False
+        self.fields['guardian_address'].required = False
+        self.fields['guardian_occupation'].required = False
+        
+        # Guardian relationship choices
+        from apps.students.constants import GuardianRelationship
         self.fields['guardian_relationship'] = forms.ChoiceField(
-            choices=[
-                ('father', 'Father'),
-                ('mother', 'Mother'),
-                ('guardian', 'Guardian'), 
-                ('sibling', 'Sibling'),
-                ('other', 'Other'),
-            ],
+            choices=GuardianRelationship.CHOICES,
             required=True,
             label="Relationship",
             initial='other'
         )
-
         
-        # Make student name fields NOT pre-populated - staff enters them manually
-        # Only pre-populate GUARDIAN fields from the logged-in staff user (for new applications)
+        # Mark as staff child
+        self.user = user
         if user and user.is_authenticated and not self.instance.pk:
-            from apps.staffs.models import Staff
-            try:
-                staff = Staff.objects.get(user=user)
-                # GUARDIAN fields pre-populated from staff (editable)
-                self.fields['guardian_first_name'].initial = staff.first_name
-                self.fields['guardian_last_name'].initial = staff.last_name
-                self.fields['guardian_email'].initial = staff.email
-                self.fields['guardian_phone'].initial = staff.phone
-                self.fields['guardian_address'].initial = staff.address
-                self.fields['guardian_occupation'].initial = getattr(staff, 'job_title', 'Staff')
-                self.fields['guardian_relationship'].initial = 'Staff'
-            except Staff.DoesNotExist:
-                # Fallback to user data if no staff profile
-                self.fields['guardian_first_name'].initial = user.first_name
-                self.fields['guardian_last_name'].initial = user.last_name
-                self.fields['guardian_email'].initial = user.email
-                self.fields['guardian_relationship'].initial = 'Staff'
+            self.instance.is_staff_child = True
+        
+        # Load existing children for this staff
+        self.existing_children = self._get_existing_children(user)
+        
+        if self.existing_children:
+            choices = [('', '-- Select a sibling to copy from --')]
+            for child in self.existing_children:
+                choices.append((str(child['id']), f"{child['name']} (Class: {child['class']})"))
+            self.fields['copy_from_sibling'].choices = choices
+            
+            # Make last name optional if copying from sibling
+            self.fields['last_name'].required = False
+            self.fields['last_name'].help_text = "Leave blank to use sibling's last name"
         
         # Crispy Forms layout
         self.helper = FormHelper()
@@ -282,8 +289,13 @@ class StaffApplicationForm(forms.ModelForm):
         self.helper.form_class = 'space-y-6'
         self.helper.layout = Layout(
             Fieldset(
+                'Sibling Information (Optional)',
+                HTML('<p class="text-sm text-gray-500 mb-3">If this child has a sibling already in the school, select them to auto-fill guardian information</p>'),
+                'copy_from_sibling',
+                'use_same_last_name',
+            ),
+            Fieldset(
                 'Student Information',
-                HTML('<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Enter the student\'s details (the child/ward)</p>'),
                 Row(
                     Column('first_name', css_class='w-1/3 pr-2'),
                     Column('last_name', css_class='w-1/3 px-1'),
@@ -299,8 +311,8 @@ class StaffApplicationForm(forms.ModelForm):
                 ),
             ),
             Fieldset(
-                'Student Contact Information',
-                HTML('<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Optional - for student\'s own account</p>'),
+                'Student Contact Information (Optional)',
+                HTML('<p class="text-sm text-gray-500 mb-3">For the student\'s own account - leave blank if not needed</p>'),
                 Row(
                     Column('email', css_class='w-1/2 pr-2'),
                     Column('phone', css_class='w-1/2 pl-2'),
@@ -322,7 +334,7 @@ class StaffApplicationForm(forms.ModelForm):
             ),
             Fieldset(
                 'Guardian Information',
-                HTML('<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Pre-filled from your staff profile - editable</p>'),
+                HTML('<p class="text-sm text-gray-500 mb-3">Pre-filled from your profile - editable</p>'),
                 Row(
                     Column('guardian_first_name', css_class='w-1/3 pr-2'),
                     Column('guardian_last_name', css_class='w-1/3 px-1'),
@@ -337,6 +349,79 @@ class StaffApplicationForm(forms.ModelForm):
             ),
             TailwindSubmit('submit', 'Save Application', css_class='bg-primary-600 hover:bg-primary-700 text-white')
         )
+    
+    def _get_existing_children(self, user):
+        """Get existing children for this staff member"""
+        from apps.students.models import Student
+        from apps.parents.models import ParentProfile, ChildLink
+        from apps.staffs.models import Staff
+        
+        if not user or not user.is_authenticated:
+            return []
+        
+        try:
+            staff = Staff.objects.get(user=user)
+            parent = ParentProfile.objects.filter(email=staff.email).first()
+            
+            if not parent:
+                return []
+            
+            children = ChildLink.objects.filter(parent=parent)
+            result = []
+            for child in children:
+                student = Student.objects.filter(id=child.student_id).first()
+                if student:
+                    result.append({
+                        'id': student.id,
+                        'name': student.get_full_name,
+                        'first_name': student.first_name,
+                        'last_name': student.last_name,
+                        'class': child.student_class,
+                        'class_id': student.current_class_id,
+                    })
+            return result
+        except Exception as e:
+            logger.warning(f"Failed to get existing children: {e}")
+            return []
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Handle sibling copy
+        copy_from = cleaned_data.get('copy_from_sibling')
+        use_same_last_name = cleaned_data.get('use_same_last_name', True)
+        
+        if copy_from:
+            sibling = next((c for c in self.existing_children if str(c['id']) == copy_from), None)
+            if sibling:
+                # Copy guardian info from sibling
+                if not cleaned_data.get('guardian_first_name'):
+                    cleaned_data['guardian_first_name'] = sibling.get('guardian_first_name', self.user.first_name if self.user else '')
+                if not cleaned_data.get('guardian_last_name'):
+                    cleaned_data['guardian_last_name'] = sibling.get('guardian_last_name', self.user.last_name if self.user else '')
+                
+                # Handle last name
+                if use_same_last_name and not cleaned_data.get('last_name'):
+                    cleaned_data['last_name'] = sibling['last_name']
+        
+        # Pre-populate guardian info from staff if not provided
+        if self.user and self.user.is_authenticated:
+            if not cleaned_data.get('guardian_first_name'):
+                cleaned_data['guardian_first_name'] = self.user.first_name
+            if not cleaned_data.get('guardian_last_name'):
+                cleaned_data['guardian_last_name'] = self.user.last_name
+            if not cleaned_data.get('guardian_email'):
+                cleaned_data['guardian_email'] = self.user.email
+            if not cleaned_data.get('guardian_phone'):
+                # Try to get from staff profile
+                from apps.staffs.models import Staff
+                try:
+                    staff = Staff.objects.get(user=self.user)
+                    cleaned_data['guardian_phone'] = staff.phone
+                except Staff.DoesNotExist:
+                    pass
+        
+        return cleaned_data
 
 
 class ApplicationReviewForm(forms.Form):

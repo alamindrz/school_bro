@@ -8,7 +8,7 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404
 from django.db import transaction
-from django.http import JsonResponse
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
@@ -80,6 +80,7 @@ class ApplicationDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['application_data'] = ApplicationSelector.get_by_id(self.object.id)
+        context['can_review'] = self.object.created_by_id != self.request.user.id
         return context
 
 
@@ -90,16 +91,11 @@ class ApplicationCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
     permission_required = 'admissions.add_application'
     
     def dispatch(self, request, *args, **kwargs):
-        """Check if admissions are open using AdmissionsPeriod"""
-        from ..selectors import AdmissionsPeriodSelector
-        
-        current_period = AdmissionsPeriodSelector.get_current_period()
-        if not current_period:
-            messages.error(request, 'No active admissions period found. Applications cannot be created.')
+        """Check if admissions are open - if closed, redirect with message"""
+        admissions_open = SiteConfigSelector.get_config_value(SiteConfigKey.ADMISSIONS_OPEN, False)
+        if not admissions_open:
+            messages.error(request, 'Admissions are currently closed. No new applications can be created.')
             return redirect('admissions:list')
-        
-        # Store period in request for use in form_valid
-        request.current_admission_period = current_period
         return super().dispatch(request, *args, **kwargs)
     
     def get_form_class(self):
@@ -114,34 +110,25 @@ class ApplicationCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from ..selectors import AdmissionsPeriodSelector
-        
         classes = StudentClassSelector.get_all_classes(active_only=True)
-        current_period = AdmissionsPeriodSelector.get_current_period()
-        
         context['classes'] = classes
-        context['admissions_period'] = current_period  # Pass period info to template
-        context['admissions_open'] = current_period is not None
-        context['application_fee'] = current_period.get('application_fee') if current_period else 5000
-        context['admissions_session'] = current_period.get('academic_session') if current_period else None
-        
+        context['current_session'] = AcademicSessionSelector.get_current_session()
+        context['admissions_open'] = True
         return context
     
     def get_success_url(self):
         return reverse_lazy('admissions:detail', kwargs={'pk': self.object.pk})
     
-    
     def form_valid(self, form):
         try:
             with transaction.atomic():
-                # Get the admissions period from request (set in dispatch)
-                current_period = getattr(self.request, 'current_admission_period', None)
-                
-                if not current_period:
-                    messages.error(self.request, 'No active admissions period found.')
+                # Get current session
+                current_session = AcademicSessionSelector.get_current_session()
+                if not current_session:
+                    messages.error(self.request, 'No active academic session configured.')
                     return self.form_invalid(form)
                 
-                # Create application using service (it handles everything)
+                # Create application using service
                 cleaned_data = form.cleaned_data
                 
                 application = ApplicationService.create_application(
@@ -169,31 +156,46 @@ class ApplicationCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
                     guardian_address=cleaned_data.get('guardian_address', ''),
                     guardian_occupation=cleaned_data.get('guardian_occupation', ''),
                     created_by_id=self.request.user.id,
-                    skip_invoice=True
+                    skip_invoice=True  # Staff applications don't require payment
                 )
                 
                 messages.success(
                     self.request,
-                    f'Application {application.application_number} created successfully.'
+                    f'Application {application.application_number} created and submitted for review.'
                 )
                 
-                # IMPORTANT: Redirect to detail page, don't call super().form_valid()
                 return redirect('admissions:detail', pk=application.id)
                 
-        except AdmissionsClosedError as e:
-            messages.error(self.request, str(e))
+        except AdmissionsClosedError:
+            messages.error(self.request, 'Admissions are currently closed.')
             return redirect('admissions:list')
         except Exception as e:
             logger.exception("Application creation failed")
             messages.error(self.request, f'Error creating application: {str(e)}')
             return self.form_invalid(form)
-            
-    
+
+
 class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """Update existing application (staff-facing)"""
     model = Application
     template_name = 'admissions/pages/application_form.html'
     permission_required = 'admissions.change_application'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user can edit this application"""
+        application = self.get_object()
+        
+        # Only draft applications can be edited
+        if application.status != ApplicationStatus.DRAFT:
+            messages.error(request, f'Cannot edit application with status: {application.get_status_display()}')
+            return redirect('admissions:detail', pk=application.pk)
+        
+        # Only the creator can edit (or superuser)
+        if application.created_by_id != request.user.id and not request.user.is_superuser:
+            messages.error(request, 'You can only edit applications you created.')
+            return redirect('admissions:detail', pk=application.pk)
+        
+        return super().dispatch(request, *args, **kwargs)
     
     def get_form_class(self):
         """Import form here to avoid circular imports"""
@@ -226,13 +228,15 @@ class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
                 
                 # Log the update
                 SystemLogService.log_action(
-                    user=self.request.user.id,
+                    user=self.request.user,
                     action=SystemLog.ActionType.UPDATE,
                     app_label=SystemLog.AppLabel.ADMISSIONS,
                     model_name='Application',
                     object_id=str(application.id),
                     object_repr=application.application_number,
-                    changes=form.cleaned_data
+                    changes=form.cleaned_data,
+                    ip_address='',
+                    user_agent=''
                 )
                 
                 messages.success(
@@ -240,7 +244,7 @@ class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
                     f'Application {application.application_number} updated successfully.'
                 )
                 
-                return super().form_valid(form)
+                return redirect(self.get_success_url())
                 
         except Exception as e:
             logger.exception("Application update failed")
@@ -251,6 +255,18 @@ class ApplicationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
 class ApplicationReviewView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Review application (approve/reject/waitlist)"""
     permission_required = 'admissions.change_application'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user can review this application"""
+        application_id = kwargs.get('pk')
+        application = get_object_or_404(Application, id=application_id)
+        
+        # Prevent self-review
+        if application.created_by_id == request.user.id:
+            messages.error(request, 'You cannot review an application you created.')
+            return redirect('admissions:detail', pk=application_id)
+        
+        return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
         application_id = kwargs.get('pk')

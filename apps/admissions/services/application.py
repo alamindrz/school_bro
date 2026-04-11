@@ -189,6 +189,7 @@ class ApplicationService:
             raise ValidationError(f"Failed to create application: {str(e)}")
         
         # STEP 8: Create invoice in finance app for application fee (skip if requested)
+
         if not skip_invoice:
             try:
                 # Get student class for display
@@ -218,6 +219,17 @@ class ApplicationService:
                 logger.warning(f"Failed to create invoice for application {application_number}: {e}")
         else:
             logger.info(f"Skipping invoice creation for staff-created application {application_number}")
+        
+        # Auto-submit staff applications (moved outside the else block)
+        if skip_invoice:
+            try:
+                ApplicationService.submit_application(
+                    application_id=application.id,
+                    submitted_by_id=created_by_id
+                )
+                logger.info(f"Staff application {application.application_number} auto-submitted")
+            except Exception as e:
+                logger.warning(f"Failed to auto-submit staff application {application.application_number}: {e}")
         
         # STEP 9: Increment application count for the admissions period
         try:

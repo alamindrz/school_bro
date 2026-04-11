@@ -92,10 +92,11 @@ def check_admissions_status(request):
     })
 
 
-
+@login_required
+@permission_required('admissions.view_application', raise_exception=True)
 @require_http_methods(["GET"])
 def get_class_availability(request):
-    """Get class availability for admissions - Public endpoint (no login required)"""
+    """Get class availability for admissions"""
     class_id = request.GET.get('class_id')
     
     if not class_id:
@@ -120,8 +121,6 @@ def get_class_availability(request):
             return JsonResponse({'error': 'Class not found'}, status=404)
         
         # Count approved applications
-        from ..models import Application
-        from ..constants import ApplicationStatus
         approved_count = Application.objects.filter(
             applying_for_class_id=class_id,
             applying_for_session_id=current_session.id,
@@ -155,53 +154,128 @@ def get_class_availability(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-
+@require_http_methods(["GET"])
+def validate_age_for_class(request):
+    """Check if student age is appropriate for selected class"""
+    class_id = request.GET.get('class_id')
+    date_of_birth = request.GET.get('date_of_birth')
+    
+    if not class_id or not date_of_birth:
+        return JsonResponse({'valid': True, 'message': ''})
+    
+    try:
+        from datetime import datetime
+        dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+        today = datetime.now().date()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        
+        from apps.corecode.selectors import StudentClassSelector
+        student_class = StudentClassSelector.get_by_id(int(class_id))
+        
+        if not student_class:
+            return JsonResponse({'valid': True, 'message': ''})
+        
+        class_name = student_class.get('name', '')
+        
+        # Age ranges based on Nigerian education system
+        age_ranges = {
+            'NURSERY_1': (3, 4), 'NURSERY_2': (4, 5), 'NURSERY_3': (5, 6),
+            'PRIMARY_1': (6, 7), 'PRIMARY_2': (7, 8), 'PRIMARY_3': (8, 9),
+            'PRIMARY_4': (9, 10), 'PRIMARY_5': (10, 11), 'PRIMARY_6': (11, 12),
+            'JSS_1': (12, 13), 'JSS_2': (13, 14), 'JSS_3': (14, 15),
+            'SS_1': (15, 16), 'SS_2': (16, 17), 'SS_3': (17, 18),
+        }
+        
+        min_age, max_age = age_ranges.get(class_name, (0, 30))
+        
+        if age < min_age:
+            return JsonResponse({
+                'valid': False,
+                'message': f'Student is {age} years old. Minimum age for this class is {min_age}.'
+            })
+        elif age > max_age:
+            return JsonResponse({
+                'valid': False,
+                'message': f'Student is {age} years old. Maximum age for this class is {max_age}.'
+            })
+        
+        return JsonResponse({'valid': True, 'message': f'✓ Age {age} is appropriate for this class.'})
+        
+    except Exception as e:
+        return JsonResponse({'valid': True, 'message': ''})
 
 
 @login_required
 @require_http_methods(["GET"])
-def get_application_payment_status(request):
-    """Get payment status for an application (from apps.finance)"""
-    application_id = request.GET.get('application_id')
-    
-    if not application_id:
-        return JsonResponse({'error': 'Application ID required'}, status=400)
+def get_staff_children(request):
+    """Get existing children for staff member to copy from"""
+    from apps.students.models import Student
+    from apps.parents.models import ParentProfile, ChildLink
+    from apps.staffs.models import Staff
     
     try:
-        application = Application.objects.get(id=application_id)
+        staff = Staff.objects.get(user=request.user)
         
-        if not application.invoice_id:
-            return JsonResponse({
-                'has_invoice': False,
-                'payment_completed': False,
-                'message': 'No invoice found'
-            })
+        # Find parent profile linked to this staff
+        parent = ParentProfile.objects.filter(email=staff.email).first()
         
-        # Get invoice from apps.finance
-        from apps.finance.selectors import InvoiceSelector
-        invoice = InvoiceSelector.get_by_id(application.invoice_id)
+        if not parent:
+            return JsonResponse({'children': []})
         
-        if invoice:
-            return JsonResponse({
-                'has_invoice': True,
-                'invoice_id': application.invoice_id,
-                'invoice_number': invoice.get('invoice_number'),
-                'amount': invoice.get('total'),
-                'paid_amount': invoice.get('amount_paid'),
-                'balance': invoice.get('balance'),
-                'status': invoice.get('status'),
-                'status_display': invoice.get('status_display'),
-                'payment_completed': invoice.get('status') == 'paid',
-            })
-        else:
-            return JsonResponse({
-                'has_invoice': True,
-                'invoice_id': application.invoice_id,
-                'payment_completed': False,
-                'message': 'Invoice not found in finance system'
-            })
-            
-    except Application.DoesNotExist:
-        return JsonResponse({'error': 'Application not found'}, status=404)
+        # Get all children linked to this parent
+        children = ChildLink.objects.filter(parent=parent)
+        
+        result = []
+        for child in children:
+            student = Student.objects.filter(id=child.student_id).first()
+            if student:
+                result.append({
+                    'id': student.id,
+                    'name': student.get_full_name,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'class': child.student_class,
+                    'class_id': student.current_class_id,
+                })
+        
+        return JsonResponse({'children': result})
+        
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'children': [], 'error': str(e)})
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_sibling_details(request):
+    """Get sibling details for copying information"""
+    sibling_id = request.GET.get('sibling_id')
+    
+    if not sibling_id:
+        return JsonResponse({'success': False, 'error': 'No sibling ID provided'})
+    
+    from apps.students.models import Student
+    from apps.parents.models import ParentProfile, ChildLink
+    from apps.staffs.models import Staff
+    
+    try:
+        student = Student.objects.get(id=int(sibling_id))
+        
+        # Find parent linked to this student
+        child_link = ChildLink.objects.filter(student_id=student.id).first()
+        
+        if child_link:
+            parent = child_link.parent
+            return JsonResponse({
+                'success': True,
+                'guardian_first_name': parent.first_name,
+                'guardian_last_name': parent.last_name,
+                'guardian_email': parent.email,
+                'guardian_phone': parent.phone,
+                'guardian_address': parent.address,
+                'last_name': student.last_name,
+            })
+        
+        return JsonResponse({'success': False, 'error': 'No parent found'})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

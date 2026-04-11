@@ -124,6 +124,10 @@ class Application(models.Model):
         blank=True,
         related_name='created_applications'
     )
+    is_staff_child = models.BooleanField(
+        default=False,
+        help_text=_("Whether this application is for a staff member's child")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

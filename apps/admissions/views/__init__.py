@@ -26,7 +26,9 @@ from .ajax import (
     update_status_ajax,
     check_admissions_status,
     get_class_availability,
-    get_application_payment_status,  # ADDED
+    validate_age_for_class,
+    get_staff_children,
+    get_sibling_details,
 )
 
 __all__ = [
@@ -35,7 +37,6 @@ __all__ = [
     'ApplicationDetailView',
     'ApplicationCreateView',
     'ApplicationUpdateView',
-    'ApplicationEditView',
     'ApplicationReviewView',
     'ApplicationEnrollView',
     'ApplicationAddNoteView',
@@ -59,5 +60,7 @@ __all__ = [
     'update_status_ajax',
     'check_admissions_status',
     'get_class_availability',
-    'get_application_payment_status',  # ADDED
+    'validate_age_for_class',
+    'get_staff_children',
+    'get_sibling_details',
 ]

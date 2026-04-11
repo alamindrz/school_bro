@@ -1,21 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
-{% load crispy_forms_tags %}
 
 {% block title %}{% if object %}Edit{% else %}New{% endif %} Application - Admissions - School Bro{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8" id="app-form-container">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
     <!-- Page Header -->
-    <div class="mb-6 sm:mb-8">
+    <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    <i class="fas fa-clipboard-list text-primary-500 mr-2 sm:mr-3"></i>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-clipboard-list text-primary-500 mr-3"></i>
                     {% if object %}Edit Application{% else %}New Application{% endif %}
                 </h1>
-                <p class="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     {% if object %}
                         Update application details for {{ object.full_name }}
                     {% else %}
@@ -24,85 +23,73 @@
                 </p>
             </div>
             <a href="{% url 'admissions:list' %}" 
-               class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-arrow-left mr-1 sm:mr-2"></i> Back
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i> Back
             </a>
         </div>
     </div>
 
-    <!-- Admissions Closed Warning -->
-    {% if not admissions_open %}
-    <div class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-        <div class="flex items-center">
-            <i class="fas fa-ban text-red-500 text-xl mr-3"></i>
-            <div>
-                <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Admissions are currently closed</h3>
-                <p class="text-sm text-red-700 dark:text-red-300">No new applications can be created at this time.</p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Application Form -->
+    <!-- Form -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <form method="post" enctype="multipart/form-data" id="applicationForm">
             {% csrf_token %}
             
-            <!-- Progress Bar (for new applications) -->
-            {% if not object %}
-            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-                <div class="flex items-center justify-between min-w-max sm:min-w-0">
-                    <div class="flex items-center space-x-1 sm:space-x-4" id="progress-steps">
-                        <div class="flex items-center" data-step="1">
-                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="1">
-                                <span class="step-text text-xs sm:text-sm">1</span>
-                            </div>
-                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="1">Personal</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
-                        <div class="flex items-center" data-step="2">
-                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="2">
-                                <span class="step-text text-xs sm:text-sm">2</span>
-                            </div>
-                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="2">Contact</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
-                        <div class="flex items-center" data-step="3">
-                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="3">
-                                <span class="step-text text-xs sm:text-sm">3</span>
-                            </div>
-                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="3">Academic</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
-                        <div class="flex items-center" data-step="4">
-                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="4">
-                                <span class="step-text text-xs sm:text-sm">4</span>
-                            </div>
-                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="4">Guardian</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-400 text-xs sm:text-sm"></i>
-                        <div class="flex items-center" data-step="5">
-                            <div class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator" data-step="5">
-                                <span class="step-text text-xs sm:text-sm">5</span>
-                            </div>
-                            <span class="ml-1 sm:ml-2 text-xs sm:text-sm hidden sm:block step-label" data-step="5">Review</span>
-                        </div>
+            <!-- Display Form Errors -->
+            {% if form.errors %}
+            <div class="m-6 rounded-md bg-red-50 dark:bg-red-900/50 p-4 border border-red-200 dark:border-red-800">
+                <div class="flex">
+                    <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-3"></i>
+                    <div>
+                        <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Please correct the following errors:</h3>
+                        <ul class="mt-2 text-sm text-red-700 dark:text-red-300 list-disc list-inside">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    <span class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-4" id="step-counter">Step 1 of 5</span>
                 </div>
             </div>
             {% endif %}
-
-            <!-- Form Fields -->
-            <div class="p-4 sm:p-6 space-y-6 sm:space-y-8">
+            
+            <div class="p-6 space-y-8">
+                
+                <!-- Sibling Information Section (Staff only) -->
+                {% if not object and form.copy_from_sibling %}
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-users text-blue-500 text-xl mr-2"></i>
+                        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Sibling Information (Optional)</h2>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        If this child has a sibling already in the school, select them below. Guardian information will be auto-filled.
+                    </p>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Copy from existing child</label>
+                            {{ form.copy_from_sibling }}
+                            <p class="mt-1 text-xs text-gray-500">Select a sibling to copy guardian information</p>
+                        </div>
+                        <div>
+                            <label class="flex items-center mt-6">
+                                {{ form.use_same_last_name }}
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Same last name as sibling</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">Uncheck if this child has a different last name</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 
                 <!-- Personal Information Section -->
-                <div class="form-section" data-section="1">
-                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">1</span>
-                        Personal Information
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <i class="fas fa-user text-primary-500 mr-2"></i> Personal Information
                     </h2>
-                    
                     <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -112,9 +99,6 @@
                                    value="{{ form.first_name.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
-                            {% if form.first_name.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
-                            {% endif %}
                         </div>
                         
                         <div>
@@ -124,9 +108,9 @@
                             <input type="text" name="last_name" id="id_last_name"
                                    value="{{ form.last_name.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                   required>
-                            {% if form.last_name.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
+                                   {% if form.last_name.required %}required{% endif %}>
+                            {% if form.last_name.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.last_name.help_text }}</p>
                             {% endif %}
                         </div>
                         
@@ -149,9 +133,6 @@
                                 <option value="M" {% if form.gender.value == 'M' %}selected{% endif %}>Male</option>
                                 <option value="F" {% if form.gender.value == 'F' %}selected{% endif %}>Female</option>
                             </select>
-                            {% if form.gender.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.gender.errors.0 }}</p>
-                            {% endif %}
                         </div>
                         
                         <div>
@@ -162,14 +143,7 @@
                                    value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
-                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="age-hint">
-                                <i class="fas fa-info-circle mr-1"></i> 
-                                <span id="calculated-age"></span>
-                                <span id="age-warning" class="hidden ml-2"></span>
-                            </div>
-                            {% if form.date_of_birth.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.date_of_birth.errors.0 }}</p>
-                            {% endif %}
+                            <div id="age-display" class="mt-1 text-sm"></div>
                         </div>
                         
                         <div>
@@ -189,27 +163,21 @@
                                 <option value="">Select State</option>
                                 {% include "admissions/includes/nigerian_states_options.html" %}
                             </select>
-                            {% if form.state_of_origin.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.state_of_origin.errors.0 }}</p>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Contact Information Section (Optional) -->
-                <div class="form-section hidden" data-section="2">
-                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 flex flex-wrap items-center gap-2">
-                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">2</span>
-                        Contact Information
-                        <span class="text-xs sm:text-sm font-normal text-gray-500 dark:text-gray-400">(Optional - for student's own account)</span>
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+                        <i class="fas fa-phone text-primary-500 mr-2"></i> Contact Information
+                        <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
                     </h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-8">If provided, the student can log in to view their records</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">If provided, the student can log in to view their records</p>
                     
                     <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Email Address
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                             <input type="email" name="email" id="id_email"
                                    value="{{ form.email.value|default:'' }}"
                                    placeholder="student@example.com"
@@ -217,9 +185,7 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Phone Number
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
                             <input type="tel" name="phone" id="id_phone"
                                    value="{{ form.phone.value|default:'' }}"
                                    placeholder="08012345678"
@@ -227,9 +193,7 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Alternate Phone
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alternate Phone</label>
                             <input type="tel" name="alternate_phone" id="id_alternate_phone"
                                    value="{{ form.alternate_phone.value|default:'' }}"
                                    placeholder="08012345678"
@@ -237,17 +201,13 @@
                         </div>
                         
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Residential Address
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Residential Address</label>
                             <textarea name="address" id="id_address" rows="2"
                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ form.address.value|default:'' }}</textarea>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                City
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
                             <input type="text" name="city" id="id_city"
                                    value="{{ form.city.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -256,12 +216,10 @@
                 </div>
                 
                 <!-- Academic Information Section -->
-                <div class="form-section hidden" data-section="3">
-                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">3</span>
-                        Academic Information
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                        <i class="fas fa-graduation-cap text-primary-500 mr-2"></i> Academic Information
                     </h2>
-                    
                     <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -277,9 +235,7 @@
                                 {% endfor %}
                             </select>
                             <div id="class-availability" class="mt-1 text-xs"></div>
-                            {% if form.applying_for_class.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.applying_for_class.errors.0 }}</p>
-                            {% endif %}
+                            <div id="age-warning" class="mt-1 text-xs text-red-600 hidden"></div>
                         </div>
                         
                         <div>
@@ -297,57 +253,43 @@
                         <div id="previous-school-fields" class="sm:col-span-2" style="display: none;">
                             <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Previous School
-                                    </label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous School</label>
                                     <input type="text" name="previous_school" id="id_previous_school"
                                            value="{{ form.previous_school.value|default:'' }}"
                                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Previous Class
-                                    </label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous Class</label>
                                     <input type="text" name="previous_class" id="id_previous_class"
                                            value="{{ form.previous_class.value|default:'' }}"
                                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Document Upload -->
+                                                <!-- Document Upload -->
                         <div class="sm:col-span-2 mt-4">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Supporting Documents
-                            </label>
-                            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 sm:p-6 text-center" id="dropzone">
-                                <i class="fas fa-cloud-upload-alt text-3xl sm:text-4xl text-gray-400 mb-2 sm:mb-3"></i>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Supporting Documents</label>
+                            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center" id="dropzone">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
                                     Drag & drop files here, or
+                                    <button type="button" id="browse-btn" class="text-primary-600 hover:text-primary-700 font-medium">click to browse</button>
                                 </p>
-                                <button type="button" id="browse-btn"
-                                        class="mt-2 inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                    <i class="fas fa-folder-open mr-2"></i> Browse Files
-                                </button>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                    PDF, JPG, PNG up to 5MB each
-                                </p>
-                                <input type="file" id="file-input" name="documents" multiple class="hidden"
-                                       accept=".pdf,.jpg,.jpeg,.png">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">PDF, JPG, PNG up to 5MB each</p>
+                                <input type="file" id="file-input" name="documents" multiple class="hidden" accept=".pdf,.jpg,.jpeg,.png">
                             </div>
                             <div id="file-list" class="mt-4 space-y-2"></div>
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- Guardian Information Section -->
-                <div class="form-section hidden" data-section="4">
-                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">4</span>
-                        Guardian Information
-                        <span class="ml-2 text-xs sm:text-sm font-normal text-red-500">* Required</span>
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+                        <i class="fas fa-user-shield text-primary-500 mr-2"></i> Guardian Information
+                        <span class="ml-2 text-sm font-normal text-red-500">* Required - Primary Contact</span>
                     </h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-8">Primary contact for all communications</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">All communications will be sent to this contact</p>
                     
                     <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                         <div>
@@ -358,9 +300,6 @@
                                    value="{{ form.guardian_first_name.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
-                            {% if form.guardian_first_name.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_first_name.errors.0 }}</p>
-                            {% endif %}
                         </div>
                         
                         <div>
@@ -371,27 +310,13 @@
                                    value="{{ form.guardian_last_name.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
-                            {% if form.guardian_last_name.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_last_name.errors.0 }}</p>
-                            {% endif %}
                         </div>
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Relationship <span class="text-red-500">*</span>
                             </label>
-                            <select name="guardian_relationship" id="id_guardian_relationship" required
-                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="">Select Relationship</option>
-                                <option value="Father" {% if form.guardian_relationship.value == 'Father' %}selected{% endif %}>Father</option>
-                                <option value="Mother" {% if form.guardian_relationship.value == 'Mother' %}selected{% endif %}>Mother</option>
-                                <option value="Guardian" {% if form.guardian_relationship.value == 'Guardian' %}selected{% endif %}>Legal Guardian</option>
-                                <option value="Grandparent" {% if form.guardian_relationship.value == 'Grandparent' %}selected{% endif %}>Grandparent</option>
-                                <option value="Other" {% if form.guardian_relationship.value == 'Other' %}selected{% endif %}>Other</option>
-                            </select>
-                            {% if form.guardian_relationship.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_relationship.errors.0 }}</p>
-                            {% endif %}
+                            {{ form.guardian_relationship }}
                         </div>
                         
                         <div>
@@ -403,15 +328,10 @@
                                    placeholder="08012345678"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                    required>
-                            {% if form.guardian_phone.errors %}
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.guardian_phone.errors.0 }}</p>
-                            {% endif %}
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Email Address
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                             <input type="email" name="guardian_email" id="id_guardian_email"
                                    value="{{ form.guardian_email.value|default:'' }}"
                                    placeholder="parent@example.com"
@@ -419,451 +339,218 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Occupation
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Occupation</label>
                             <input type="text" name="guardian_occupation" id="id_guardian_occupation"
                                    value="{{ form.guardian_occupation.value|default:'' }}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         
                         <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Address
-                            </label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
                             <textarea name="guardian_address" id="id_guardian_address" rows="2"
                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ form.guardian_address.value|default:'' }}</textarea>
                         </div>
                     </div>
                 </div>
-                  
-                <!-- Review Section -->
-                {% if not object %}
-                <div class="form-section hidden" data-section="5">
-                    <h2 class="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                        <span class="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-100 text-primary-600 text-xs sm:text-sm font-medium mr-2">5</span>
-                        Review & Submit
-                    </h2>
-                    
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 space-y-4">
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Please review all information before submitting.
-                        </p>
-                        
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    <i class="fas fa-user text-primary-500 mr-1"></i> Personal Info
-                                </h3>
-                                <div class="space-y-1 text-xs sm:text-sm">
-                                    <p><span class="text-gray-500">Name:</span> <span data-review="name"></span></p>
-                                    <p><span class="text-gray-500">Gender:</span> <span data-review="gender"></span></p>
-                                    <p><span class="text-gray-500">DOB:</span> <span data-review="dob"></span></p>
-                                    <p><span class="text-gray-500">Age:</span> <span data-review="age"></span></p>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    <i class="fas fa-phone text-primary-500 mr-1"></i> Contact
-                                </h3>
-                                <div class="space-y-1 text-xs sm:text-sm">
-                                    <p><span class="text-gray-500">Email:</span> <span data-review="email" class="break-all"></span></p>
-                                    <p><span class="text-gray-500">Phone:</span> <span data-review="phone"></span></p>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    <i class="fas fa-graduation-cap text-primary-500 mr-1"></i> Academic
-                                </h3>
-                                <div class="space-y-1 text-xs sm:text-sm">
-                                    <p><span class="text-gray-500">Class:</span> <span data-review="class"></span></p>
-                                    <p><span class="text-gray-500">Type:</span> <span data-review="app-type"></span></p>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    <i class="fas fa-user-shield text-primary-500 mr-1"></i> Guardian
-                                </h3>
-                                <div class="space-y-1 text-xs sm:text-sm">
-                                    <p><span class="text-gray-500">Name:</span> <span data-review="guardian"></span></p>
-                                    <p><span class="text-gray-500">Phone:</span> <span data-review="guardian-phone"></span></p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <label class="flex items-start">
-                                <input type="checkbox" id="terms-checkbox" class="mt-0.5 mr-2 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500">
-                                <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                    I confirm that all information provided is true and accurate.
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Form Actions -->
-            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                {% if not object %}
-                <button type="button" id="prevBtn" class="hidden inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                    <i class="fas fa-arrow-left mr-2"></i> Previous
-                </button>
-                <div id="prevPlaceholder" class="hidden sm:block flex-1"></div>
-                {% endif %}
                 
-                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button type="button" onclick="window.location.href='{% url 'admissions:list' %}'"
-                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                        Cancel
-                    </button>
+                <!-- Terms and Submit -->
+                <div>
+                    <div class="flex items-start mb-6">
+                        <input type="checkbox" id="terms" required
+                               class="mt-1 mr-2 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500">
+                        <label for="terms" class="text-sm text-gray-600 dark:text-gray-400">
+                            I confirm that the information provided is accurate and complete.
+                        </label>
+                    </div>
                     
-                    {% if not object %}
-                    <button type="button" id="nextBtn" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        Next <i class="fas fa-arrow-right ml-2"></i>
-                    </button>
-                    
-                    <button type="submit" id="submitBtn" class="hidden inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        <i class="fas fa-paper-plane mr-2"></i> Submit
-                    </button>
-                    {% else %}
-                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        <i class="fas fa-save mr-2"></i> Update
-                    </button>
-                    {% endif %}
+                    <div class="flex justify-end space-x-3">
+                        <button type="reset"
+                                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                            Clear
+                        </button>
+                        <button type="submit" id="submit-btn"
+                                class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>
+                            <i class="fas fa-paper-plane mr-2"></i> Submit Application
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-<!-- JavaScript -->
-{% if not object %}
 <script>
-(function() {
-    'use strict';
-    
-    const sections = document.querySelectorAll('.form-section');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const stepCounter = document.getElementById('step-counter');
-    const stepIndicators = document.querySelectorAll('.step-indicator');
-    const stepLabels = document.querySelectorAll('.step-label');
-    const classSelect = document.getElementById('class-select');
-    const appTypeSelect = document.getElementById('app-type');
-    const previousSchoolDiv = document.getElementById('previous-school-fields');
-    const fileInput = document.getElementById('file-input');
-    const browseBtn = document.getElementById('browse-btn');
-    const dropzone = document.getElementById('dropzone');
-    const fileList = document.getElementById('file-list');
-    const termsCheckbox = document.getElementById('terms-checkbox');
+    // Age calculation
     const dobInput = document.getElementById('id_date_of_birth');
-    const ageHintSpan = document.getElementById('calculated-age');
-    const ageWarningSpan = document.getElementById('age-warning');
+    const ageDisplay = document.getElementById('age-display');
+    const classSelect = document.getElementById('class-select');
+    const ageWarning = document.getElementById('age-warning');
+    const termsCheckbox = document.getElementById('terms');
+    const submitBtn = document.getElementById('submit-btn');
     
-    let currentStep = 1;
-    const totalSteps = 5;
-    let selectedFiles = [];
-    
-    // Age ranges for classes
-    const ageRanges = {
-        'Nursery 1': { min: 3, max: 4 },
-        'Nursery 2': { min: 4, max: 5 },
-        'Nursery 3': { min: 5, max: 6 },
-        'Primary 1': { min: 6, max: 7 },
-        'Primary 2': { min: 7, max: 8 },
-        'Primary 3': { min: 8, max: 9 },
-        'Primary 4': { min: 9, max: 10 },
-        'Primary 5': { min: 10, max: 11 },
-        'Primary 6': { min: 11, max: 12 },
-        'JSS 1': { min: 12, max: 13 },
-        'JSS 2': { min: 13, max: 14 },
-        'JSS 3': { min: 14, max: 15 },
-        'SS 1': { min: 15, max: 16 },
-        'SS 2': { min: 16, max: 17 },
-        'SS 3': { min: 17, max: 18 },
-    };
-    
-    function calculateAge(dateOfBirth) {
-        if (!dateOfBirth) return null;
+    function calculateAge() {
+        if (!dobInput.value) {
+            ageDisplay.innerHTML = '';
+            return;
+        }
+        const birthDate = new Date(dobInput.value);
         const today = new Date();
-        const birthDate = new Date(dateOfBirth);
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-        return age;
-    }
-    
-    function getExpectedAgeRangeForClass() {
-        if (!classSelect || !classSelect.value) return null;
-        const selectedOption = classSelect.options[classSelect.selectedIndex];
-        if (!selectedOption) return null;
+        ageDisplay.innerHTML = `<span class="text-gray-500">Age: ${age} years</span>`;
         
-        const className = selectedOption.text.trim();
-        for (const [key, range] of Object.entries(ageRanges)) {
-            if (className.includes(key) || key.includes(className.split(' ')[0])) {
-                return range;
-            }
-        }
-        return null;
-    }
-    
-    function validateAgeAndClass() {
-        if (!dobInput || !classSelect) return;
-        
-        const dob = dobInput.value;
-        if (!dob) {
-            if (ageHintSpan) ageHintSpan.textContent = 'Enter date of birth to see age';
-            if (ageWarningSpan) ageWarningSpan.classList.add('hidden');
-            return;
-        }
-        
-        const age = calculateAge(dob);
-        if (ageHintSpan) ageHintSpan.textContent = `Age: ${age} years`;
-        
-        const expectedRange = getExpectedAgeRangeForClass();
-        if (expectedRange && age) {
-            if (age < expectedRange.min || age > expectedRange.max) {
-                if (ageWarningSpan) {
-                    ageWarningSpan.classList.remove('hidden');
-                    ageWarningSpan.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> Expected age for this class is ${expectedRange.min}-${expectedRange.max} years.`;
-                    ageWarningSpan.className = 'text-yellow-600 dark:text-yellow-400 ml-2';
-                }
-            } else {
-                if (ageWarningSpan) {
-                    ageWarningSpan.classList.add('hidden');
-                }
-            }
+        // Also validate against selected class
+        if (classSelect && classSelect.value) {
+            validateAgeForClass(age);
         }
     }
     
-    function init() {
-        showStep(1);
-        setupEventListeners();
-        validateAgeAndClass();
-    }
-    
-    function setupEventListeners() {
-        if (nextBtn) nextBtn.addEventListener('click', handleNext);
-        if (prevBtn) prevBtn.addEventListener('click', handlePrev);
-        if (classSelect) classSelect.addEventListener('change', validateAgeAndClass);
-        if (dobInput) {
-            dobInput.addEventListener('change', validateAgeAndClass);
-            dobInput.addEventListener('input', validateAgeAndClass);
-        }
-        if (appTypeSelect) {
-            appTypeSelect.addEventListener('change', togglePreviousSchool);
-            togglePreviousSchool();
-        }
-        if (termsCheckbox) termsCheckbox.addEventListener('change', toggleSubmitButton);
+    function validateAgeForClass(age) {
+        const classId = classSelect.value;
+        if (!classId || !age) return;
         
-        // File upload - both click and drag/drop
-        if (browseBtn) browseBtn.addEventListener('click', () => fileInput.click());
-        if (fileInput) fileInput.addEventListener('change', handleFileSelect);
-        
-        if (dropzone) {
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
-            });
-            dropzone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
-            });
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('border-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
-                const files = Array.from(e.dataTransfer.files);
-                addFiles(files);
-            });
-        }
-    }
-    
-    function showStep(step) {
-        sections.forEach(section => {
-            const sectionNum = parseInt(section.dataset.section);
-            section.classList.toggle('hidden', sectionNum !== step);
-        });
-        
-        if (step === 1) {
-            prevBtn?.classList.add('hidden');
-        } else {
-            prevBtn?.classList.remove('hidden');
-        }
-        
-        if (step === totalSteps) {
-            nextBtn?.classList.add('hidden');
-            submitBtn?.classList.remove('hidden');
-            updateReviewData();
-        } else {
-            nextBtn?.classList.remove('hidden');
-            submitBtn?.classList.add('hidden');
-        }
-        
-        if (stepCounter) stepCounter.textContent = `Step ${step} of ${totalSteps}`;
-        updateProgressSteps(step);
-        updateStepLabels(step);
-    }
-    
-    function updateProgressSteps(step) {
-        stepIndicators.forEach((indicator, index) => {
-            const stepNum = index + 1;
-            const circle = indicator;
-            const text = circle.querySelector('.step-text');
-            circle.className = 'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 step-indicator';
-            
-            if (stepNum < step) {
-                circle.classList.add('border-primary-600', 'bg-primary-600', 'text-white');
-                if (text) text.innerHTML = '<i class="fas fa-check text-white text-xs"></i>';
-            } else if (stepNum === step) {
-                circle.classList.add('border-primary-600', 'text-primary-600');
-                if (text) text.textContent = stepNum;
-            } else {
-                circle.classList.add('border-gray-300', 'text-gray-400');
-                if (text) text.textContent = stepNum;
-            }
-        });
-    }
-    
-    function updateStepLabels(step) {
-        stepLabels.forEach((label, index) => {
-            const stepNum = index + 1;
-            if (stepNum <= step) {
-                label.classList.add('text-primary-600', 'dark:text-primary-400');
-                label.classList.remove('text-gray-500');
-            } else {
-                label.classList.remove('text-primary-600', 'dark:text-primary-400');
-                label.classList.add('text-gray-500');
-            }
-        });
-    }
-    
-    function handleNext() {
-        if (validateStep(currentStep)) {
-            currentStep++;
-            showStep(currentStep);
-        }
-    }
-    
-    function handlePrev() {
-        if (currentStep > 1) {
-            currentStep--;
-            showStep(currentStep);
-        }
-    }
-    
-    function validateStep(step) {
-        const currentSection = document.querySelector(`.form-section[data-section="${step}"]`);
-        const requiredFields = currentSection.querySelectorAll('[required]');
-        let isValid = true;
-        
-        currentSection.querySelectorAll('.error-message').forEach(el => el.remove());
-        currentSection.querySelectorAll('.border-red-500').forEach(el => {
-            el.classList.remove('border-red-500');
-        });
-        
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.classList.add('border-red-500');
-                isValid = false;
-                const errorMsg = document.createElement('p');
-                errorMsg.className = 'error-message mt-1 text-xs text-red-600 dark:text-red-400';
-                errorMsg.textContent = 'This field is required';
-                field.parentNode.appendChild(errorMsg);
-            }
-        });
-        
-        // Age validation on step 1
-        if (step === 1 && dobInput && classSelect) {
-            const age = calculateAge(dobInput.value);
-            const expectedRange = getExpectedAgeRangeForClass();
-            if (expectedRange && age && (age < expectedRange.min || age > expectedRange.max)) {
-                isValid = false;
-                const ageError = document.createElement('p');
-                ageError.className = 'error-message mt-1 text-xs text-red-600 dark:text-red-400';
-                ageError.textContent = `Age ${age} is outside expected range (${expectedRange.min}-${expectedRange.max}) for this class.`;
-                dobInput.parentNode.appendChild(ageError);
-                dobInput.classList.add('border-red-500');
-            }
-        }
-        
-        return isValid;
-    }
-    
-    function handleClassChange() {
-        const classId = classSelect?.value;
-        if (!classId) return;
-        
-        const indicator = document.getElementById('class-availability');
-        if (!indicator) return;
-        
-        indicator.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
-        indicator.className = 'mt-1 text-xs text-gray-500';
-        
-        fetch(`/admissions/ajax/class-availability/?class_id=${classId}`)
+        fetch(`/admissions/ajax/validate-age/?class_id=${classId}&date_of_birth=${dobInput.value}`)
             .then(response => response.json())
             .then(data => {
-                if (data.available > 0) {
-                    indicator.innerHTML = `<i class="fas fa-check-circle text-green-600"></i> ${data.available} spots available`;
-                    indicator.className = 'mt-1 text-xs text-green-600';
-                } else {
-                    indicator.innerHTML = '<i class="fas fa-exclamation-circle text-red-600"></i> Class is full';
-                    indicator.className = 'mt-1 text-xs text-red-600';
+                if (!data.valid && ageWarning) {
+                    ageWarning.innerHTML = data.message;
+                    ageWarning.classList.remove('hidden');
+                } else if (ageWarning) {
+                    ageWarning.classList.add('hidden');
                 }
             })
-            .catch(() => {
-                indicator.innerHTML = 'Unable to check availability';
-                indicator.className = 'mt-1 text-xs text-yellow-600';
-            });
-        
-        validateAgeAndClass();
+            .catch(() => {});
     }
     
-    function togglePreviousSchool() {
-        if (!appTypeSelect || !previousSchoolDiv) return;
-        const val = appTypeSelect.value;
-        previousSchoolDiv.style.display = (val === 'transfer' || val === 're_admission') ? 'block' : 'none';
+    if (dobInput) {
+        dobInput.addEventListener('change', calculateAge);
+        dobInput.addEventListener('input', calculateAge);
+        calculateAge();
     }
     
-    function handleFileSelect(event) {
-        const files = Array.from(event.target.files);
-        addFiles(files);
-    }
-    
-    function addFiles(files) {
-        const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-        const maxSize = 5 * 1024 * 1024;
-        
-        files.forEach(file => {
-            if (!validTypes.includes(file.type)) {
-                alert(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
-                return;
+    if (classSelect) {
+        classSelect.addEventListener('change', function() {
+            const ageText = ageDisplay.innerHTML;
+            const ageMatch = ageText.match(/\d+/);
+            if (ageMatch) {
+                validateAgeForClass(parseInt(ageMatch[0]));
             }
-            if (file.size > maxSize) {
-                alert(`File too large: ${file.name}. Maximum 5MB.`);
-                return;
-            }
-            if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                alert(`File already selected: ${file.name}`);
-                return;
-            }
-            selectedFiles.push(file);
         });
-        
-        displayFileList();
-        updateFileInput();
+    }
+    
+    // Toggle previous school fields
+    const appType = document.getElementById('app-type');
+    const previousSchoolDiv = document.getElementById('previous-school-fields');
+    
+    if (appType) {
+        appType.addEventListener('change', function() {
+            previousSchoolDiv.style.display = (this.value === 'transfer' || this.value === 're_admission') ? 'block' : 'none';
+        });
+    }
+    
+    // Class availability check
+    if (classSelect) {
+        classSelect.addEventListener('change', function() {
+            const classId = this.value;
+            const availabilityDiv = document.getElementById('class-availability');
+            if (!classId || !availabilityDiv) return;
+            
+            availabilityDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            fetch(`/admissions/ajax/class-availability/?class_id=${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available > 0) {
+                        availabilityDiv.innerHTML = `<span class="text-green-600">✓ ${data.available} spots available</span>`;
+                    } else {
+                        availabilityDiv.innerHTML = `<span class="text-red-600">✗ Class is full</span>`;
+                    }
+                })
+                .catch(() => {
+                    availabilityDiv.innerHTML = '<span class="text-yellow-600">Unable to check availability</span>';
+                });
+        });
+    }
+    
+    // Document upload
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const fileList = document.getElementById('file-list');
+    let selectedFiles = [];
+    
+    if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('click', (e) => {
+            if (e.target === dropzone || e.target.closest('#dropzone')) {
+                fileInput.click();
+            }
+        });
+    }
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            const maxSize = 5 * 1024 * 1024;
+            
+            files.forEach(file => {
+                if (!validTypes.includes(file.type)) {
+                    alert(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
+                    return;
+                }
+                if (file.size > maxSize) {
+                    alert(`File too large: ${file.name}. Maximum 5MB.`);
+                    return;
+                }
+                if (!selectedFiles.some(f => f.name === file.name)) {
+                    selectedFiles.push(file);
+                }
+            });
+            displayFileList();
+            updateFileInput();
+        });
+    }
+    
+    if (dropzone) {
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-primary-500', 'bg-primary-50');
+        });
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50');
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50');
+            const files = Array.from(e.dataTransfer.files);
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+            const maxSize = 5 * 1024 * 1024;
+            
+            files.forEach(file => {
+                if (!validTypes.includes(file.type)) {
+                    alert(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
+                    return;
+                }
+                if (file.size > maxSize) {
+                    alert(`File too large: ${file.name}. Maximum 5MB.`);
+                    return;
+                }
+                if (!selectedFiles.some(f => f.name === file.name)) {
+                    selectedFiles.push(file);
+                }
+            });
+            displayFileList();
+            updateFileInput();
+        });
     }
     
     function displayFileList() {
         if (!fileList) return;
-        
         if (selectedFiles.length === 0) {
             fileList.innerHTML = '';
             return;
@@ -873,15 +560,14 @@
             const size = (file.size / 1024).toFixed(1);
             const ext = file.name.split('.').pop().toLowerCase();
             const icon = ext === 'pdf' ? 'fa-file-pdf text-red-500' : 'fa-file-image text-blue-500';
-            
             return `
                 <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <div class="flex items-center flex-1 min-w-0">
-                        <i class="fas ${icon} mr-2 flex-shrink-0"></i>
-                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate">${file.name}</span>
-                        <span class="ml-2 text-xs text-gray-500 flex-shrink-0">${size} KB</span>
+                    <div class="flex items-center">
+                        <i class="fas ${icon} mr-2"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate max-w-md">${file.name}</span>
+                        <span class="ml-2 text-xs text-gray-500">${size} KB</span>
                     </div>
-                    <button type="button" class="remove-file text-red-500 hover:text-red-700 ml-2 flex-shrink-0" data-index="${index}">
+                    <button type="button" class="remove-file text-red-500 hover:text-red-700" data-index="${index}">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -904,52 +590,66 @@
         fileInput.files = dataTransfer.files;
     }
     
-    function updateReviewData() {
-        const firstName = document.querySelector('[name="first_name"]')?.value || '';
-        const lastName = document.querySelector('[name="last_name"]')?.value || '';
-        document.querySelector('[data-review="name"]').textContent = firstName + ' ' + lastName;
-        
-        const gender = document.querySelector('[name="gender"] option:checked')?.text || '';
-        document.querySelector('[data-review="gender"]').textContent = gender;
-        
-        const dob = document.querySelector('[name="date_of_birth"]')?.value || '';
-        document.querySelector('[data-review="dob"]').textContent = dob;
-        
-        const age = calculateAge(dob);
-        document.querySelector('[data-review="age"]').textContent = age ? `${age} years` : 'Not calculated';
-        
-        document.querySelector('[data-review="email"]').textContent = 
-            document.querySelector('[name="email"]')?.value || 'Not provided';
-        document.querySelector('[data-review="phone"]').textContent = 
-            document.querySelector('[name="phone"]')?.value || 'Not provided';
-        
-        const classOption = document.querySelector('[name="applying_for_class"] option:checked');
-        document.querySelector('[data-review="class"]').textContent = classOption?.text || '';
-        
-        const typeOption = document.querySelector('[name="application_type"] option:checked');
-        document.querySelector('[data-review="app-type"]').textContent = typeOption?.text || '';
-        
-        const guardianFirst = document.querySelector('[name="guardian_first_name"]')?.value || '';
-        const guardianLast = document.querySelector('[name="guardian_last_name"]')?.value || '';
-        document.querySelector('[data-review="guardian"]').textContent = guardianFirst + ' ' + guardianLast;
-        document.querySelector('[data-review="guardian-phone"]').textContent = 
-            document.querySelector('[name="guardian_phone"]')?.value || '';
+    // Terms checkbox
+    if (termsCheckbox && submitBtn) {
+        termsCheckbox.addEventListener('change', function() {
+            submitBtn.disabled = !this.checked;
+        });
     }
     
-    function toggleSubmitButton() {
-        if (submitBtn) {
-            submitBtn.disabled = !termsCheckbox?.checked;
-        }
+    // Sibling copy (HTMX-style)
+    const copyFromSibling = document.querySelector('select[name="copy_from_sibling"]');
+    const useSameLastName = document.querySelector('input[name="use_same_last_name"]');
+    const lastNameField = document.getElementById('id_last_name');
+    
+    if (copyFromSibling) {
+        copyFromSibling.addEventListener('change', function() {
+            const siblingId = this.value;
+            if (!siblingId) return;
+            
+            fetch(`/admissions/ajax/sibling-details/?sibling_id=${siblingId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const guardianFirstName = document.getElementById('id_guardian_first_name');
+                        const guardianLastName = document.getElementById('id_guardian_last_name');
+                        const guardianEmail = document.getElementById('id_guardian_email');
+                        const guardianPhone = document.getElementById('id_guardian_phone');
+                        const guardianAddress = document.getElementById('id_guardian_address');
+                        
+                        if (guardianFirstName) guardianFirstName.value = data.guardian_first_name || '';
+                        if (guardianLastName) guardianLastName.value = data.guardian_last_name || '';
+                        if (guardianEmail) guardianEmail.value = data.guardian_email || '';
+                        if (guardianPhone) guardianPhone.value = data.guardian_phone || '';
+                        if (guardianAddress) guardianAddress.value = data.guardian_address || '';
+                        
+                        if (useSameLastName && useSameLastName.checked && lastNameField) {
+                            lastNameField.value = data.last_name;
+                            lastNameField.disabled = true;
+                        }
+                    }
+                });
+        });
     }
     
-    // Override class change handler
-    if (classSelect) {
-        classSelect.addEventListener('change', handleClassChange);
-        classSelect.addEventListener('change', validateAgeAndClass);
+    if (useSameLastName) {
+        useSameLastName.addEventListener('change', function() {
+            if (this.checked && copyFromSibling && copyFromSibling.value) {
+                fetch(`/admissions/ajax/sibling-details/?sibling_id=${copyFromSibling.value}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && lastNameField) {
+                            lastNameField.value = data.last_name;
+                            lastNameField.disabled = true;
+                        }
+                    });
+            } else if (lastNameField) {
+                lastNameField.disabled = false;
+                if (lastNameField.value === lastNameField.defaultValue) {
+                    lastNameField.value = '';
+                }
+            }
+        });
     }
-    
-    document.addEventListener('DOMContentLoaded', init);
-})();
 </script>
-{% endif %}
 {% endblock %}
