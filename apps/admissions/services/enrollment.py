@@ -77,7 +77,22 @@ class EnrollmentService:
             print("Calling StudentService.create_from_admission...")
             student = StudentService.create_from_admission(applicant_data.to_dict())
             print(f"Student created: ID={student.id}, Name={student.get_full_name}, Admission={student.admission_number}")
-            
+            from apps.parents.services import PortalSyncService
+
+            PortalSyncService.sync_from_enrollment(
+                application=application,
+                student=student,
+                guardian_info={
+                    'first_name': application.guardian_first_name,
+                    'last_name': application.guardian_last_name,
+                    'email': application.guardian_email,
+                    'phone': application.guardian_phone,
+                    'address': application.guardian_address,
+                    'occupation': application.guardian_occupation,
+                    'relationship': application.guardian_relationship,
+                }
+            )
+                        
             # Store the student ID
             application.enrolled_student_id = student.id
             application.enrolled_at = timezone.now()

@@ -121,6 +121,16 @@ class ApplicationSelector:
             return ApplicationSelector.get_by_id(app.id)
         except Application.DoesNotExist:
             return None
+            
+    @staticmethod
+    def get_by_student_id(student_id: int) -> Optional[Dict[str, Any]]:
+        """Get application by enrolled student ID"""
+        try:
+            app = Application.objects.get(enrolled_student_id=student_id)
+            return ApplicationSelector.get_by_id(app.id)
+        except Application.DoesNotExist:
+            return None 
+                
     
     @staticmethod
     def get_by_invoice_id(invoice_id: int) -> Optional[Dict[str, Any]]:

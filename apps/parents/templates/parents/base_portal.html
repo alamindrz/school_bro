@@ -84,12 +84,18 @@
         .htmx-request.htmx-indicator {
             opacity: 1;
         }
+        
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full bg-light-bg dark:bg-dark-bg text-gray-900 dark:text-gray-100 transition-colors duration-200">
-    <!-- Top Navigation -->
+    
+    {% if parent %}
+    <!-- Top Navigation - Only shown when logged in -->
     <nav class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sticky top-0 z-50">
         <div class="mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 justify-between items-center">
@@ -132,16 +138,12 @@
                         <i class="fas fa-moon hidden dark:inline"></i>
                     </button>
                     
-                    <!-- Notifications -->
+                    <!-- Notifications - Only load if parent is logged in -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" 
-                                class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover relative"
-                                hx-get="{% url 'parents:api_unread_count' %}"
-                                hx-trigger="load every 60s"
-                                hx-target="#notification-badge"
-                                hx-swap="outerHTML">
+                                class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover relative">
                             <i class="fas fa-bell text-lg"></i>
-                            <span id="notification-badge" class="notification-badge">{{ unread_notifications }}</span>
+                            <span class="notification-badge">{{ unread_notifications|default:0 }}</span>
                         </button>
                         
                         <div x-show="open" @click.away="open = false"
@@ -151,14 +153,21 @@
                                 <h3 class="font-medium">Notifications</h3>
                                 <a href="{% url 'parents:notifications' %}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View All</a>
                             </div>
-                            <div class="max-h-96 overflow-y-auto"
-                                 hx-get="{% url 'parents:api_recent_notifications' %}?limit=5"
-                                 hx-trigger="load"
-                                 hx-target="this"
-                                 hx-swap="innerHTML">
-                                <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-                                    <i class="fas fa-spinner fa-spin"></i> Loading...
-                                </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                {% with recent_notifications=notifications|slice:":5" %}
+                                    {% if recent_notifications %}
+                                        {% for note in recent_notifications %}
+                                        <div class="p-3 border-b border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover">
+                                            <p class="text-sm font-medium">{{ note.title }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ note.message|truncatechars:60 }}</p>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            No new notifications
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
                             </div>
                         </div>
                     </div>
@@ -218,6 +227,27 @@
             </div>
         </div>
     </nav>
+    {% else %}
+    <!-- Minimal header for login pages (no API calls) -->
+    <nav class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sticky top-0 z-50">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 justify-between items-center">
+                <div class="flex items-center">
+                    <a href="{% url 'parents:login' %}" class="text-xl font-bold text-primary-600 dark:text-primary-400">
+                        Parent Portal
+                    </a>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleTheme()" 
+                            class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+                        <i class="fas fa-sun dark:hidden"></i>
+                        <i class="fas fa-moon hidden dark:inline"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
 
     <!-- Main Content -->
     <main class="py-6">
@@ -245,24 +275,28 @@
             document.cookie = `theme=${newTheme}; path=/; max-age=31536000`;
         }
         
+        // Initialize theme from localStorage or cookie
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        }
+        
         // Mobile menu toggle
         function toggleMobileMenu() {
             const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
         }
         
-        // Alpine.js for dropdowns
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('dropdown', () => ({
-                open: false,
-                toggle() {
-                    this.open = !this.open;
-                }
-            }));
-        });
+        initTheme();
     </script>
     
-    <!-- Alpine.js for interactivity -->
+    <!-- Alpine.js for dropdowns -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     {% block extra_scripts %}{% endblock %}

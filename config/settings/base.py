@@ -129,3 +129,7 @@ PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
 PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
 PAYSTACK_CALLBACK_URL = config('PAYSTACK_CALLBACK_URL', default='/admissions/payment/callback/')
 PAYSTACK_WEBHOOK_URL = config('PAYSTACK_WEBHOOK_URL', default='/admissions/payment/webhook/')
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+PARENT_PORTAL_URL = 'http://127.0.0.1:8000/parents'

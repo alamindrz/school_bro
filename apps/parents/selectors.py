@@ -15,6 +15,8 @@ from apps.students.selectors import StudentSelector
 from apps.finance.selectors import InvoiceSelector, PaymentSelector, FinancialStatusSelector
 from apps.results.selectors import ResultSelector  # Will be implemented later
 from apps.attendance.selectors import AttendanceSelector  # Will be implemented later
+from apps.finance.selectors import InvoiceSelector
+
 
 
 class ParentProfileSelector:
@@ -371,23 +373,35 @@ class PortalDashboardSelector:
                 child_data = {
                     'link': child,
                     'student': student,
-                    'financial': FinancialStatusSelector.get_student_balance(student_id),
+                    'financial': InvoiceSelector.get_student_balance(student_id),
                     'exam_clearance': FinancialStatusSelector.is_student_cleared_for_exams(student_id),
-                    'recent_invoices': InvoiceSelector.list_invoices(
-                        student_id=student_id,
-                        status__in=['pending', 'partial', 'overdue'],
-                        limit=5
-                    ),
-                    'recent_payments': PaymentSelector.list_payments(
+                    
+                'recent_invoices': InvoiceSelector.list_invoices(
+                    student_id=student_id,
+                    status=['pending', 'partial', 'overdue'],
+                    limit=5
+                ),   
+                                    'recent_payments': PaymentSelector.list_payments(
                         student_id=student_id,
                         limit=5
                     ),
                 }
                 
+                # Add application status for this student
+                from apps.admissions.selectors import ApplicationSelector
+                application = ApplicationSelector.get_by_student_id(student_id)
+                if application:
+                    child_data['application'] = {
+                        'status': application['status'],
+                        'status_display': application['status_display'],
+                        'application_number': application['application_number'],
+                        'submitted_at': application['submitted_at'],
+                    }
+                
                 # Add results if available (will be implemented later)
                 # child_data['recent_results'] = ResultSelector.get_recent_for_student(student_id, limit=3)
                 
-                # Add attendance if available
+                # Add attendance later when available
                 # child_data['attendance_summary'] = AttendanceSelector.get_student_summary(student_id)
                 
                 dashboard_data['children'].append(child_data)

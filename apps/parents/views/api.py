@@ -21,6 +21,11 @@ def verify_parent_session(view_func):
         session_key = request.headers.get('X-Parent-Session') or request.GET.get('session')
         
         if not session_key:
+            # For unread_count and recent_notifications, return empty data instead of 401
+            if request.path.endswith('/unread/'):
+                return JsonResponse({'count': 0})
+            if request.path.endswith('/recent/'):
+                return JsonResponse({'notifications': []})
             return JsonResponse({'error': 'No session provided'}, status=401)
         
         from ..services import AccessService

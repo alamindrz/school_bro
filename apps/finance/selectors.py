@@ -8,7 +8,7 @@ from django.db.models import Q, Sum, Count, Avg, F, Value
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField, IntegerField, FloatField
 from django.utils import timezone
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -117,10 +117,11 @@ class InvoiceSelector:
         except Invoice.DoesNotExist:
             return None
     
+
     @staticmethod
     def list_invoices(
         student_id: Optional[int] = None,
-        status: Optional[str] = None,
+        status: Optional[Union[str, List[str]]] = None,
         session_id: Optional[int] = None,
         term_id: Optional[int] = None,
         class_id: Optional[int] = None,
@@ -129,7 +130,7 @@ class InvoiceSelector:
         search: Optional[str] = None,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
-        """List invoices with filters"""
+        """List invoices with filters. Status can be a single string or a list of strings."""
         queryset = Invoice.objects.select_related(
             'student_class', 'academic_session', 'academic_term'
         ).prefetch_related('payments')
@@ -137,8 +138,12 @@ class InvoiceSelector:
         if student_id:
             queryset = queryset.filter(student_id=student_id)
         
+        # Handle both single status and list of statuses
         if status:
-            queryset = queryset.filter(status=status)
+            if isinstance(status, list):
+                queryset = queryset.filter(status__in=status)
+            else:
+                queryset = queryset.filter(status=status)
         
         if session_id:
             queryset = queryset.filter(academic_session_id=session_id)
@@ -189,43 +194,82 @@ class InvoiceSelector:
         
         return invoices
     
+    
     @staticmethod
     def get_student_balance(student_id: int, session_id: Optional[int] = None) -> Dict[str, Any]:
-        """Get complete balance information for a student"""
+        """
+        Get complete balance information for a student.
+        
+        Returns:
+            Dictionary with:
+            - total_invoiced: Total amount invoiced
+            - total_paid: Total amount paid
+            - total_balance: Current outstanding balance
+            - overdue_balance: Amount overdue
+            - has_overdue: Boolean indicating if any overdue exists
+            - invoice_count: Total number of invoices
+            - paid_count: Number of paid invoices
+            - pending_count: Number of pending invoices
+            - upcoming_due: List of upcoming due invoices
+        """
+        from django.db.models import Sum, Value, Q, DecimalField
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        
+        # Base queryset
         queryset = Invoice.objects.filter(student_id=student_id)
         
         if session_id:
             queryset = queryset.filter(academic_session_id=session_id)
         
-        # Calculate totals with proper Decimal handling
+        # Calculate totals using DecimalField consistently
+        # This prevents the mixed type error
         total_invoiced = queryset.aggregate(
-            total=Coalesce(Sum('total', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+            total=Coalesce(
+                Sum('total', output_field=DecimalField()), 
+                Value(Decimal('0'), output_field=DecimalField())
+            )
         )['total']
         
         total_paid = queryset.aggregate(
-            paid=Coalesce(Sum('amount_paid', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+            paid=Coalesce(
+                Sum('amount_paid', output_field=DecimalField()), 
+                Value(Decimal('0'), output_field=DecimalField())
+            )
         )['paid']
         
         total_balance = queryset.aggregate(
-            balance=Coalesce(Sum('balance', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+            balance=Coalesce(
+                Sum('balance', output_field=DecimalField()), 
+                Value(Decimal('0'), output_field=DecimalField())
+            )
         )['balance']
         
-        # Get overdue invoices
+        # Get overdue invoices (balance > 0 and due date passed)
+        from django.utils import timezone
+        today = timezone.now().date()
+        
         overdue_invoices = queryset.filter(
-            status__in=InvoiceStatus.REQUIRES_PAYMENT,
-            due_date__lt=timezone.now().date()
+            balance__gt=0,
+            due_date__lt=today,
+            status__in=[InvoiceStatus.PENDING, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE]
         )
         
         overdue_total = overdue_invoices.aggregate(
-            total=Coalesce(Sum('balance', output_field=DecimalField()), Value(0, output_field=DecimalField()))
+            total=Coalesce(
+                Sum('balance', output_field=DecimalField()), 
+                Value(Decimal('0'), output_field=DecimalField())
+            )
         )['total']
         
-        # Get upcoming dues
+        # Get upcoming due invoices (balance > 0 and due date in future)
         upcoming = queryset.filter(
-            status__in=InvoiceStatus.REQUIRES_PAYMENT,
-            due_date__gte=timezone.now().date()
+            balance__gt=0,
+            due_date__gte=today,
+            status__in=[InvoiceStatus.PENDING, InvoiceStatus.PARTIAL]
         ).order_by('due_date')[:5]
         
+        # Convert Decimal to float for JSON serialization
         return {
             'student_id': student_id,
             'total_invoiced': float(total_invoiced),
@@ -243,12 +287,13 @@ class InvoiceSelector:
                     'description': inv.description,
                     'balance': float(inv.balance),
                     'due_date': inv.due_date.isoformat(),
-                    'days_until': (inv.due_date - timezone.now().date()).days,
+                    'days_until': (inv.due_date - today).days,
                 }
                 for inv in upcoming
             ],
         }
     
+
     @staticmethod
     def get_statistics(session_id: Optional[int] = None) -> Dict[str, Any]:
         """Get financial statistics with proper Decimal handling"""
@@ -547,6 +592,11 @@ class FinancialStatusSelector:
         Check if student is financially cleared for exams
         Used by Results app before allowing result entry
         """
+        from django.db.models import Sum, Value, Q, DecimalField
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        from django.utils import timezone
+        
         if not session_id:
             session = AcademicSessionSelector.get_current_session()
             session_id = session.id if session else None
@@ -558,13 +608,29 @@ class FinancialStatusSelector:
             status__in=InvoiceStatus.REQUIRES_PAYMENT
         )
         
+        # Calculate total due with proper Decimal handling
         total_due = pending_invoices.aggregate(
-            total=Coalesce(Sum('balance'), Value(0))
+            total=Coalesce(
+                Sum('balance', output_field=DecimalField()), 
+                Value(Decimal('0'), output_field=DecimalField())
+            )
         )['total']
         
         has_overdue = pending_invoices.filter(
             due_date__lt=timezone.now().date()
         ).exists()
+        
+        # Prepare pending invoices list safely
+        pending_list = []
+        for inv in pending_invoices:
+            pending_list.append({
+                'id': inv.id,
+                'number': inv.invoice_number,
+                'description': inv.description,
+                'balance': float(inv.balance),
+                'due_date': inv.due_date.isoformat(),
+                'is_overdue': inv.due_date < timezone.now().date(),
+            })
         
         return {
             'student_id': student_id,
@@ -573,18 +639,10 @@ class FinancialStatusSelector:
             'total_due': float(total_due),
             'has_overdue': has_overdue,
             'pending_count': pending_invoices.count(),
-            'pending_invoices': [
-                {
-                    'id': inv.id,
-                    'number': inv.invoice_number,
-                    'description': inv.description,
-                    'balance': float(inv.balance),
-                    'due_date': inv.due_date.isoformat(),
-                    'is_overdue': inv.due_date < timezone.now().date(),
-                }
-                for inv in pending_invoices
-            ],
+            'pending_invoices': pending_list,
         }
+    
+
     
     @staticmethod
     def get_student_payment_history(student_id: int, limit: int = 20) -> List[Dict[str, Any]]:

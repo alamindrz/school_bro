@@ -196,16 +196,17 @@ class ChildDetailView(ParentPortalMixin, TemplateView):
         
         context['student'] = student
         
+        # ADD THIS: Get application status
+        from apps.admissions.selectors import ApplicationSelector
+        application = ApplicationSelector.get_by_student_id(student_id)
+        if application:
+            context['application'] = application
+        
         # Get financial data
-        context['balance'] = FinancialStatusSelector.get_student_balance(student_id)
+        from apps.finance.selectors import InvoiceSelector
+        context['balance'] = InvoiceSelector.get_student_balance(student_id)
         context['exam_clearance'] = FinancialStatusSelector.is_student_cleared_for_exams(student_id)
         context['invoices'] = InvoiceSelector.list_invoices(student_id=student_id, limit=10)
-        
-        # Get attendance data (placeholder until attendance app is ready)
-        # context['attendance'] = AttendanceSelector.get_student_summary(student_id)
-        
-        # Get results data (placeholder until results app is ready)
-        # context['results'] = ResultSelector.get_student_results(student_id)
         
         return context
 
@@ -235,7 +236,8 @@ class FeesView(ParentPortalMixin, TemplateView):
             # Get all invoices for all children
             all_invoices = []
             for child in self.parent_data['children']:
-                if child['permissions']['view_fees']:
+                # Check permission safely
+                if child.get('permissions', {}).get('view_fees', True):
                     invoices = InvoiceSelector.list_invoices(
                         student_id=child['student_id'],
                         limit=20
@@ -243,11 +245,10 @@ class FeesView(ParentPortalMixin, TemplateView):
                     all_invoices.extend(invoices)
             
             # Sort by date
-            all_invoices.sort(key=lambda x: x['issue_date'], reverse=True)
+            all_invoices.sort(key=lambda x: x.get('issue_date', ''), reverse=True)
             context['invoices'] = all_invoices[:50]
         
         return context
-
 
 class PaymentsView(ParentPortalMixin, TemplateView):
     """View payment history"""

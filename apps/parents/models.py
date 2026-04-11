@@ -117,6 +117,13 @@ class ChildLink(models.Model):
         on_delete=models.CASCADE,
         related_name='children'
     )
+
+    application_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Admission application ID that created this student")
+    )    
+    
     
     # Student reference (decoupled)
     student_id = models.IntegerField(

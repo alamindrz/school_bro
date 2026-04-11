@@ -28,6 +28,7 @@ urlpatterns = [
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
     path("staffs/", include("apps.staffs.urls", namespace="staffs")),
     path("admissions/", include("apps.admissions.urls", namespace="admissions")),
+    path("parents/", include("apps.parents.urls", namespace="parents")),
     path("finance/", include("apps.finance.urls", namespace="finance")),
     path("results/", include("apps.results.urls", namespace="results")),
     path("attendance/", include("apps.attendance.urls", namespace="attendance")),
