@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Subject Qualifications - {{ staff.full_name }} | School Bro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="subjectQualifications()"
+     x-init="init({{ staff_id }})">
+    
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-book-open text-primary-500 mr-3"></i>
+                    Subject Qualifications
+                </h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Managing qualified subjects for: <span class="font-medium">{{ staff.full_name }}</span> 
+                    ({{ staff.staff_id }})
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'staffs:detail' staff.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex gap-3">
+            <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-lg mt-0.5"></i>
+            <div>
+                <p class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Global Subject Qualifications
+                </p>
+                <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Set which subjects this teacher is <strong>qualified</strong> to teach. 
+                    These apply to <strong>all classes</strong> and are used when assigning teachers to timetable slots.
+                </p>
+                <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    The primary subject (★) will be prioritized when auto-assigning.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Info Card -->
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</p>
+                <p class="font-medium text-gray-900 dark:text-white">{{ staff.full_name }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Staff ID</p>
+                <p class="font-medium text-gray-900 dark:text-white">{{ staff.staff_id }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <i class="fas fa-building mr-1"></i>Department
+                </p>
+                <p class="font-medium text-gray-900 dark:text-white">{{ staff.department|default:"Not assigned" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Staff Type</p>
+                <p class="font-medium text-gray-900 dark:text-white">{{ staff.staff_type_display }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Add/Edit Qualifications Form -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-plus-circle text-primary-500 mr-2"></i>
+                    {% if qualifications %}Edit{% else %}Assign{% endif %} Qualified Subjects
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Select subjects this teacher is qualified to teach
+                </p>
+            </div>
+            <div class="p-6">
+                <form method="post" id="qualificationForm">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-4">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                            Check all subjects this teacher can teach
+                        </p>
+                        
+                        <div class="max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-1">
+                            {% for subject in subjects %}
+                            <label class="flex items-center p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                <input type="checkbox" 
+                                       name="subject_ids" 
+                                       value="{{ subject.id }}"
+                                       class="subject-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                       {% if subject.id in qualified_subject_ids %}checked{% endif %}>
+                                <span class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ subject.name }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">{{ subject.code }}</span>
+                                </span>
+                            </label>
+                            {% empty %}
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                                No subjects available. Please add subjects first.
+                            </p>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Primary Subject Selection -->
+                        <div id="primary-subject-container" {% if not qualifications %}style="display: none;"{% endif %}>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <i class="fas fa-star text-yellow-500 mr-1"></i>
+                                Primary Subject (Optional)
+                            </label>
+                            <select name="primary_subject_id" 
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
+                                <option value="">-- None --</option>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}" 
+                                    {% if primary_subject_id == subject.id %}selected{% endif %}>
+                                    {{ subject.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Primary subject will be prioritized in timetable auto-assignments
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Qualifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Current Qualifications -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-list-check text-primary-500 mr-2"></i>
+                    Current Qualifications
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Subjects this teacher is qualified to teach
+                </p>
+            </div>
+            
+            <div class="p-6">
+                {% if qualifications %}
+                <div class="space-y-2">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                        Qualified to teach {{ qualifications|length }} subject{{ qualifications|length|pluralize }}
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        {% for qual in qualifications %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm
+                                     {% if qual.is_primary %}
+                                         bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border border-green-300 dark:border-green-700
+                                     {% else %}
+                                         bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-300 dark:border-blue-700
+                                     {% endif %}">
+                            <i class="fas fa-book mr-2 text-xs"></i>
+                            {{ qual.subject.name }}
+                            {% if qual.is_primary %}
+                            <span class="ml-2 text-yellow-600 dark:text-yellow-400" title="Primary Subject">★</span>
+                            {% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-book-open text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No qualified subjects assigned yet.</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        Use the form to add subjects this teacher can teach.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function subjectQualifications() {
+        return {
+            init(staffId) {
+                // Handle checkbox changes to show/hide primary subject selector
+                const checkboxes = document.querySelectorAll('.subject-checkbox');
+                const primaryContainer = document.getElementById('primary-subject-container');
+                
+                function updatePrimaryVisibility() {
+                    const checkedCount = document.querySelectorAll('.subject-checkbox:checked').length;
+                    if (checkedCount > 0) {
+                        primaryContainer.style.display = 'block';
+                    } else {
+                        primaryContainer.style.display = 'none';
+                    }
+                }
+                
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', updatePrimaryVisibility);
+                });
+                
+                updatePrimaryVisibility();
+            }
+        }
+    }
+</script>
+{% endblock %}

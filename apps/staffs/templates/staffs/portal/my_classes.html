@@ -1,0 +1,113 @@
+{% extends "staffs/portal/base_portal.html" %}
+
+{% block page_title %}My Classes{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Page Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Classes</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Classes and subjects you are assigned to teach
+            </p>
+        </div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+            <i class="fas fa-calendar-alt mr-1"></i> {{ current_session.name|default:"Current Session" }}
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Classes</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ assigned_classes|length|default:0 }}</p>
+                </div>
+                <i class="fas fa-chalkboard text-3xl text-blue-500 opacity-50"></i>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Subjects</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_subjects|default:0 }}</p>
+                </div>
+                <i class="fas fa-book text-3xl text-green-500 opacity-50"></i>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_students|default:0 }}</p>
+                </div>
+                <i class="fas fa-users text-3xl text-purple-500 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes List -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% if assigned_classes %}
+            {% for class_data in assigned_classes %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+                <!-- Class Header -->
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ class_data.class.display_name }}</h2>
+                            {% if class_data.is_form_master %}
+                            <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                <i class="fas fa-crown mr-1"></i> Form Master
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ class_data.subjects|length }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Subjects</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subjects List -->
+                <div class="p-4">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        {% for subject in class_data.subjects %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            {{ subject.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <a href="{% url 'staffs:my_students' class_data.class.id %}" 
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/50 dark:text-primary-300">
+                            <i class="fas fa-users mr-2"></i> View Students
+                        </a>
+                        <a href="#" 
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
+                            <i class="fas fa-chart-line mr-2"></i> Performance
+                        </a>
+                        <a href="#" 
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">
+                            <i class="fas fa-upload mr-2"></i> Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <i class="fas fa-chalkboard text-5xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Class Assignments</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">You haven't been assigned to any classes yet.</p>
+                <p class="text-xs text-gray-400 mt-1">Contact the school administrator to assign you to classes.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

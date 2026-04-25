@@ -27,65 +27,103 @@ from ..constants import SiteConfigKey, NigerianClassLevel
 
 
 class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """System dashboard with key metrics"""
     template_name = 'corecode/pages/dashboard.html'
     permission_required = 'corecode.view_dashboard'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get menu items
-        from apps.corecode.navigation import MenuRegistry
-        context['main_menu'] = MenuRegistry.get_main_menu(
-            self.request.user, 
-            self.request.path
-        )
-        context['user_menu'] = MenuRegistry.get_user_menu(
-            self.request.user,
-            self.request.path
-        )
-        
-        # Academic info
-        context['current_session'] = AcademicSessionSelector.get_current_session()
-        context['current_term'] = AcademicTermSelector.get_current_term()
-        
-        # Recent system activity
-        context['recent_logs'] = SystemLogSelector.get_recent_actions(limit=10)
-        
-        # System config stats
-        context['config_count'] = SiteConfig.objects.count()
-        
-        # Class capacity overview - FIX: Use correct selector method
+        # Statistics - ALL numbers should be clickable
         from apps.students.models import Student
-        classes = StudentClassSelector.get_all_classes(active_only=True)  # Changed from active_classes()
+        from apps.staffs.models import Staff
+        from apps.admissions.models import Application
+        from apps.finance.models import Invoice
+        
+        total_students = Student.objects.count()
+        active_students = Student.objects.filter(status='active').count()
+        total_staff = Staff.objects.count()
+        teaching_staff = Staff.objects.filter(staff_category='academic').count()
+        
+        # Applications stats
+        pending_applications = Application.objects.filter(status='submitted').count()
+        
+        # Finance stats
+        from django.db.models import Sum
+        outstanding_fees = Invoice.objects.filter(balance__gt=0).aggregate(Sum('balance'))['balance__sum'] or 0
+        overdue_invoices = Invoice.objects.filter(status='overdue').count()
+        
+        context['total_students'] = total_students
+        context['active_students'] = active_students
+        context['total_staff'] = total_staff
+        context['teaching_staff'] = teaching_staff
+        context['pending_applications'] = pending_applications
+        context['outstanding_fees'] = outstanding_fees
+        context['overdue_invoices'] = overdue_invoices
+        
+        # Recent applications
+        from apps.admissions.selectors import ApplicationSelector
+        context['recent_applications'] = ApplicationSelector.list_applications(limit=10)
+        
+        # Class capacity
+        from apps.corecode.selectors import StudentClassSelector
+        classes = StudentClassSelector.get_all_classes(active_only=True)
+        from apps.students.models import Student
         class_stats = []
-        for class_obj in classes:
-            # Get class object from dict or from database
-            if isinstance(class_obj, dict):
-                class_id = class_obj['id']
-                class_name = class_obj['display_name']
-                max_students = class_obj['max_students']
+        for cls in classes:
+            if isinstance(cls, dict):
+                class_id = cls['id']
+                class_name = cls['display_name']
+                max_students = cls['max_students']
             else:
-                class_id = class_obj.id
-                class_name = class_obj.display_name
-                max_students = class_obj.max_students
+                class_id = cls.id
+                class_name = cls.display_name
+                max_students = cls.max_students
             
-            current_count = Student.objects.filter(
-                current_class_id=class_id,
-                status='active'
-            ).count()
-            
+            current_count = Student.objects.filter(current_class_id=class_id, status='active').count()
             class_stats.append({
                 'id': class_id,
                 'display_name': class_name,
                 'max_students': max_students,
                 'current_count': current_count,
-                'percentage': (current_count / max_students) * 100 if max_students > 0 else 0
+                'percentage': (current_count / max_students * 100) if max_students > 0 else 0
             })
         context['classes'] = class_stats
         
+        # Upcoming birthdays (students + staff)
+        from datetime import date, timedelta
+        today = date.today()
+        end_date = today + timedelta(days=30)
+        
+        birthdays = []
+        # Student birthdays
+        for student in Student.objects.filter(status='active')[:20]:
+            bday = date(today.year, student.date_of_birth.month, student.date_of_birth.day)
+            if bday < today:
+                bday = date(today.year + 1, student.date_of_birth.month, student.date_of_birth.day)
+            if bday <= end_date:
+                birthdays.append({
+                    'name': student.get_full_name,
+                    'role': 'Student',
+                    'date': student.date_of_birth.strftime('%b %d'),
+                    'days_until': (bday - today).days
+                })
+        # Staff birthdays
+        for staff in Staff.objects.filter(employment_status='active')[:20]:
+            bday = date(today.year, staff.date_of_birth.month, staff.date_of_birth.day)
+            if bday < today:
+                bday = date(today.year + 1, staff.date_of_birth.month, staff.date_of_birth.day)
+            if bday <= end_date:
+                birthdays.append({
+                    'name': staff.get_full_name,
+                    'role': staff.get_staff_type_display(),
+                    'date': staff.date_of_birth.strftime('%b %d'),
+                    'days_until': (bday - today).days
+                })
+        
+        birthdays.sort(key=lambda x: x['days_until'])
+        context['upcoming_birthdays'] = birthdays[:10]
+        
         return context
-
 
 class AcademicSessionListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """List all academic sessions"""

@@ -32,6 +32,7 @@ urlpatterns = [
     path("finance/", include("apps.finance.urls", namespace="finance")),
     path("results/", include("apps.results.urls", namespace="results")),
     path("attendance/", include("apps.attendance.urls", namespace="attendance")),
+    path("timetable/", include("apps.timetable.urls", namespace="timetable")),
 ]
 
 

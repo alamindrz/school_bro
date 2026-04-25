@@ -1,0 +1,69 @@
+
+
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Assigned Slots</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ assigned_slots }} / {{ total_slots }}</p>
+            </div>
+            <i class="fas fa-chalkboard-teacher text-2xl text-blue-500"></i>
+        </div>
+        <div class="mt-2">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: {{ assignment_rate }}%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">{{ assignment_rate }}% assigned</p>
+        </div>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Free Periods</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ free_periods }}</p>
+            </div>
+            <i class="fas fa-coffee text-2xl text-yellow-500"></i>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Marked as free/study periods</p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Teacher Clashes</p>
+                <p class="text-2xl font-bold {% if has_clashes %}text-red-600{% else %}text-green-600{% endif %}">
+                    {{ clash_count }}
+                </p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-2xl {% if has_clashes %}text-red-500{% else %}text-green-500{% endif %}"></i>
+        </div>
+        {% if has_clashes %}
+        <p class="text-xs text-red-500 mt-2">⚠️ Conflicts detected - resolve before publishing</p>
+        {% else %}
+        <p class="text-xs text-green-500 mt-2">✓ No conflicts detected</p>
+        {% endif %}
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Unassigned Slots</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_slots|add:assigned_slots|add:free_periods }}</p>
+            </div>
+            <i class="fas fa-clock text-2xl text-purple-500"></i>
+        </div>
+        {% if unassigned_by_day %}
+        <details class="mt-2">
+            <summary class="text-xs text-gray-500 cursor-pointer">View by day</summary>
+            <div class="mt-2 space-y-1">
+                {% for day, slots in unassigned_by_day.items %}
+                <div class="text-xs">
+                    <span class="font-medium">{{ day }}:</span> {{ slots|length }} periods
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+    </div>
+</div>

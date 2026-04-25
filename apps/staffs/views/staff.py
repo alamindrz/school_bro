@@ -15,10 +15,10 @@ from django.utils import timezone
 import logging
 import json
 from datetime import date, datetime, timedelta
-
+from ..services.invite import StaffInviteService
 from ..selectors import (
     StaffSelector,
-    SubjectAssignmentSelector,
+    TeacherQualificationSelector,
     DutyAssignmentSelector,
     LeaveRequestSelector,
     StaffAttendanceSelector,
@@ -26,8 +26,8 @@ from ..selectors import (
 )
 from ..services import (
     StaffService,
-    AssignmentService,
     LeaveService,
+
     StaffAttendanceService
 )
 from ..constants import StaffType, StaffCategory, EmploymentStatus, LeaveType, DutyPost
@@ -47,6 +47,8 @@ from apps.corecode.selectors import (
 )
 from apps.corecode.services import SystemLogService
 from apps.corecode.models import SystemLog
+from ..forms import StaffForm
+
 
 logger = logging.getLogger(__name__)
 
@@ -197,47 +199,44 @@ class StaffDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         
         staff_id = self.kwargs['pk']
+        staff_data = self.object  # This is the dict from get_object()
+        
+        # FIXED: Use staff_data, not staff
+        context['can_send_invite'] = not staff_data.get('user_id') and staff_data.get('employment_status') == 'active'
         
         # Get all data from selectors
-        context['staff_data'] = self.object  # Already from selector
+        context['staff_data'] = staff_data
         
-        # Get subject assignments from selector
-        context['subject_assignments'] = SubjectAssignmentSelector.get_for_staff(staff_id)
         
         # Get duty assignments from selector
         context['duty_assignments'] = DutyAssignmentSelector.get_for_staff(staff_id)
         
-        # Get leave requests from selector
-        context['leave_requests'] = LeaveRequestSelector.get_for_staff(staff_id)
+        context['qualifications'] = TeacherQualificationSelector.get_for_teacher(staff_id)
         
-        # Get performance evaluations from selector
-        context['evaluations'] = PerformanceSelector.get_for_staff(staff_id)
+            
+        # Get work experience
+        from ..selectors import WorkExperienceSelector
+        context['work_experience'] = WorkExperienceSelector.get_for_staff(staff_id)
         
-        # Get qualifications - need selector
-        # TODO: Add QualificationSelector
-        context['qualifications'] = []
-        
-        # Get work experience - need selector
-        # TODO: Add WorkExperienceSelector
-        context['work_experience'] = []
-        
-        # Get documents - need selector
-        # TODO: Add StaffDocumentSelector
-        context['documents'] = []
+        # Get documents
+        from ..selectors import StaffDocumentSelector
+        context['documents'] = StaffDocumentSelector.get_for_staff(staff_id)
         
         # Get attendance summary for current term
         current_term = AcademicTermSelector.get_current_term()
         if current_term:
-            start_date = current_term['start_date'] if isinstance(current_term, dict) else current_term.start_date
+            start_date = current_term.get('start_date') if isinstance(current_term, dict) else current_term.start_date
             end_date = current_term.get('end_date') if isinstance(current_term, dict) else getattr(current_term, 'end_date', date.today())
+            from datetime import date as date_type
             context['attendance_summary'] = StaffAttendanceSelector.get_staff_summary(
                 staff_id, 
-                date.fromisoformat(start_date) if isinstance(start_date, str) else start_date,
-                date.fromisoformat(end_date) if isinstance(end_date, str) else end_date
+                date_type.fromisoformat(start_date) if isinstance(start_date, str) else start_date,
+                date_type.fromisoformat(end_date) if isinstance(end_date, str) else end_date
             )
         
         # Get leave balances from service
         from ..services.leave import LeaveService
+        from ..constants import LeaveType
         context['leave_balances'] = {
             leave_type[0]: LeaveService.get_leave_balance(staff_id, leave_type[0])
             for leave_type in LeaveType.CHOICES
@@ -249,152 +248,75 @@ class StaffDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         return context
 
 
-class StaffCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class StaffCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """
     Create a new staff member.
-    USES SERVICE: StaffService.create_staff() for all write operations
+    After creation, sends invite email to staff.
     """
+    model = Staff
     template_name = 'staffs/pages/staff_form.html'
+    form_class = StaffForm
     permission_required = 'staffs.add_staff'
+    success_url = reverse_lazy('staffs:list')
+
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                # Save the staff record
+                staff = form.save(commit=False)
+                staff.save()
+                
+                # Send invite email (this creates user account when accepted)
+                from ..services.invite import StaffInviteService
+                StaffInviteService.send_invite(staff.id)
+                
+                messages.success(
+                    self.request, 
+                    f'Staff member {staff.get_full_name} created successfully. '
+                    f'An invitation email has been sent to {staff.email}.'
+                )
+                return redirect(self.success_url)
+                
+        except Exception as e:
+            messages.error(self.request, f'Error creating staff: {str(e)}')
+            return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Get supervisor choices from selector
-        # TODO: Add get_supervisor_choices to StaffSelector
-        context['supervisors'] = []
-        
+        context['title'] = 'Add New Staff Member'
+        context['submit_text'] = 'Create Staff Member'
         return context
 
-    def post(self, request, *args, **kwargs):
-        try:
-            # Collect form data
-            staff_data = {
-                'first_name': request.POST.get('first_name'),
-                'last_name': request.POST.get('last_name'),
-                'middle_name': request.POST.get('middle_name', ''),
-                'gender': request.POST.get('gender'),
-                'date_of_birth': request.POST.get('date_of_birth'),
-                'email': request.POST.get('email'),
-                'phone': request.POST.get('phone'),
-                'address': request.POST.get('address'),
-                'city': request.POST.get('city'),
-                'state_of_origin': request.POST.get('state_of_origin'),
-                'staff_type': request.POST.get('staff_type'),
-                'date_employed': request.POST.get('date_employed'),
-                'emergency_contact_name': request.POST.get('emergency_contact_name'),
-                'emergency_contact_phone': request.POST.get('emergency_contact_phone'),
-                'emergency_contact_relationship': request.POST.get('emergency_contact_relationship'),
-                'marital_status': request.POST.get('marital_status', 'single'),
-                'blood_group': request.POST.get('blood_group', ''),
-                'alternate_phone': request.POST.get('alternate_phone', ''),
-                'lga': request.POST.get('lga', ''),
-                'nationality': request.POST.get('nationality', 'Nigerian'),
-                'employment_type': request.POST.get('employment_type', 'permanent'),
-                'shift': request.POST.get('shift', 'fixed'),
-                'department': request.POST.get('department', ''),
-                'unit': request.POST.get('unit', ''),
-                'supervisor_id': request.POST.get('supervisor_id'),
-                'highest_qualification': request.POST.get('highest_qualification', 'degree'),
-                'qualification_details': request.POST.get('qualification_details', ''),
-                'bank_name': request.POST.get('bank_name', ''),
-                'account_number': request.POST.get('account_number', ''),
-                'account_name': request.POST.get('account_name', ''),
-                'pension_number': request.POST.get('pension_number', ''),
-                'tax_id': request.POST.get('tax_id', ''),
-                'medical_conditions': request.POST.get('medical_conditions', ''),
-                'allergies': request.POST.get('allergies', ''),
-                'doctor_name': request.POST.get('doctor_name', ''),
-                'doctor_phone': request.POST.get('doctor_phone', ''),
-            }
 
-            # Use service to create staff
-            staff = StaffService.create_staff(
-                **staff_data,
-                created_by_id=self.request.user.id
-            )
-
-            messages.success(request, f'Staff member {staff.get_full_name} created successfully.')
-            return redirect('staffs:detail', pk=staff.id)
-
-        except DuplicateStaffError as e:
-            messages.error(request, str(e))
-            return self.get(request, *args, **kwargs)
-        except Exception as e:
-            messages.error(request, f'Error creating staff: {str(e)}')
-            logger.error(f"Staff creation failed: {e}", exc_info=True)
-            return self.get(request, *args, **kwargs)
-
-
-class StaffUpdateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class StaffUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Update an existing staff member.
-    USES SELECTOR for read, SERVICE for write.
+    Does NOT send new invite (use separate action for that).
     """
+    model = Staff
     template_name = 'staffs/pages/staff_form.html'
+    form_class = StaffForm
     permission_required = 'staffs.change_staff'
+    success_url = reverse_lazy('staffs:list')
+
+    def form_valid(self, form):
+        try:
+            staff = form.save()
+            messages.success(
+                self.request, 
+                f'Staff member {staff.get_full_name} updated successfully.'
+            )
+            return redirect(self.success_url)
+            
+        except Exception as e:
+            messages.error(self.request, f'Error updating staff: {str(e)}')
+            return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        staff_id = self.kwargs['pk']
-        staff_data = StaffSelector.get_by_id(staff_id)
-        
-        if not staff_data:
-            raise Http404("Staff member not found")
-        
-        context['staff'] = staff_data
-        context['is_update'] = True
-        
-        # Get supervisor choices from selector
-        # TODO: Add get_supervisor_choices to StaffSelector
-        context['supervisors'] = []
-        
+        context['title'] = 'Edit Staff Member'
+        context['submit_text'] = 'Update Staff Member'
         return context
-
-    def post(self, request, *args, **kwargs):
-        staff_id = self.kwargs['pk']
-        
-        try:
-            # Get existing staff data
-            staff_data = StaffSelector.get_by_id(staff_id)
-            if not staff_data:
-                raise StaffNotFoundError(f"Staff with id {staff_id} not found")
-
-            # Collect update data
-            update_data = {}
-            fields_to_update = [
-                'first_name', 'last_name', 'middle_name', 'marital_status', 'blood_group',
-                'phone', 'alternate_phone', 'address', 'city', 'lga',
-                'employment_type', 'shift', 'department', 'unit', 'supervisor_id',
-                'highest_qualification', 'qualification_details',
-                'bank_name', 'account_number', 'account_name',
-                'pension_number', 'tax_id',
-                'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
-                'medical_conditions', 'allergies', 'doctor_name', 'doctor_phone'
-            ]
-            
-            for field in fields_to_update:
-                value = request.POST.get(field)
-                if value is not None and value != staff_data.get(field):
-                    update_data[field] = value
-
-            if update_data:
-                # Use service to update staff
-                # TODO: Add update_staff method to StaffService
-                messages.success(request, 'Staff information updated successfully.')
-            else:
-                messages.info(request, 'No changes detected.')
-
-            return redirect('staffs:detail', pk=staff_id)
-
-        except StaffNotFoundError as e:
-            messages.error(request, str(e))
-            return redirect('staffs:list')
-        except Exception as e:
-            messages.error(request, f'Error updating staff: {str(e)}')
-            return self.get(request, *args, **kwargs)
-
 
 class StaffDeleteView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
@@ -591,7 +513,7 @@ class StaffStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
 class SubjectAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
-    Manage subject assignments for a staff member.
+    Manage teacher subject qualifications (global capabilities).
     USES SELECTORS for reads, SERVICE for writes.
     """
     template_name = 'staffs/pages/subject_assignments.html'
@@ -601,70 +523,105 @@ class SubjectAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, Templat
         context = super().get_context_data(**kwargs)
 
         staff_id = self.kwargs.get('pk')
-        context['staff'] = StaffSelector.get_by_id(staff_id)
+        staff_data = StaffSelector.get_by_id(staff_id)
         
-        if not context['staff']:
+        if not staff_data:
             raise Http404("Staff member not found")
+        
+        context['staff'] = staff_data
+        context['staff_id'] = staff_id
 
-        # Get available classes and subjects from selectors
-        context['classes'] = StudentClassSelector.get_all_classes()
+        # Get all active subjects
         context['subjects'] = SubjectSelector.list_subjects(active_only=True)
 
-        # Get current session from selector
+        # Get current session for display only
         context['current_session'] = AcademicSessionSelector.get_current_session()
-        context['current_term'] = AcademicTermSelector.get_current_term()
 
-        # Get existing assignments from selector
-        context['assignments'] = SubjectAssignmentSelector.get_for_staff(staff_id)
+        # Get existing qualifications from the model directly (since it's new)
+        from ..models import TeacherSubjectQualification
+        qualifications = TeacherSubjectQualification.objects.filter(
+            teacher_id=staff_id
+        ).select_related('subject')
+        
+        context['qualifications'] = qualifications
 
         return context
 
     def post(self, request, *args, **kwargs):
-        staff_id = kwargs.get('pk')
+        staff_id = self.kwargs.get('pk')
         
         try:
-            # Use service to create assignment
-            assignment = AssignmentService.assign_subject(
-                staff_id=staff_id,
-                subject_id=int(request.POST.get('subject_id')),
-                class_id=int(request.POST.get('class_id')),
-                session_id=int(request.POST.get('session_id')) if request.POST.get('session_id') else None,
-                term_id=int(request.POST.get('term_id')) if request.POST.get('term_id') else None,
-                periods_per_week=int(request.POST.get('periods_per_week', 1)),
-                is_form_master=request.POST.get('is_form_master') == 'on',
-                is_class_teacher=request.POST.get('is_class_teacher') == 'on',
-                assigned_by_id=request.user.id
-            )
-
-            messages.success(request, f'Subject assigned successfully.')
-
+            staff_data = StaffSelector.get_by_id(staff_id)
+            if not staff_data:
+                messages.error(request, 'Staff member not found.')
+                return redirect('staffs:subject_assignments', pk=staff_id)
+            
+            subject_ids = request.POST.getlist('subject_ids')
+            primary_subject_id = request.POST.get('primary_subject_id')
+            
+            from ..models import TeacherSubjectQualification
+            
+            with transaction.atomic():
+                # Clear existing qualifications
+                TeacherSubjectQualification.objects.filter(teacher_id=staff_id).delete()
+                
+                # Add new qualifications
+                for subject_id in subject_ids:
+                    TeacherSubjectQualification.objects.create(
+                        teacher_id=staff_id,
+                        subject_id=int(subject_id),
+                        is_primary=(subject_id == primary_subject_id),
+                        created_by=request.user
+                    )
+                
+                # Audit log
+                SystemLogService.log_action(
+                    user=request.user,
+                    action=SystemLog.ActionType.UPDATE,
+                    app_label='staffs',
+                    model_name='TeacherSubjectQualification',
+                    object_id=staff_id,
+                    object_repr=staff_data.get('full_name'),
+                    changes={
+                        'action': 'update_qualifications',
+                        'subject_ids': subject_ids,
+                        'primary_subject_id': primary_subject_id,
+                    },
+                    request=request
+                )
+            
+            messages.success(request, f'Qualifications updated for {staff_data.get("full_name")}.')
+            
         except Exception as e:
-            messages.error(request, f'Assignment failed: {str(e)}')
-
+            messages.error(request, f'Error updating qualifications: {str(e)}')
+            logger.error(f"Qualification update failed: {e}", exc_info=True)
+        
         return redirect('staffs:subject_assignments', pk=staff_id)
 
-
 class SubjectAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """
-    Delete a subject assignment.
-    USES SERVICE for delete.
-    """
+    """Delete a teacher subject qualification."""
     permission_required = 'staffs.delete_subjectassignment'
 
     def post(self, request, *args, **kwargs):
-        assignment_id = kwargs.get('pk')
+        qualification_id = kwargs.get('pk')
         
         try:
-            # TODO: Add delete_subject_assignment to AssignmentService
-            # For now, direct model access is a temporary workaround
-            # This should be moved to service
+            from ..models import TeacherSubjectQualification
             
-            messages.success(request, 'Subject assignment removed successfully.')
+            qual = TeacherSubjectQualification.objects.filter(id=qualification_id).first()
+            if not qual:
+                messages.error(request, 'Qualification not found.')
+                return redirect('staffs:list')
+            
+            staff_id = qual.teacher_id
+            qual.delete()
+            
+            messages.success(request, 'Qualification removed successfully.')
+            return redirect('staffs:subject_assignments', pk=staff_id)
             
         except Exception as e:
-            messages.error(request, f'Error removing assignment: {str(e)}')
-        
-        return redirect('staffs:subject_assignments', pk=staff_id)
+            messages.error(request, f'Error removing qualification: {str(e)}')
+            return redirect('staffs:dashboard')
 
 
 # ============================================================================
@@ -683,39 +640,75 @@ class DutyAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         context = super().get_context_data(**kwargs)
 
         staff_id = self.kwargs.get('pk')
-        context['staff'] = StaffSelector.get_by_id(staff_id)
+        staff_data = StaffSelector.get_by_id(staff_id)
         
-        if not context['staff']:
+        if not staff_data:
             raise Http404("Staff member not found")
+        
+        context['staff'] = staff_data
+        context['staff_id'] = staff_id
 
         # Get duty posts from constants
         context['duty_posts'] = DutyPost.CHOICES
 
-        # Get current session from selector
+        # Get available classes
+        context['classes'] = StudentClassSelector.get_all_classes(active_only=True)
+
+        # Get current session (auto-set in form)
         context['current_session'] = AcademicSessionSelector.get_current_session()
 
         # Get existing duties from selector
-        # TODO: Add DutyAssignmentSelector.get_for_staff
-        context['duties'] = []
+        existing_duties = DutyAssignmentSelector.get_for_staff(staff_id)
+        context['duties'] = existing_duties
 
         return context
 
     def post(self, request, *args, **kwargs):
-        staff_id = kwargs.get('pk')
+        staff_id = self.kwargs.get('pk')
         
         try:
+            # Use current session - don't let user override
+            current_session = AcademicSessionSelector.get_current_session()
+            if not current_session:
+                messages.error(request, 'No active academic session configured.')
+                return redirect('staffs:duty_assignments', pk=staff_id)
+            
+            duty_post = request.POST.get('duty_post')
+            class_id = request.POST.get('class_id')
+            club_name = request.POST.get('club_name', '')
+            sport_name = request.POST.get('sport_name', '')
+            house_name = request.POST.get('house_name', '')
+            day_of_week = request.POST.get('day_of_week')
+            start_time = request.POST.get('start_time')
+            end_time = request.POST.get('end_time')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Check for existing assignment of same duty post
+            existing_duties = DutyAssignmentSelector.get_for_staff(staff_id)
+            existing_same = [d for d in existing_duties if d['duty_post'] == duty_post and d.get('is_active', True)]
+            
+            if existing_same:
+                duty_name = dict(DutyPost.CHOICES).get(duty_post, duty_post)
+                messages.warning(request, f'This staff member already has an active "{duty_name}" assignment.')
+                return redirect('staffs:duty_assignments', pk=staff_id)
+            
+            # Parse times if provided
+            from datetime import datetime
+            start = datetime.strptime(start_time, '%H:%M').time() if start_time else None
+            end = datetime.strptime(end_time, '%H:%M').time() if end_time else None
+            
             # Use service to assign duty
             duty = AssignmentService.assign_duty(
                 staff_id=staff_id,
-                duty_post=request.POST.get('duty_post'),
-                session_id=int(request.POST.get('session_id')) if request.POST.get('session_id') else None,
-                class_id=int(request.POST.get('class_id')) if request.POST.get('class_id') else None,
-                club_name=request.POST.get('club_name', ''),
-                sport_name=request.POST.get('sport_name', ''),
-                house_name=request.POST.get('house_name', ''),
-                day_of_week=int(request.POST.get('day_of_week')) if request.POST.get('day_of_week') else None,
-                start_time=request.POST.get('start_time'),
-                end_time=request.POST.get('end_time'),
+                duty_post=duty_post,
+                session_id=current_session.id,
+                class_id=int(class_id) if class_id else None,
+                club_name=club_name,
+                sport_name=sport_name,
+                house_name=house_name,
+                day_of_week=int(day_of_week) if day_of_week else None,
+                start_time=start,
+                end_time=end,
                 assigned_by_id=request.user.id
             )
 
@@ -723,6 +716,7 @@ class DutyAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
 
         except Exception as e:
             messages.error(request, f'Assignment failed: {str(e)}')
+            logger.error(f"Duty assignment failed: {e}", exc_info=True)
 
         return redirect('staffs:duty_assignments', pk=staff_id)
 
@@ -730,7 +724,6 @@ class DutyAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
 class DutyAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Delete a duty assignment.
-    USES SERVICE for delete operation.
     """
     permission_required = 'staffs.delete_dutyassignment'
 
@@ -739,7 +732,6 @@ class DutyAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View
         
         try:
             # Get the duty assignment to find staff_id before deletion
-            from ..selectors import DutyAssignmentSelector
             duty = DutyAssignmentSelector.get_by_id(duty_id)
             
             if not duty:
@@ -748,11 +740,9 @@ class DutyAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View
             
             staff_id = duty['staff']['id']
             
-            # TODO: Add delete_duty_assignment to AssignmentService
-            # For now, direct model access is a temporary workaround
+            # Delete using direct model access
             from ..models import DutyAssignment
-            duty_obj = DutyAssignment.objects.get(id=duty_id)
-            duty_obj.delete()
+            DutyAssignment.objects.filter(id=duty_id).delete()
             
             messages.success(request, 'Duty assignment deleted successfully.')
             return redirect('staffs:duty_assignments', pk=staff_id)
@@ -817,7 +807,6 @@ class LeaveRequestView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
             messages.error(request, f'Leave request failed: {str(e)}')
 
         return redirect('staffs:detail', pk=staff_id)
-
 
 class LeaveRequestListView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """
@@ -1964,3 +1953,27 @@ class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
             messages.error(request, f'Error deleting document: {str(e)}')
             logger.error(f"Document deletion failed: {e}", exc_info=True)
             return redirect('staffs:dashboard')
+            
+            
+
+class SendInviteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Send invite email to staff member"""
+    permission_required = 'staffs.change_staff'
+    
+    def post(self, request, pk):
+        from ..services.invite import StaffInviteService
+        from ..models import Staff
+        
+        try:
+            staff = Staff.objects.get(id=pk)
+            
+            if staff.user:
+                messages.error(request, 'Staff already has a user account.')
+            else:
+                StaffInviteService.send_invite(staff.id)
+                messages.success(request, f'Invitation sent to {staff.email}')
+                
+        except Staff.DoesNotExist:
+            messages.error(request, 'Staff member not found.')
+        
+        return redirect('staffs:detail', pk=pk)

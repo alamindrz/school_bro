@@ -1,225 +1,336 @@
 """
-Assignment Service - Subject and duty assignments for staff
+Qualification Service - Teacher subject qualification management
+Replaces the old SubjectAssignment service with global qualifications.
 """
 
 from django.db import transaction
-from django.utils import timezone
+from django.core.exceptions import ValidationError
 from typing import Optional, List, Dict, Any
 import logging
 
-from ..models import SubjectAssignment, DutyAssignment, Staff
-from ..exceptions import StaffNotFoundError, SubjectAssignmentError
-from ..selectors import StaffSelector
+from ..models import TeacherSubjectQualification, Staff
+from ..exceptions import StaffNotFoundError
+from ..selectors import StaffSelector, TeacherQualificationSelector
 
 from apps.corecode.services import SystemLogService
-from apps.corecode.models import SystemLog, Subject
-from apps.corecode.selectors import AcademicSessionSelector
-from apps.corecode.selectors import StudentClassSelector
+from apps.corecode.models import SystemLog
 
 logger = logging.getLogger(__name__)
 
 
-class AssignmentService:
+class QualificationService:
     """
-    Staff assignment business operations
-    Handles subject assignments, duty posts, form masters, etc.
+    Teacher qualification business operations.
+    Handles global subject qualifications (what a teacher CAN teach).
     """
-
+    
     @staticmethod
     @transaction.atomic
-    def assign_subject(
-        staff_id: int,
-        subject_id: int,
-        class_id: int,
-        session_id: Optional[int] = None,
-        term_id: Optional[int] = None,
-        periods_per_week: int = 1,
-        is_class_teacher: bool = False,
-        is_form_master: bool = False,
-        assigned_by_id: Optional[int] = None
-    ) -> SubjectAssignment:
+    def set_qualifications(
+        teacher_id: int,
+        subject_ids: List[int],
+        primary_subject_id: Optional[int] = None,
+        updated_by_id: Optional[int] = None,
+        request=None
+    ) -> Dict[str, Any]:
         """
-        Assign a subject to a staff member for a specific class
+        Set qualified subjects for a teacher.
+        Replaces ALL existing qualifications with the new set.
+        
+        Args:
+            teacher_id: Staff ID
+            subject_ids: List of subject IDs the teacher is qualified to teach
+            primary_subject_id: Optional primary subject ID
+            updated_by_id: User ID performing the update
+            request: HTTP request for audit logging
+            
+        Returns:
+            Dictionary with summary of changes
         """
+        # Validate teacher exists and is academic staff
         try:
-            staff = Staff.objects.get(id=staff_id)
+            teacher = Staff.objects.get(
+                id=teacher_id,
+                staff_category='academic',
+                employment_status='active'
+            )
         except Staff.DoesNotExist:
-            raise StaffNotFoundError(f"Staff with id {staff_id} not found")
-
-        # Validate staff is teaching staff
-        if staff.staff_category != 'academic':
-            raise SubjectAssignmentError("Only academic staff can be assigned subjects")
-
-        # Get current session if not provided
-        if not session_id:
-            current_session = AcademicSessionSelector.get_current_session()
-            if not current_session:
-                raise ValidationError("No active academic session configured")
-            session_id = current_session.id
-
-        # Check for existing assignment
-        existing = SubjectAssignment.objects.filter(
-            staff_id=staff_id,
-            subject_id=subject_id,
-            student_class_id=class_id,
-            academic_session_id=session_id,
-            academic_term_id=term_id
-        ).first()
-
-        if existing:
-            logger.info(f"Assignment already exists for staff {staff_id}")
-            return existing
-
-        # Create assignment
-        assignment = SubjectAssignment.objects.create(
-            staff=staff,
-            subject_id=subject_id,
-            student_class_id=class_id,
-            academic_session_id=session_id,
-            academic_term_id=term_id,
-            periods_per_week=periods_per_week,
-            is_class_teacher=is_class_teacher,
-            is_form_master=is_form_master,
-            assigned_by_id=assigned_by_id
+            raise StaffNotFoundError(
+                f"Teacher with ID {teacher_id} not found or not active academic staff"
+            )
+        
+        # Validate primary subject is in subject_ids
+        if primary_subject_id and primary_subject_id not in subject_ids:
+            raise ValidationError("Primary subject must be one of the selected subjects")
+        
+        # Get existing qualifications for audit
+        old_qualifications = list(
+            TeacherSubjectQualification.objects.filter(
+                teacher_id=teacher_id
+            ).values_list('subject_id', flat=True)
         )
-
-        # Log the action
+        
+        # Clear existing
+        deleted_count, _ = TeacherSubjectQualification.objects.filter(
+            teacher_id=teacher_id
+        ).delete()
+        
+        # Add new qualifications
+        created_count = 0
+        for subject_id in subject_ids:
+            TeacherSubjectQualification.objects.create(
+                teacher_id=teacher_id,
+                subject_id=subject_id,
+                is_primary=(subject_id == primary_subject_id),
+                created_by_id=updated_by_id
+            )
+            created_count += 1
+        
+        # Audit log
         SystemLogService.log_action(
-            user_id=assigned_by_id,
-            action=SystemLog.ActionType.CREATE,
-            app_label=SystemLog.AppLabel.STAFFS,
-            model_name='SubjectAssignment',
-            object_id=str(assignment.id),
-            object_repr=f"{staff.get_full_name} - {assignment.subject.name}",
+            user_id=updated_by_id,
+            action=SystemLog.ActionType.UPDATE,
+            app_label='staffs',
+            model_name='TeacherSubjectQualification',
+            object_id=str(teacher_id),
+            object_repr=teacher.get_full_name,
             changes={
-                'staff_id': staff_id,
-                'subject_id': subject_id,
-                'class_id': class_id,
-                'session_id': session_id,
+                'action': 'set_qualifications',
+                'old_subject_ids': old_qualifications,
+                'new_subject_ids': subject_ids,
+                'primary_subject_id': primary_subject_id,
+            },
+            request=request
+        )
+        
+        logger.info(
+            f"Qualifications updated for teacher {teacher_id}: "
+            f"deleted {deleted_count}, created {created_count}"
+        )
+        
+        return {
+            'teacher_id': teacher_id,
+            'teacher_name': teacher.get_full_name,
+            'deleted_count': deleted_count,
+            'created_count': created_count,
+            'subject_ids': subject_ids,
+            'primary_subject_id': primary_subject_id,
+        }
+    
+    @staticmethod
+    @transaction.atomic
+    def add_qualification(
+        teacher_id: int,
+        subject_id: int,
+        is_primary: bool = False,
+        updated_by_id: Optional[int] = None
+    ) -> TeacherSubjectQualification:
+        """
+        Add a single qualification for a teacher.
+        Does NOT clear existing qualifications.
+        
+        Args:
+            teacher_id: Staff ID
+            subject_id: Subject ID to add
+            is_primary: Whether this is a primary subject
+            updated_by_id: User ID performing the action
+            
+        Returns:
+            Created TeacherSubjectQualification instance
+        """
+        # Validate teacher
+        try:
+            teacher = Staff.objects.get(
+                id=teacher_id,
+                staff_category='academic',
+                employment_status='active'
+            )
+        except Staff.DoesNotExist:
+            raise StaffNotFoundError(
+                f"Teacher with ID {teacher_id} not found or not active academic staff"
+            )
+        
+        # If setting as primary, unset other primary subjects
+        if is_primary:
+            TeacherSubjectQualification.objects.filter(
+                teacher_id=teacher_id,
+                is_primary=True
+            ).update(is_primary=False)
+        
+        # Create or update qualification
+        qualification, created = TeacherSubjectQualification.objects.update_or_create(
+            teacher_id=teacher_id,
+            subject_id=subject_id,
+            defaults={
+                'is_primary': is_primary,
+                'created_by_id': updated_by_id
             }
         )
-
-        logger.info(f"Subject assigned to staff {staff_id}")
-        return assignment
-
+        
+        action = "created" if created else "updated"
+        logger.info(f"Qualification {action} for teacher {teacher_id}: subject {subject_id}")
+        
+        return qualification
+    
     @staticmethod
     @transaction.atomic
-    def assign_duty(
-        staff_id: int,
-        duty_post: str,
-        session_id: Optional[int] = None,
-        class_id: Optional[int] = None,
-        club_name: str = '',
-        sport_name: str = '',
-        house_name: str = '',
-        day_of_week: Optional[int] = None,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
-        assigned_by_id: Optional[int] = None
-    ) -> DutyAssignment:
-        """
-        Assign a duty post to a staff member
-        """
-        try:
-            staff = Staff.objects.get(id=staff_id)
-        except Staff.DoesNotExist:
-            raise StaffNotFoundError(f"Staff with id {staff_id} not found")
-
-        # Get current session if not provided
-        if not session_id:
-            current_session = AcademicSessionSelector.get_current_session()
-            if not current_session:
-                raise ValidationError("No active academic session configured")
-            session_id = current_session.id
-
-        # Parse times if provided
-        start = None
-        end = None
-        if start_time:
-            from datetime import datetime
-            start = datetime.strptime(start_time, '%H:%M').time()
-        if end_time:
-            from datetime import datetime
-            end = datetime.strptime(end_time, '%H:%M').time()
-
-        # Create duty assignment
-        duty = DutyAssignment.objects.create(
-            staff=staff,
-            duty_post=duty_post,
-            academic_session_id=session_id,
-            student_class_id=class_id,
-            club_name=club_name,
-            sport_name=sport_name,
-            house_name=house_name,
-            day_of_week=day_of_week,
-            start_time=start,
-            end_time=end,
-            assigned_by_id=assigned_by_id
-        )
-
-        logger.info(f"Duty {duty_post} assigned to staff {staff_id}")
-        return duty
-
-    @staticmethod
-    @transaction.atomic
-    def set_form_master(
-        staff_id: int,
-        class_id: int,
-        session_id: Optional[int] = None,
-        term_id: Optional[int] = None,
-        assigned_by_id: Optional[int] = None
-    ) -> SubjectAssignment:
-        """
-        Set a staff member as form master for a class
-        """
-        # Remove existing form master for this class
-        SubjectAssignment.objects.filter(
-            student_class_id=class_id,
-            academic_session_id=session_id,
-            academic_term_id=term_id,
-            is_form_master=True
-        ).update(is_form_master=False)
-
-        # Find or create subject assignment for this staff
-        # Usually the form master teaches at least one subject in the class
-        assignment = SubjectAssignment.objects.filter(
-            staff_id=staff_id,
-            student_class_id=class_id,
-            academic_session_id=session_id
-        ).first()
-
-        if assignment:
-            assignment.is_form_master = True
-            assignment.save(update_fields=['is_form_master'])
-        else:
-            # Create a minimal assignment just for form mastery
-            # This assumes they teach at least one subject - need subject_id
-            raise SubjectAssignmentError(
-                "Staff must be assigned at least one subject in the class to be form master"
-            )
-
-        logger.info(f"Staff {staff_id} set as form master for class {class_id}")
-        return assignment
-
-    @staticmethod
-    @transaction.atomic
-    def assign_class_teacher(
-        staff_id: int,
-        class_id: int,
+    def remove_qualification(
+        teacher_id: int,
         subject_id: int,
-        session_id: Optional[int] = None,
-        term_id: Optional[int] = None,
-        assigned_by_id: Optional[int] = None
-    ) -> SubjectAssignment:
+        deleted_by_id: Optional[int] = None
+    ) -> bool:
         """
-        Assign a staff member as class teacher for a specific subject
+        Remove a single qualification from a teacher.
+        
+        Args:
+            teacher_id: Staff ID
+            subject_id: Subject ID to remove
+            deleted_by_id: User ID performing the action
+            
+        Returns:
+            True if deleted, False if not found
         """
-        return AssignmentService.assign_subject(
-            staff_id=staff_id,
-            subject_id=subject_id,
-            class_id=class_id,
-            session_id=session_id,
-            term_id=term_id,
-            is_class_teacher=True,
-            assigned_by_id=assigned_by_id
+        deleted_count, _ = TeacherSubjectQualification.objects.filter(
+            teacher_id=teacher_id,
+            subject_id=subject_id
+        ).delete()
+        
+        if deleted_count > 0:
+            logger.info(f"Qualification removed: teacher {teacher_id}, subject {subject_id}")
+            return True
+        
+        return False
+    
+    @staticmethod
+    @transaction.atomic
+    def clear_all_qualifications(
+        teacher_id: int,
+        cleared_by_id: Optional[int] = None
+    ) -> int:
+        """
+        Remove ALL qualifications for a teacher.
+        
+        Args:
+            teacher_id: Staff ID
+            cleared_by_id: User ID performing the action
+            
+        Returns:
+            Number of qualifications deleted
+        """
+        deleted_count, _ = TeacherSubjectQualification.objects.filter(
+            teacher_id=teacher_id
+        ).delete()
+        
+        logger.info(f"Cleared {deleted_count} qualifications for teacher {teacher_id}")
+        
+        return deleted_count
+    
+    @staticmethod
+    def get_qualifications(teacher_id: int) -> List[Dict[str, Any]]:
+        """
+        Get all qualifications for a teacher.
+        Wrapper around selector for consistency.
+        """
+        return TeacherQualificationSelector.get_for_teacher(teacher_id)
+    
+    @staticmethod
+    def get_qualified_teachers(subject_id: int) -> List[Dict[str, Any]]:
+        """
+        Get all teachers qualified to teach a subject.
+        """
+        return TeacherQualificationSelector.get_teachers_for_subject(subject_id)
+
+
+# ============================================================================
+# DEPRECATED: Old QualificationService (kept for backward compatibility)
+# ============================================================================
+
+class QualificationService:
+    """
+    DEPRECATED: Use QualificationService instead.
+    Kept for backward compatibility during migration.
+    """
+    
+    @staticmethod
+    @transaction.atomic
+    def assign_subject(*args, **kwargs):
+        """
+        DEPRECATED: Use QualificationService.set_qualifications() instead.
+        """
+        import warnings
+        warnings.warn(
+            "QualificationService.assign_subject() is deprecated. "
+            "Use QualificationService.set_qualifications() instead.",
+            DeprecationWarning,
+            stacklevel=2
         )
+        
+        # Forward to new service with compatibility mapping
+        teacher_id = kwargs.get('staff_id', args[0] if args else None)
+        subject_id = kwargs.get('subject_id', args[1] if len(args) > 1 else None)
+        is_primary = kwargs.get('is_form_master', False)
+        
+        if teacher_id and subject_id:
+            return QualificationService.add_qualification(
+                teacher_id=teacher_id,
+                subject_id=subject_id,
+                is_primary=is_primary,
+                updated_by_id=kwargs.get('assigned_by_id')
+            )
+        
+        raise ValidationError("Invalid arguments for deprecated assign_subject")
+    
+    @staticmethod
+    @transaction.atomic
+    def assign_duty(*args, **kwargs):
+        """
+        Duty assignments remain unchanged.
+        """
+        from ..models import DutyAssignment
+        
+        duty = DutyAssignment.objects.create(
+            staff_id=kwargs.get('staff_id'),
+            duty_post=kwargs.get('duty_post'),
+            academic_session_id=kwargs.get('session_id'),
+            student_class_id=kwargs.get('class_id'),
+            club_name=kwargs.get('club_name', ''),
+            sport_name=kwargs.get('sport_name', ''),
+            house_name=kwargs.get('house_name', ''),
+            day_of_week=kwargs.get('day_of_week'),
+            start_time=kwargs.get('start_time'),
+            end_time=kwargs.get('end_time'),
+            assigned_by_id=kwargs.get('assigned_by_id')
+        )
+        
+        return duty
+    
+    @staticmethod
+    @transaction.atomic
+    def set_form_master(*args, **kwargs):
+        """
+        DEPRECATED: Form master is now handled via primary subject in qualifications.
+        """
+        import warnings
+        warnings.warn(
+            "QualificationService.set_form_master() is deprecated. "
+            "Use QualificationService.set_qualifications() with primary_subject_id instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        # No-op for now
+        return None
+    
+    @staticmethod
+    @transaction.atomic
+    def assign_class_teacher(*args, **kwargs):
+        """
+        DEPRECATED: Class teacher is now handled separately or via primary subject.
+        """
+        import warnings
+        warnings.warn(
+            "QualificationService.assign_class_teacher() is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        # No-op for now
+        return None

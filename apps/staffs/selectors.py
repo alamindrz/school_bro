@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import date, timedelta, datetime
 
 from .models import (
-    Staff, SubjectAssignment, DutyAssignment, LeaveRequest,
+    Staff, DutyAssignment, LeaveRequest,
     StaffAttendance, Qualification, WorkExperience, PerformanceEvaluation,
     StaffDocument
 )
@@ -45,7 +45,7 @@ class StaffSelector:
             staff = Staff.objects.select_related(
                 'user', 'supervisor', 'created_by'
             ).prefetch_related(
-                'subject_assignments',
+                'qualifications',
                 'duties',
                 'qualifications',
                 'work_experiences',
@@ -127,7 +127,7 @@ class StaffSelector:
                 'doctor_phone': staff.doctor_phone,
 
                 # Statistics
-                'subject_count': staff.subject_assignments.count(),
+                'subject_count': staff.qualifications.count(),
                 'duty_count': staff.duties.filter(is_active=True).count(),
                 'qualification_count': staff.qualifications.count(),
                 'experience_count': staff.work_experiences.count(),
@@ -603,208 +603,47 @@ class StaffSelector:
         return [StaffSelector._staff_to_dict(s) for s in queryset]
 
 
-class SubjectAssignmentSelector:
-    """
-    Subject assignment read operations.
-    """
-
+class TeacherQualificationSelector:
+    """Teacher subject qualification read operations"""
+    
     @staticmethod
-    def get_by_id(assignment_id: int) -> Optional[Dict[str, Any]]:
-        """Get subject assignment by ID."""
-        try:
-            a = SubjectAssignment.objects.select_related(
-                'staff', 'subject', 'student_class', 
-                'academic_session', 'academic_term', 'assigned_by'
-            ).get(id=assignment_id)
-            
-            return {
-                'id': a.id,
-                'staff': {
-                    'id': a.staff.id,
-                    'name': a.staff.get_full_name,
-                    'staff_id': a.staff.staff_id,
-                },
-                'subject': {
-                    'id': a.subject.id,
-                    'name': a.subject.name,
-                    'code': a.subject.code,
-                },
-                'class': {
-                    'id': a.student_class.id,
-                    'name': a.student_class.display_name,
-                },
-                'session': {
-                    'id': a.academic_session.id,
-                    'name': a.academic_session.name,
-                },
-                'term': {
-                    'id': a.academic_term.id,
-                    'name': a.academic_term.name,
-                    'display': a.academic_term.get_term_display() if a.academic_term else None,
-                } if a.academic_term else None,
-                'is_class_teacher': a.is_class_teacher,
-                'is_form_master': a.is_form_master,
-                'periods_per_week': a.periods_per_week,
-                'assigned_by': a.assigned_by.get_full_name() if a.assigned_by else None,
-                'assigned_at': a.assigned_at.isoformat(),
+    def get_for_teacher(teacher_id: int) -> List[Dict[str, Any]]:
+        """Get all subjects a teacher is qualified to teach"""
+        from .models import TeacherSubjectQualification
+        
+        qualifications = TeacherSubjectQualification.objects.filter(
+            teacher_id=teacher_id
+        ).select_related('subject')
+        
+        return [
+            {
+                'id': q.id,
+                'subject_id': q.subject.id,
+                'subject_name': q.subject.name,
+                'subject_code': q.subject.code,
+                'is_primary': q.is_primary,
             }
-        except SubjectAssignment.DoesNotExist:
-            return None
-
+            for q in qualifications
+        ]
+    
     @staticmethod
-    def get_for_staff(
-        staff_id: int, 
-        session_id: Optional[int] = None,
-        academic_year: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get subject assignments for a staff member.
+    def get_teachers_for_subject(subject_id: int) -> List[Dict[str, Any]]:
+        """Get all teachers qualified to teach a subject"""
+        from ..models import TeacherSubjectQualification
         
-        Args:
-            staff_id: Staff ID
-            session_id: Filter by academic session
-            academic_year: Filter by year
-            
-        Returns:
-            List of assignment dictionaries
-        """
-        queryset = SubjectAssignment.objects.filter(
-            staff_id=staff_id
-        ).select_related(
-            'subject', 'student_class', 'academic_session', 'academic_term'
-        )
-
-        if session_id:
-            queryset = queryset.filter(academic_session_id=session_id)
+        qualifications = TeacherSubjectQualification.objects.filter(
+            subject_id=subject_id
+        ).select_related('teacher')
         
-        if academic_year:
-            queryset = queryset.filter(academic_session__name__icontains=str(academic_year))
-
-        assignments = []
-        for a in queryset.order_by('student_class', 'subject'):
-            assignments.append({
-                'id': a.id,
-                'subject': {
-                    'id': a.subject.id,
-                    'name': a.subject.name,
-                    'code': a.subject.code,
-                },
-                'class': {
-                    'id': a.student_class.id,
-                    'name': a.student_class.display_name,
-                },
-                'session': a.academic_session.name,
-                'term': a.academic_term.get_term_display() if a.academic_term else None,
-                'is_class_teacher': a.is_class_teacher,
-                'is_form_master': a.is_form_master,
-                'periods_per_week': a.periods_per_week,
-            })
-
-        return assignments
-
-    @staticmethod
-    def get_for_class(
-        class_id: int,
-        session_id: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get subject assignments for a class.
-        
-        Args:
-            class_id: Class ID
-            session_id: Academic session ID
-            
-        Returns:
-            List of assignment dictionaries
-        """
-        queryset = SubjectAssignment.objects.filter(
-            student_class_id=class_id
-        ).select_related('staff', 'subject')
-
-        if session_id:
-            queryset = queryset.filter(academic_session_id=session_id)
-
-        assignments = []
-        for a in queryset:
-            assignments.append({
-                'id': a.id,
-                'staff': {
-                    'id': a.staff.id,
-                    'name': a.staff.get_full_name,
-                },
-                'subject': {
-                    'id': a.subject.id,
-                    'name': a.subject.name,
-                },
-                'periods_per_week': a.periods_per_week,
-                'is_form_master': a.is_form_master,
-            })
-
-        return assignments
-
-    @staticmethod
-    def get_form_master_for_class(
-        class_id: int,
-        session_id: Optional[int] = None
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Get form master for a specific class.
-        
-        Args:
-            class_id: Class ID
-            session_id: Academic session ID
-            
-        Returns:
-            Form master dictionary or None
-        """
-        try:
-            assignment = SubjectAssignment.objects.select_related('staff').get(
-                student_class_id=class_id,
-                is_form_master=True,
-                academic_session_id=session_id
-            )
-            return {
-                'id': assignment.id,
-                'staff_id': assignment.staff.id,
-                'staff_name': assignment.staff.get_full_name,
-                'staff_email': assignment.staff.email,
-                'staff_phone': assignment.staff.phone,
-                'staff_passport': assignment.staff.passport_photograph.url if assignment.staff.passport_photograph else None,
+        return [
+            {
+                'teacher_id': q.teacher.id,
+                'teacher_name': q.teacher.get_full_name,
+                'staff_id': q.teacher.staff_id,
+                'is_primary': q.is_primary,
             }
-        except SubjectAssignment.DoesNotExist:
-            return None
-
-    @staticmethod
-    def get_teaching_load(staff_id: int, session_id: Optional[int] = None) -> Dict[str, Any]:
-        """
-        Get teaching load summary for a staff member.
-        
-        Args:
-            staff_id: Staff ID
-            session_id: Academic session ID
-            
-        Returns:
-            Teaching load statistics
-        """
-        assignments = SubjectAssignment.objects.filter(staff_id=staff_id)
-        
-        if session_id:
-            assignments = assignments.filter(academic_session_id=session_id)
-        
-        total_periods = sum(a.periods_per_week for a in assignments)
-        total_classes = assignments.values('student_class').distinct().count()
-        total_subjects = assignments.values('subject').distinct().count()
-        
-        return {
-            'staff_id': staff_id,
-            'total_assignments': assignments.count(),
-            'total_periods': total_periods,
-            'total_classes': total_classes,
-            'total_subjects': total_subjects,
-            'average_periods_per_class': total_periods / total_classes if total_classes > 0 else 0,
-            'is_form_master': assignments.filter(is_form_master=True).exists(),
-        }
-
+            for q in qualifications
+        ]
 
 
 class DutyAssignmentSelector:

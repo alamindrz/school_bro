@@ -7,14 +7,21 @@ from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, HTML, Fieldset
 from crispy_tailwind.layout import Submit as TailwindSubmit
-from .models import Staff, SubjectAssignment, DutyAssignment, LeaveRequest, StaffAttendance, PerformanceEvaluation
+from .models import (
+    Staff,
+    TeacherSubjectQualification,
+    DutyAssignment,
+    LeaveRequest,
+    StaffAttendance,
+    PerformanceEvaluation
+)
 from .constants import (
     StaffType, EmploymentType, ShiftType, QualificationType,
     LeaveType, DutyPost, Gender, MaritalStatus, BloodGroup,
     NIGERIAN_STATES
 )
 from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
-from apps.corecode.models import Subject
+from apps.corecode.models import Subject, AcademicSession
 
 
 class DateInput(forms.DateInput):
@@ -53,184 +60,147 @@ class StaffForm(forms.ModelForm):
             'passport_photograph'
         ]
         widgets = {
-            'date_of_birth': DateInput(),
-            'date_employed': DateInput(),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'date_employed': forms.DateInput(attrs={'type': 'date'}),
             'address': forms.Textarea(attrs={'rows': 2}),
             'qualification_details': forms.Textarea(attrs={'rows': 3}),
             'medical_conditions': forms.Textarea(attrs={'rows': 2}),
             'allergies': forms.Textarea(attrs={'rows': 2}),
-            'passport_photograph': forms.FileInput(attrs={'accept': 'image/*'}),
         }
         help_texts = {
             'phone': "Nigerian format: 08012345678",
             'emergency_contact_phone': "Nigerian format: 08012345678",
-            'lga': "Local Government Area",
+            'email': "Staff will receive invitation at this email address",
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Make fields optional where appropriate
+        self.fields['middle_name'].required = False
+        self.fields['blood_group'].required = False
+        self.fields['alternate_phone'].required = False
+        self.fields['lga'].required = False
+        self.fields['nationality'].initial = 'Nigerian'
+        self.fields['marital_status'].initial = 'single'
+        self.fields['employment_type'].initial = 'permanent'
+        self.fields['shift'].initial = 'fixed'
+        self.fields['highest_qualification'].initial = 'degree'
+        self.fields['qualification_details'].required = False
+        self.fields['bank_name'].required = False
+        self.fields['account_number'].required = False
+        self.fields['account_name'].required = False
+        self.fields['pension_number'].required = False
+        self.fields['tax_id'].required = False
+        self.fields['medical_conditions'].required = False
+        self.fields['allergies'].required = False
+        self.fields['doctor_name'].required = False
+        self.fields['doctor_phone'].required = False
+        
         # Limit supervisor choices
         self.fields['supervisor'].queryset = Staff.objects.filter(
             employment_status='active'
         ).exclude(id=self.instance.id if self.instance else None)
-        
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.form_enctype = 'multipart/form-data'
-        self.helper.form_class = 'space-y-6'
-        self.helper.layout = Layout(
-            Fieldset(
-                'Personal Information',
-                Row(
-                    Column('first_name', css_class='w-1/3 pr-2'),
-                    Column('last_name', css_class='w-1/3 px-1'),
-                    Column('middle_name', css_class='w-1/3 pl-2'),
-                ),
-                Row(
-                    Column('gender', css_class='w-1/4 pr-2'),
-                    Column('date_of_birth', css_class='w-1/4 px-1'),
-                    Column('marital_status', css_class='w-1/4 px-1'),
-                    Column('blood_group', css_class='w-1/4 pl-2'),
-                ),
-                'passport_photograph',
-            ),
-            Fieldset(
-                'Contact Information',
-                Row(
-                    Column('email', css_class='w-1/2 pr-2'),
-                    Column('phone', css_class='w-1/2 pl-2'),
-                ),
-                'alternate_phone',
-                'address',
-                Row(
-                    Column('city', css_class='w-1/3 pr-2'),
-                    Column('state_of_origin', css_class='w-1/3 px-1'),
-                    Column('lga', css_class='w-1/3 pl-2'),
-                ),
-                'nationality',
-            ),
-            Fieldset(
-                'Employment Information',
-                Row(
-                    Column('staff_type', css_class='w-1/3 pr-2'),
-                    Column('employment_type', css_class='w-1/3 px-1'),
-                    Column('shift', css_class='w-1/3 pl-2'),
-                ),
-                Row(
-                    Column('date_employed', css_class='w-1/2 pr-2'),
-                    Column('supervisor', css_class='w-1/2 pl-2'),
-                ),
-                Row(
-                    Column('department', css_class='w-1/2 pr-2'),
-                    Column('unit', css_class='w-1/2 pl-2'),
-                ),
-            ),
-            Fieldset(
-                'Qualifications',
-                'highest_qualification',
-                'qualification_details',
-            ),
-            Fieldset(
-                'Bank Details',
-                Row(
-                    Column('bank_name', css_class='w-1/2 pr-2'),
-                    Column('account_number', css_class='w-1/2 pl-2'),
-                ),
-                'account_name',
-                Row(
-                    Column('pension_number', css_class='w-1/2 pr-2'),
-                    Column('tax_id', css_class='w-1/2 pl-2'),
-                ),
-            ),
-            Fieldset(
-                'Emergency Contact',
-                'emergency_contact_name',
-                Row(
-                    Column('emergency_contact_phone', css_class='w-1/2 pr-2'),
-                    Column('emergency_contact_relationship', css_class='w-1/2 pl-2'),
-                ),
-            ),
-            Fieldset(
-                'Medical Information',
-                'medical_conditions',
-                'allergies',
-                Row(
-                    Column('doctor_name', css_class='w-1/2 pr-2'),
-                    Column('doctor_phone', css_class='w-1/2 pl-2'),
-                ),
-            ),
-            TailwindSubmit('submit', 'Save Staff Member', css_class='bg-primary-600 hover:bg-primary-700 text-white')
-        )
+        self.fields['supervisor'].required = False
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        queryset = Staff.objects.filter(email=email)
-        if self.instance.pk:
-            queryset = queryset.exclude(pk=self.instance.pk)
-        if queryset.exists():
-            raise forms.ValidationError("A staff member with this email already exists")
+        if email:
+            queryset = Staff.objects.filter(email=email)
+            if self.instance.pk:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise forms.ValidationError("A staff member with this email already exists")
         return email
     
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
-        # Add phone validation
+        if phone and len(phone) < 10:
+            raise forms.ValidationError("Enter a valid phone number (minimum 10 digits)")
         return phone
 
 
-class SubjectAssignmentForm(forms.ModelForm):
-    """Form for assigning subjects to staff"""
+class TeacherSubjectQualificationForm(forms.ModelForm):
+    """Form for managing teacher subject qualifications (global capabilities)"""
     
     class Meta:
-        model = SubjectAssignment
-        fields = ['subject', 'student_class', 'academic_session', 'academic_term', 'periods_per_week', 'is_form_master', 'is_class_teacher']
+        model = TeacherSubjectQualification
+        fields = ['teacher', 'subject', 'is_primary']
         widgets = {
-            'periods_per_week': forms.NumberInput(attrs={'min': 1, 'max': 40}),
+            'teacher': forms.Select(attrs={'class': 'w-full px-3 py-2 border rounded-lg'}),
+            'subject': forms.Select(attrs={'class': 'w-full px-3 py-2 border rounded-lg'}),
         }
     
-    def __init__(self, *args, staff=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+        # Filter to only active academic staff
+        from .models import Staff
+        self.fields['teacher'].queryset = Staff.objects.filter(
+            employment_status='active',
+            staff_category='academic'
+        )
         self.fields['subject'].queryset = Subject.objects.filter(is_active=True)
-        self.fields['student_class'].queryset = StudentClassSelector.get_all_classes_queryset()
-        self.fields['academic_session'].queryset = AcademicSession.objects.filter(is_current=True)
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        teacher = cleaned_data.get('teacher')
+        subject = cleaned_data.get('subject')
         
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.form_class = 'space-y-4'
-        
-        layout = [
-            Fieldset(
-                'Assignment Details',
-                Row(
-                    Column('subject', css_class='w-1/2 pr-2'),
-                    Column('student_class', css_class='w-1/2 pl-2'),
-                ),
-                Row(
-                    Column('academic_session', css_class='w-1/3 pr-2'),
-                    Column('academic_term', css_class='w-1/3 px-1'),
-                    Column('periods_per_week', css_class='w-1/3 pl-2'),
-                ),
-                Row(
-                    Column('is_form_master', css_class='w-1/2 pr-2'),
-                    Column('is_class_teacher', css_class='w-1/2 pl-2'),
-                ),
+        if teacher and subject:
+            existing = TeacherSubjectQualification.objects.filter(
+                teacher=teacher,
+                subject=subject
             )
-        ]
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise forms.ValidationError(
+                    f"{teacher.get_full_name} is already qualified to teach {subject.name}"
+                )
         
-        if staff:
-            layout.insert(0, HTML(f"""
-                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                    <p class="text-sm text-blue-800 dark:text-blue-200">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Assigning subject to: <strong>{staff.full_name}</strong>
-                    </p>
-                </div>
-            """))
+        return cleaned_data
+
+
+class BulkQualificationForm(forms.Form):
+    """Form for bulk assigning qualifications to multiple teachers"""
+    
+    teacher_ids = forms.ModelMultipleChoiceField(
+        queryset=Staff.objects.filter(employment_status='active', staff_category='academic'),
+        widget=forms.CheckboxSelectMultiple,
+        label="Select Teachers"
+    )
+    subject_ids = forms.ModelMultipleChoiceField(
+        queryset=Subject.objects.filter(is_active=True),
+        widget=forms.CheckboxSelectMultiple,
+        label="Select Subjects"
+    )
+    is_primary = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Set as primary subject"
+    )
+    
+    def save(self, created_by=None):
+        teacher_ids = self.cleaned_data['teacher_ids']
+        subject_ids = self.cleaned_data['subject_ids']
+        is_primary = self.cleaned_data.get('is_primary', False)
         
-        layout.append(TailwindSubmit('submit', 'Assign Subject', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
+        created_count = 0
+        for teacher in teacher_ids:
+            for subject in subject_ids:
+                qual, created = TeacherSubjectQualification.objects.get_or_create(
+                    teacher=teacher,
+                    subject=subject,
+                    defaults={
+                        'is_primary': is_primary,
+                        'created_by': created_by
+                    }
+                )
+                if created:
+                    created_count += 1
         
-        self.helper.layout = Layout(*layout)
+        return created_count
 
 
 class DutyAssignmentForm(forms.ModelForm):
@@ -238,7 +208,11 @@ class DutyAssignmentForm(forms.ModelForm):
     
     class Meta:
         model = DutyAssignment
-        fields = ['duty_post', 'academic_session', 'student_class', 'club_name', 'sport_name', 'house_name', 'day_of_week', 'start_time', 'end_time', 'is_active']
+        fields = [
+            'duty_post', 'academic_session', 'student_class',
+            'club_name', 'sport_name', 'house_name',
+            'day_of_week', 'start_time', 'end_time', 'is_active'
+        ]
         widgets = {
             'day_of_week': forms.Select(choices=[(i, f"Day {i}") for i in range(1, 8)]),
             'start_time': TimeInput(),
@@ -282,13 +256,12 @@ class DutyAssignmentForm(forms.ModelForm):
                 <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                     <p class="text-sm text-blue-800 dark:text-blue-200">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Assigning duty to: <strong>{staff.full_name}</strong>
+                        Assigning duty to: <strong>{staff.get_full_name}</strong>
                     </p>
                 </div>
             """))
         
         layout.append(TailwindSubmit('submit', 'Assign Duty', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
-        
         self.helper.layout = Layout(*layout)
 
 
@@ -297,7 +270,11 @@ class LeaveRequestForm(forms.ModelForm):
     
     class Meta:
         model = LeaveRequest
-        fields = ['leave_type', 'start_date', 'end_date', 'reason', 'handover_notes', 'alternative_phone', 'alternative_email']
+        fields = [
+            'leave_type', 'start_date', 'end_date',
+            'reason', 'handover_notes',
+            'alternative_phone', 'alternative_email'
+        ]
         widgets = {
             'start_date': DateInput(),
             'end_date': DateInput(),
@@ -330,10 +307,9 @@ class LeaveRequestForm(forms.ModelForm):
         ]
         
         if staff:
-            # Show leave balances
             from .services.leave import LeaveService
-            balances = LeaveService.get_leave_balances(staff.id)
             
+            balances = LeaveService.get_leave_balances(staff.id)
             balance_html = '<div class="grid grid-cols-3 gap-2 mb-4">'
             for leave_type, balance in balances.items():
                 balance_html += f'''
@@ -343,11 +319,9 @@ class LeaveRequestForm(forms.ModelForm):
                     </div>
                 '''
             balance_html += '</div>'
-            
             layout.insert(0, HTML(balance_html))
         
         layout.append(TailwindSubmit('submit', 'Submit Leave Request', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
-        
         self.helper.layout = Layout(*layout)
     
     def clean(self):
@@ -397,13 +371,12 @@ class StaffAttendanceForm(forms.ModelForm):
         if staff:
             layout.insert(0, HTML(f"""
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{staff.full_name}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{staff.get_full_name}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">{staff.staff_id}</p>
                 </div>
             """))
         
         layout.append(TailwindSubmit('submit', 'Save Attendance', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
-        
         self.helper.layout = Layout(*layout)
 
 
@@ -477,11 +450,10 @@ class PerformanceEvaluationForm(forms.ModelForm):
                 <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                     <p class="text-sm text-blue-800 dark:text-blue-200">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Evaluating: <strong>{staff.full_name}</strong>
+                        Evaluating: <strong>{staff.get_full_name}</strong>
                     </p>
                 </div>
             """))
         
         layout.append(TailwindSubmit('submit', 'Save Evaluation', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
-        
         self.helper.layout = Layout(*layout)

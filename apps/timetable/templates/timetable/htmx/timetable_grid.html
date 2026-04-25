@@ -1,0 +1,92 @@
+{# timetable/htmx/timetable_grid.html #}
+
+{% load timetable_tags %}
+
+
+{% if not days %}
+    <div class="p-8 text-center text-gray-500">No school days configured.</div>
+{% else %}
+    
+    <!-- Mobile View (< 1024px) -->
+    <div class="lg:hidden overflow-x-auto">
+        <div class="min-w-max p-3">
+            <!-- Day Headers -->
+            <div class="flex border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
+                <div class="w-20 flex-shrink-0"></div>
+                {% for day in days %}
+                <div class="w-32 flex-shrink-0 text-center">
+                    <p class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ day.name }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Period Rows -->
+            {% for period in periods %}
+            <div class="flex py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div class="w-20 flex-shrink-0 pr-2">
+                    <p class="font-medium text-sm text-gray-900 dark:text-white">{{ period.display_name }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ period.start_time|time:"H:i" }}-{{ period.end_time|time:"H:i" }}
+                    </p>
+                </div>
+                
+                {% for day in days %}
+                <div class="w-32 flex-shrink-0 px-1">
+                    {% with slot_id=slots_by_day_period|get_item:day.id|get_item:period.id %}
+                    {% if slot_id %}
+                        {% include "timetable/htmx/slot_cell.html" with slot=slot_id day=day period=period %}
+                    {% else %}
+                        <div class="slot-cell p-2 text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <i class="fas fa-plus-circle text-gray-400 text-lg mb-1"></i>
+                            <p class="text-xs text-gray-400">—</p>
+                        </div>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Desktop View (≥ 1024px) -->
+    <div class="hidden lg:block overflow-x-auto">
+        <table class="min-w-full border-collapse">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-40">
+                        Time / Day
+                    </th>
+                    {% for day in days %}
+                    <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[160px]">
+                        {{ day.name }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in periods %}
+                <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td class="p-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                        {{ period.display_name }}<br>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}
+                        </span>
+                    </td>
+                    {% for day in days %}
+                    <td class="p-2 text-center border-l border-gray-100 dark:border-gray-700">
+                        {% with slot_id=slots_by_day_period|get_item:day.id|get_item:period.id %}
+                        {% if slot_id %}
+                            {% include "timetable/htmx/slot_cell.html" with slot=slot_id day=day period=period %}
+                        {% else %}
+                            <div class="slot-cell p-3 text-center text-gray-400">—</div>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

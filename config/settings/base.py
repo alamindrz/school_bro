@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'apps.attendance',
     'apps.notifications',
     'apps.parents',
+    'apps.timetable',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +78,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+BASE_URL = 'http://127.0.0.1:8000'
+
 
 # Database
 DATABASES = {

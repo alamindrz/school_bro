@@ -9,14 +9,15 @@ from .staff import (
     StaffUpdateView,
     StaffDeleteView,
     StaffStatusUpdateView,
+    SendInviteView,
     
-    # Subject Assignments
+    # Subject Qualifications (formerly Subject Assignments)
     SubjectAssignmentView,
     SubjectAssignmentDeleteView,
     
     # Duty Assignments
     DutyAssignmentView,
-    DutyAssignmentDeleteView,  # Now this exists
+    DutyAssignmentDeleteView,
     
     # Leave Management
     LeaveRequestView,
@@ -33,8 +34,12 @@ from .staff import (
     # Performance
     PerformanceEvaluationView,
     PerformanceEvaluationDetailView,
+    PerformanceEvaluationEditView,
+    PerformanceEvaluationDeleteView,
+    PerformanceEvaluationPrintView,
+    PerformanceEvaluationListView,
     
-    # Qualifications
+    # Educational Qualifications
     QualificationCreateView,
     QualificationDeleteView,
     
@@ -57,14 +62,15 @@ __all__ = [
     'StaffUpdateView',
     'StaffDeleteView',
     'StaffStatusUpdateView',
+    'SendInviteView',
     
-    # Subject Assignments
+    # Subject Qualifications
     'SubjectAssignmentView',
     'SubjectAssignmentDeleteView',
     
     # Duty Assignments
     'DutyAssignmentView',
-    'DutyAssignmentDeleteView',  # Added
+    'DutyAssignmentDeleteView',
     
     # Leave Management
     'LeaveRequestView',
@@ -81,8 +87,12 @@ __all__ = [
     # Performance
     'PerformanceEvaluationView',
     'PerformanceEvaluationDetailView',
+    'PerformanceEvaluationEditView',
+    'PerformanceEvaluationDeleteView',
+    'PerformanceEvaluationPrintView',
+    'PerformanceEvaluationListView',
     
-    # Qualifications
+    # Educational Qualifications
     'QualificationCreateView',
     'QualificationDeleteView',
     

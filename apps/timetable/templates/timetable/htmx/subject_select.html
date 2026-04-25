@@ -1,0 +1,54 @@
+{# timetable/htmx/subject_select.html #}
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <i class="fas fa-book-open mr-1 text-primary-500"></i> Select Subject
+    </label>
+    
+    {% if subjects %}
+    <div class="space-y-2">
+        {% for subject in subjects %}
+        <form hx-post="{% url 'timetable:htmx_slot_update' slot_id %}"
+              hx-target="#slot-{{ timetable_id }}-{{ day_id }}-{{ period_id }}"
+              hx-swap="outerHTML"
+              hx-on::after-request="
+                  if(event.detail.successful) {
+                      $dispatch('close-modal');
+                      $dispatch('slot-updated', { message: '✓ Assigned successfully' });
+                  }
+              ">
+            {% csrf_token %}
+            <input type="hidden" name="teacher_id" value="{{ teacher_id }}">
+            <input type="hidden" name="subject_id" value="{{ subject.id }}">
+            <input type="hidden" name="timetable_id" value="{{ timetable_id }}">
+            <input type="hidden" name="day_id" value="{{ day_id }}">
+            <input type="hidden" name="period_id" value="{{ period_id }}">
+            <input type="hidden" name="is_free_period" value="false">
+            
+            <button type="submit" class="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="fas fa-book text-primary-500 text-sm"></i>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ subject.name }}</span>
+                    </span>
+                    <i class="fas fa-arrow-right text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                </div>
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+    <p class="text-xs text-gray-500 mt-3 text-center">
+        <i class="fas fa-hand-pointer mr-1"></i>Click a subject to assign
+    </p>
+    {% else %}
+    <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <p class="text-sm text-yellow-800 dark:text-yellow-200">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            No qualified subjects found for this teacher.
+        </p>
+        <a href="{% url 'timetable:teacher_qualifications' %}" 
+           class="inline-block mt-2 text-xs text-primary-600 hover:underline" target="_blank">
+            <i class="fas fa-plus mr-1"></i>Add qualifications
+        </a>
+    </div>
+    {% endif %}
+</div>

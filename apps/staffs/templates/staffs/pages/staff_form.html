@@ -1,180 +1,200 @@
 {% extends "base.html" %}
 
-{% block title %}{% if object %}Edit{% else %}Add{% endif %} Staff - DETs Toolkit{% endblock %}
+{% block title %}{{ title }} - Staff Management{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
+    
     <!-- Page header -->
     <div class="mb-8">
-        <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {% if object %}Edit{% else %}Add New{% endif %} Staff Member
-            </h1>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-user-plus text-primary-500 mr-3"></i>
+                    {{ title }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {% if object %}
+                        Update staff information. An invitation will NOT be resent automatically.
+                    {% else %}
+                        Create a new staff member. An invitation email will be sent automatically.
+                    {% endif %}
+                </p>
+            </div>
             <a href="{% url 'staffs:list' %}" 
-               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
-                ← Back to Staff List
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-2"></i> Back to List
             </a>
         </div>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {% if object %}
-                Update staff information below.
-            {% else %}
-                Fill in the staff member's details. Staff ID will be auto-generated.
-            {% endif %}
-        </p>
     </div>
 
+    <!-- Info Banner for New Staff -->
+    {% if not object %}
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+        <div class="flex">
+            <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+            <div class="text-sm text-blue-800 dark:text-blue-200">
+                <p class="font-medium">What happens next?</p>
+                <ul class="mt-1 list-disc list-inside space-y-1">
+                    <li>Staff record will be created</li>
+                    <li>An invitation email will be sent to the staff's email address</li>
+                    <li>Staff will click the link to set up their portal account</li>
+                    <li>Staff can then login to access their dashboard</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Form card -->
-    <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-        <form method="post" enctype="multipart/form-data" class="space-y-8 p-6" novalidate>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="space-y-8 p-6">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 dark:bg-red-900/50 p-4">
-                    <div class="text-sm text-red-800 dark:text-red-200">
-                        {{ form.non_field_errors }}
-                    </div>
+            <div class="rounded-md bg-red-50 dark:bg-red-900/50 p-4">
+                <div class="text-sm text-red-800 dark:text-red-200">
+                    {{ form.non_field_errors }}
                 </div>
+            </div>
             {% endif %}
             
             <!-- Personal Information -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-user text-primary-500 mr-2"></i>
                     Personal Information
                 </h2>
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
-                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            First Name *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            First Name <span class="text-red-500">*</span>
                         </label>
                         {{ form.first_name }}
                         {% if form.first_name.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+                        <p class="mt-1 text-xs text-red-600">{{ form.first_name.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
                     <div>
-                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Last Name *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Last Name <span class="text-red-500">*</span>
                         </label>
                         {{ form.last_name }}
                         {% if form.last_name.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
+                        <p class="mt-1 text-xs text-red-600">{{ form.last_name.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
                     <div>
-                        <label for="{{ form.middle_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Middle Name
                         </label>
                         {{ form.middle_name }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Gender *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Gender <span class="text-red-500">*</span>
                         </label>
                         {{ form.gender }}
-                        {% if form.gender.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.gender.errors.0 }}</p>
-                        {% endif %}
                     </div>
                     
                     <div>
-                        <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Date of Birth *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date of Birth <span class="text-red-500">*</span>
                         </label>
                         {{ form.date_of_birth }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.marital_status.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Marital Status
                         </label>
                         {{ form.marital_status }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.blood_group.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Blood Group
                         </label>
                         {{ form.blood_group }}
                     </div>
                     
-                    <div>
-                        <label for="{{ form.passport_photograph.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Passport Photograph
                         </label>
                         {{ form.passport_photograph }}
-                        {% if object and object.passport_photograph %}
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Current: <a href="{{ object.passport_photograph.url }}" target="_blank" class="text-primary-600 dark:text-primary-400">View</a>
-                        </p>
-                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Upload a recent passport photograph</p>
                     </div>
                 </div>
             </div>
 
             <!-- Contact Information -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-phone text-primary-500 mr-2"></i>
                     Contact Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div class="sm:col-span-2">
-                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Email Address *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Email Address <span class="text-red-500">*</span>
                         </label>
                         {{ form.email }}
+                        {% if form.email.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.email.help_text }}</p>
+                        {% endif %}
                         {% if form.email.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
+                        <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
                         {% endif %}
                     </div>
                     
                     <div>
-                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Phone Number *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Phone Number <span class="text-red-500">*</span>
                         </label>
                         {{ form.phone }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.alternate_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Alternate Phone
                         </label>
                         {{ form.alternate_phone }}
                     </div>
                     
                     <div class="sm:col-span-2">
-                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Address *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Address <span class="text-red-500">*</span>
                         </label>
                         {{ form.address }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            City *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            City <span class="text-red-500">*</span>
                         </label>
                         {{ form.city }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.state_of_origin.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            State of Origin *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            State of Origin <span class="text-red-500">*</span>
                         </label>
                         {{ form.state_of_origin }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.lga.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            LGA
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            LGA (Local Government Area)
                         </label>
                         {{ form.lga }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.nationality.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Nationality
                         </label>
                         {{ form.nationality }}
@@ -184,54 +204,55 @@
 
             <!-- Employment Information -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-briefcase text-primary-500 mr-2"></i>
                     Employment Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                        <label for="{{ form.staff_type.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Staff Type *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Staff Type <span class="text-red-500">*</span>
                         </label>
                         {{ form.staff_type }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.employment_type.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Employment Type
                         </label>
                         {{ form.employment_type }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.shift.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Shift
                         </label>
                         {{ form.shift }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.date_employed.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Date Employed *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Date Employed <span class="text-red-500">*</span>
                         </label>
                         {{ form.date_employed }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.department.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Department
                         </label>
                         {{ form.department }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.unit.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Unit
                         </label>
                         {{ form.unit }}
                     </div>
                     
                     <div class="sm:col-span-2">
-                        <label for="{{ form.supervisor.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Supervisor
                         </label>
                         {{ form.supervisor }}
@@ -241,19 +262,20 @@
 
             <!-- Qualifications -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-graduation-cap text-primary-500 mr-2"></i>
                     Qualifications
                 </h2>
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6">
                     <div>
-                        <label for="{{ form.highest_qualification.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Highest Qualification
                         </label>
                         {{ form.highest_qualification }}
                     </div>
                     
-                    <div class="sm:col-span-2">
-                        <label for="{{ form.qualification_details.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Qualification Details
                         </label>
                         {{ form.qualification_details }}
@@ -263,40 +285,41 @@
 
             <!-- Bank Details -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-university text-primary-500 mr-2"></i>
                     Bank Details
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                        <label for="{{ form.bank_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Bank Name
                         </label>
                         {{ form.bank_name }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.account_number.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Account Number
                         </label>
                         {{ form.account_number }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.account_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Account Name
                         </label>
                         {{ form.account_name }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.pension_number.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Pension Number
                         </label>
                         {{ form.pension_number }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.tax_id.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Tax ID
                         </label>
                         {{ form.tax_id }}
@@ -306,27 +329,28 @@
 
             <!-- Emergency Contact -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-ambulance text-primary-500 mr-2"></i>
                     Emergency Contact
                 </h2>
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
-                        <label for="{{ form.emergency_contact_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Contact Name *
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Contact Name <span class="text-red-500">*</span>
                         </label>
                         {{ form.emergency_contact_name }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.emergency_contact_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Contact Phone *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Contact Phone <span class="text-red-500">*</span>
                         </label>
                         {{ form.emergency_contact_phone }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.emergency_contact_relationship.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Relationship *
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Relationship <span class="text-red-500">*</span>
                         </label>
                         {{ form.emergency_contact_relationship }}
                     </div>
@@ -335,19 +359,20 @@
 
             <!-- Medical Information -->
             <div>
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-light-border dark:border-dark-border pb-2">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <i class="fas fa-heartbeat text-primary-500 mr-2"></i>
                     Medical Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6">
                     <div>
-                        <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Medical Conditions
                         </label>
                         {{ form.medical_conditions }}
                     </div>
                     
                     <div>
-                        <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Allergies
                         </label>
                         {{ form.allergies }}
@@ -355,14 +380,14 @@
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                            <label for="{{ form.doctor_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Doctor's Name
                             </label>
                             {{ form.doctor_name }}
                         </div>
                         
                         <div>
-                            <label for="{{ form.doctor_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Doctor's Phone
                             </label>
                             {{ form.doctor_phone }}
@@ -372,42 +397,41 @@
             </div>
             
             <!-- Form Actions -->
-            <div class="flex justify-end space-x-3 pt-6 border-t border-light-border dark:border-dark-border">
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <a href="{% url 'staffs:list' %}" 
-                   class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                   class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
                     Cancel
                 </a>
                 <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                    {% if object %}Update{% else %}Create{% endif %} Staff Member
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <i class="fas fa-save mr-2"></i>
+                    {{ submit_text }}
                 </button>
             </div>
         </form>
     </div>
 </div>
-
-<!-- Form field styling script -->
 <script>
     // Add Tailwind classes to form fields
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('input, select, textarea').forEach(function(field) {
-            if (!field.classList.contains('form-control')) {
-                field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-light-border', 'dark:border-dark-border',
-                                   'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500',
-                                   'sm:text-sm', 'bg-light-card', 'dark:bg-dark-card', 'text-gray-900', 'dark:text-gray-100');
-            }
+        document.querySelectorAll('input:not([type="checkbox"]):not([type="file"]), select, textarea').forEach(function(field) {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'dark:border-gray-600',
+                               'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500',
+                               'sm:text-sm', 'bg-white', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
         });
         
         // Special handling for checkboxes
         document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-            cb.classList.remove('block', 'w-full');
-            cb.classList.add('rounded', 'border-light-border', 'dark:border-dark-border', 'text-primary-600', 'shadow-sm', 'focus:ring-primary-500');
+            cb.classList.add('rounded', 'border-gray-300', 'dark:border-gray-600', 'text-primary-600', 'shadow-sm', 'focus:ring-primary-500');
         });
         
         // Special handling for file inputs
         document.querySelectorAll('input[type="file"]').forEach(function(file) {
-            file.classList.add('p-2', 'border', 'border-light-border', 'dark:border-dark-border', 'rounded-md', 'bg-light-card', 'dark:bg-dark-card');
+            file.classList.add('block', 'w-full', 'text-sm', 'text-gray-500', 'dark:text-gray-400',
+                              'file:mr-4', 'file:py-2', 'file:px-4', 'file:rounded-md', 'file:border-0',
+                              'file:text-sm', 'file:font-medium', 'file:bg-primary-50', 'file:text-primary-700',
+                              'hover:file:bg-primary-100', 'dark:file:bg-primary-900', 'dark:file:text-primary-300');
         });
     });
 </script>
-{% endblock content %}
+{% endblock %}

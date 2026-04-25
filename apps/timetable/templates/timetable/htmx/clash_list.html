@@ -1,0 +1,66 @@
+{# timetable/htmx/clash_list.html #}
+
+{% if clashes %}
+    <div class="space-y-2">
+        <div class="flex items-center justify-between mb-2">
+            <h4 class="font-medium text-red-800 dark:text-red-200">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                Found {{ clashes|length }} clash{{ clashes|length|pluralize }}
+            </h4>
+            <span class="text-xs text-red-600 dark:text-red-400">
+                {{ unresolved|length }} unresolved
+            </span>
+        </div>
+        
+        {% for clash in clashes %}
+        <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-800">
+            <div class="flex items-start gap-2">
+                <i class="fas fa-user text-red-500 mt-0.5"></i>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                        {{ clash.teacher_name }}
+                    </p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                        {{ clash.day }} • {{ clash.period }}
+                    </p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div class="p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                            <p class="font-medium">{{ clash.slot_1.class }}</p>
+                            <p class="text-gray-500">{{ clash.slot_1.subject }}</p>
+                            {% if clash.slot_1.room %}
+                            <p class="text-gray-400">{{ clash.slot_1.room }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                            <p class="font-medium">{{ clash.slot_2.class }}</p>
+                            <p class="text-gray-500">{{ clash.slot_2.subject }}</p>
+                            {% if clash.slot_2.room %}
+                            <p class="text-gray-400">{{ clash.slot_2.room }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-4">
+        <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+        <p class="text-sm text-gray-600 dark:text-gray-400">No clashes detected! 🎉</p>
+    </div>
+{% endif %}
+
+{% if unresolved %}
+    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Unresolved Clash Logs
+        </p>
+        {% for log in unresolved %}
+        <div class="text-xs text-gray-500 flex justify-between py-1">
+            <span>{{ log.teacher_name }} - {{ log.day }}</span>
+            <span>{{ log.detected_at|date:"M d, H:i" }}</span>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}

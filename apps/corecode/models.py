@@ -85,7 +85,13 @@ class StudentClass(models.Model):
     Student Class - Strict Nigerian 6-3-3-4 structure
     No custom classes allowed - must map to NigerianClassLevel
     """
-    name = models.CharField(max_length=20, choices=NigerianClassLevel.CHOICES, unique=True)
+    name = models.CharField(max_length=20, choices=NigerianClassLevel.CHOICES)
+    stream = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Class stream/group (e.g., 'A', 'B', 'C' or leave blank for no stream)"
+    )
     display_name = models.CharField(max_length=50)
     education_level = models.CharField(max_length=20, choices=EducationLevel.CHOICES)
     
@@ -99,24 +105,44 @@ class StudentClass(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['sort_order', 'name']
+        ordering = ['sort_order', 'name', 'stream']
+        unique_together = ['name', 'stream']  # SS1 + A = SS1A
         verbose_name = _('Student Class')
         verbose_name_plural = _('Student Classes')
     
     def __str__(self):
+        if self.stream:
+            return f"{self.display_name} {self.stream}"
         return self.display_name
     
     @property
+    def full_name(self):
+        """Get full class name with stream"""
+        if self.stream:
+            return f"{self.display_name} {self.stream}"
+        return self.display_name
+    
+    
+    @property
     def next_class(self):
-        """Get the next class in progression"""
+        """Get the next class in progression (respects streams)"""
         next_class_name = NigerianClassLevel.NEXT_CLASS.get(self.name)
         if next_class_name:
             try:
-                return StudentClass.objects.get(name=next_class_name)
+                # If this class has a stream, try to find the same stream in next class
+                if self.stream:
+                    return StudentClass.objects.get(name=next_class_name, stream=self.stream)
+                else:
+                    # No stream, get any active class with this name
+                    return StudentClass.objects.filter(name=next_class_name, is_active=True).first()
             except StudentClass.DoesNotExist:
                 return None
+            except StudentClass.MultipleObjectsReturned:
+                # Multiple streams exist, return the first one
+                return StudentClass.objects.filter(name=next_class_name, is_active=True).first()
         return None
-    
+
+
     @property
     def is_graduating_class(self):
         """Check if this is SS3 - graduation year"""
@@ -256,6 +282,7 @@ class SystemLog(models.Model):
         FINANCE = 'finance', _('Finance')
         RESULTS = 'results', _('Results')
         ATTENDANCE = 'attendance', _('Attendance')
+        TIMETABLE = 'timetable', _('Timetable')
     
     # Who
     user = models.ForeignKey(
@@ -330,3 +357,7 @@ class AdmissionSequence(models.Model):
 
     def __str__(self):
         return f"{self.session_code}/{self.class_code} -> {self.last_value}"
+
+
+
+

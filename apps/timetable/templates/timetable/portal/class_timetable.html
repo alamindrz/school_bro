@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ class_name }} Timetable | School Bro{% endblock %}
+
+{% block page_title %}{{ class_name }} Timetable{% endblock %}
+{% block page_subtitle %}{{ timetable.academic_session.name|default:"" }}{% endblock %}
+
+{% block page_actions %}
+<div class="flex gap-2">
+    <a href="{% url 'timetable:class_timetable_print' class_id %}" 
+       class="inline-flex items-center px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+        <i class="fas fa-print mr-1"></i>Print
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    {% if error %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <i class="fas fa-calendar-times text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Active Timetable</h3>
+        <p class="text-gray-500 dark:text-gray-400">{{ error }}</p>
+        {% if has_inactive_timetables %}
+        <p class="text-sm text-gray-400 mt-2">{{ inactive_count }} inactive timetable(s) exist.</p>
+        {% endif %}
+    </div>
+    {% else %}
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3">
+            <p class="text-xs text-gray-500">Total Periods</p>
+            <p class="text-xl font-bold">{{ stats.total_slots }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3">
+            <p class="text-xs text-gray-500">Teachers</p>
+            <p class="text-xl font-bold text-green-600">{{ stats.unique_teachers }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3">
+            <p class="text-xs text-gray-500">Subjects</p>
+            <p class="text-xl font-bold text-purple-600">{{ stats.unique_subjects }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3">
+            <p class="text-xs text-gray-500">Free Periods</p>
+            <p class="text-xl font-bold text-yellow-600">{{ stats.free_periods }}</p>
+        </div>
+    </div>
+    
+    <!-- Timetable Grid -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        
+        <!-- Mobile View -->
+        <div class="lg:hidden overflow-x-auto">
+            <div class="min-w-max p-3">
+                <div class="flex border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
+                    <div class="w-20 flex-shrink-0"></div>
+                    {% for day in days %}
+                    <div class="w-32 flex-shrink-0 text-center">
+                        <p class="font-medium text-sm">{{ day.name }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% for period in periods %}
+                <div class="flex py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div class="w-20 flex-shrink-0 pr-2">
+                        <p class="font-medium text-sm">{{ period.display_name }}</p>
+                        <p class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }}</p>
+                    </div>
+                    
+                    {% for day in days %}
+                    <div class="w-32 flex-shrink-0 px-1">
+                        {% with slot=slots_by_day_period|get_item:day.id|get_item:period.id %}
+                        {% if slot %}
+                        <div class="p-2 rounded-lg {% if slot.is_free_period %}bg-yellow-50 dark:bg-yellow-900/20{% elif slot.teacher_name %}bg-green-50 dark:bg-green-900/20{% else %}bg-gray-50 dark:bg-gray-700/50{% endif %}">
+                            {% if slot.is_free_period %}
+                            <p class="text-xs text-center text-gray-500">Free Period</p>
+                            {% elif slot.teacher_name %}
+                            <p class="font-medium text-sm truncate">{{ slot.subject_name }}</p>
+                            <p class="text-xs text-gray-600 truncate">{{ slot.teacher_name }}</p>
+                            {% if slot.room %}
+                            <p class="text-xs text-gray-500 truncate">{{ slot.room }}</p>
+                            {% endif %}
+                            {% else %}
+                            <p class="text-xs text-center text-gray-400">—</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="p-2 text-center text-gray-300">—</div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Desktop View -->
+        <div class="hidden lg:block overflow-x-auto">
+            <table class="min-w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                        <th class="p-3 text-left text-sm font-semibold w-32">Time / Day</th>
+                        {% for day in days %}
+                        <th class="p-3 text-center text-sm font-semibold min-w-[160px]">{{ day.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for period in periods %}
+                    <tr class="border-b border-gray-100 dark:border-gray-700">
+                        <td class="p-3 font-medium">
+                            {{ period.display_name }}<br>
+                            <span class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
+                        </td>
+                        {% for day in days %}
+                        <td class="p-3 text-center border-l border-gray-100 dark:border-gray-700">
+                            {% with slot=slots_by_day_period|get_item:day.id|get_item:period.id %}
+                            {% if slot %}
+                                {% if slot.is_free_period %}
+                                <div class="text-sm text-gray-400 italic">Free Period</div>
+                                {% elif slot.teacher_name %}
+                                <div>
+                                    <div class="font-semibold">{{ slot.subject_name }}</div>
+                                    <div class="text-xs text-gray-500">{{ slot.teacher_name }}</div>
+                                    {% if slot.room %}
+                                    <div class="text-xs text-gray-400">{{ slot.room }}</div>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="text-gray-300">—</div>
+                                {% endif %}
+                            {% else %}
+                            <div class="text-gray-300">—</div>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

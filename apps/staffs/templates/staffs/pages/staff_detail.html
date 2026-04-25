@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ staff.get_full_name }} - Staff Profile - DETs Toolkit{% endblock %}
+{% block title %}{{ staff.full_name }} - Staff Profile - DETs Toolkit{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -13,23 +13,31 @@
             <span class="mx-2">/</span>
             <a href="{% url 'staffs:list' %}" class="hover:text-primary-600 dark:hover:text-primary-400">All Staff</a>
             <span class="mx-2">/</span>
-            <span class="text-gray-700 dark:text-gray-300">{{ staff.get_full_name }}</span>
+            <span class="text-gray-700 dark:text-gray-300">{{ staff.full_name }}</span>
         </nav>
         
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Staff Profile</h1>
             <div class="flex space-x-3">
                 {% if perms.staffs.change_staff %}
-                <a href="{% url 'staffs:edit' staff.id %}" 
-                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                <a href="{% url 'staffs:edit' staff_data.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <i class="fas fa-edit mr-2"></i> Edit
                 </a>
                 {% endif %}
                 {% if perms.staffs.add_leaverequest %}
-                <a href="{% url 'staffs:leave_request' staff.id %}" 
-                   class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                <a href="{% url 'staffs:leave_request' staff_data.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <i class="fas fa-umbrella-beach mr-2"></i> Request Leave
                 </a>
+                {% endif %}
+                {% if not staff.user_id and perms.staffs.change_staff %}
+                <form method="post" action="{% url 'staffs:send_invite' staff_data.id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                        <i class="fas fa-envelope mr-2"></i> Send Invite
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>
@@ -39,7 +47,7 @@
     <div class="mb-6 rounded-lg p-4 
         {% if staff.employment_status == 'active' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800
         {% elif staff.employment_status == 'on_leave' %}bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800
-        {% else %}bg-gray-50 dark:bg-gray-800 border border-light-border dark:border-dark-border
+        {% else %}bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
         {% endif %}">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -55,18 +63,19 @@
                         {% elif staff.employment_status == 'on_leave' %}text-yellow-800 dark:text-yellow-200
                         {% else %}text-gray-800 dark:text-gray-200
                         {% endif %}">
-                        Status: {{ staff.get_employment_status_display }}
+                        Status: {{ staff.employment_status_display }}
                     </h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         Staff ID: {{ staff.staff_id }} • {{ staff.staff_type_display }}
                     </p>
                 </div>
             </div>
-            
+            {% if staff.years_of_service %}
             <div class="text-right">
                 <p class="text-sm text-gray-600 dark:text-gray-400">Years of Service</p>
                 <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ staff.years_of_service }}</p>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -75,11 +84,11 @@
         <!-- Left column - Personal Info & Photo -->
         <div class="lg:col-span-1 space-y-6">
             <!-- Photo Card -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-6 text-center">
-                    {% if staff.passport_photograph %}
-                    <img src="{{ staff.passport_photograph.url }}" alt="{{ staff.get_full_name }}" 
-                         class="h-32 w-32 rounded-full mx-auto border-4 border-primary-100 dark:border-primary-900 mb-4">
+                    {% if staff.passport_url %}
+                    <img src="{{ staff.passport_url }}" alt="{{ staff.full_name }}" 
+                         class="h-32 w-32 rounded-full mx-auto border-4 border-primary-100 dark:border-primary-900 mb-4 object-cover">
                     {% else %}
                     <div class="h-32 w-32 rounded-full bg-primary-100 dark:bg-primary-900 mx-auto border-4 border-primary-100 dark:border-primary-900 mb-4 flex items-center justify-center">
                         <span class="text-4xl font-bold text-primary-700 dark:text-primary-300">
@@ -88,186 +97,154 @@
                     </div>
                     {% endif %}
                     
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ staff.get_full_name }}</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ staff.full_name }}</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ staff.staff_type_display }}</p>
                     
                     <div class="mt-4 flex justify-center space-x-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                        {% if staff.age %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                             <i class="fas fa-calendar mr-1"></i> Age {{ staff.age }}
                         </span>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-                            <i class="fas fa-venus-mars mr-1"></i> {{ staff.get_gender_display }}
+                        {% endif %}
+                        {% if staff.gender_display %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <i class="fas fa-venus-mars mr-1"></i> {{ staff.gender_display }}
                         </span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Contact Information -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Contact Information</h3>
                 </div>
                 <div class="p-4 space-y-3">
+                    {% if staff.email %}
                     <div class="flex items-start">
                         <i class="fas fa-envelope w-5 text-gray-400 mt-1"></i>
                         <div class="ml-3">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                            <a href="mailto:{{ staff.email }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                                {{ staff.email }}
-                            </a>
+                            <a href="mailto:{{ staff.email }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{{ staff.email }}</a>
                         </div>
                     </div>
+                    {% endif %}
+                    {% if staff.phone %}
                     <div class="flex items-start">
                         <i class="fas fa-phone w-5 text-gray-400 mt-1"></i>
                         <div class="ml-3">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                            <a href="tel:{{ staff.phone }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                                {{ staff.phone }}
-                            </a>
+                            <a href="tel:{{ staff.phone }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{{ staff.phone }}</a>
                             {% if staff.alternate_phone %}
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Alt: {{ staff.alternate_phone }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Alt: {{ staff.alternate_phone }}</p>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="flex items-start">
-                        <i class="fas fa-map-marker-alt w-5 text-gray-400 mt-1"></i>
-                        <div class="ml-3">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Address</p>
-                            <p class="text-sm text-gray-900 dark:text-gray-100">{{ staff.address }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ staff.city }}, {{ staff.state_of_origin }}</p>
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Emergency Contact -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            {% if staff.emergency_contact_name %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Emergency Contact</h3>
                 </div>
                 <div class="p-4 space-y-2">
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.emergency_contact_name }}</p>
+                    {% if staff.emergency_contact_relationship %}
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ staff.emergency_contact_relationship }}</p>
-                    <a href="tel:{{ staff.emergency_contact_phone }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                        {{ staff.emergency_contact_phone }}
-                    </a>
+                    {% endif %}
+                    {% if staff.emergency_contact_phone %}
+                    <a href="tel:{{ staff.emergency_contact_phone }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{{ staff.emergency_contact_phone }}</a>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
 
-        <!-- Middle column - Employment & Assignments -->
+        <!-- Middle column - Employment & Qualifications -->
         <div class="lg:col-span-1 space-y-6">
             <!-- Employment Details -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Employment Details</h3>
                 </div>
                 <div class="p-4">
                     <dl class="grid grid-cols-2 gap-4">
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Staff Type</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.get_staff_type_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Category</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.get_staff_category_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Employment Type</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.get_employment_type_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Shift</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.get_shift_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Date Employed</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.date_employed|date:"M d, Y" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Date Confirmed</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.date_confirmed|date:"M d, Y"|default:"Not Confirmed" }}</dd>
-                        </div>
-                        <div class="col-span-2">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Department/Unit</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.department }}{% if staff.unit %} / {{ staff.unit }}{% endif %}</dd>
-                        </div>
+                        {% if staff.staff_type_display %}
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Staff Type</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.staff_type_display }}</dd></div>
+                        {% endif %}
+                        {% if staff.staff_category_display %}
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Category</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.staff_category_display }}</dd></div>
+                        {% endif %}
+                        {% if staff.employment_type_display %}
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Employment Type</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.employment_type_display }}</dd></div>
+                        {% endif %}
+                        {% if staff.date_employed %}
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Date Employed</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.date_employed|date:"M d, Y" }}</dd></div>
+                        {% endif %}
+                        {% if staff.date_confirmed %}
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Date Confirmed</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.date_confirmed|date:"M d, Y" }}</dd></div>
+                        {% endif %}
+                        {% if staff.department %}
+                        <div class="col-span-2"><dt class="text-xs text-gray-500 dark:text-gray-400">Department{% if staff.unit %} / Unit{% endif %}</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.department }}{% if staff.unit %} / {{ staff.unit }}{% endif %}</dd></div>
+                        {% endif %}
                         {% if staff.supervisor %}
-                        <div class="col-span-2">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Supervisor</dt>
-                            <dd class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                <a href="{% url 'staffs:detail' staff.supervisor.id %}" class="text-primary-600 dark:text-primary-400 hover:underline">
-                                    {{ staff.supervisor.get_full_name }}
-                                </a>
-                            </dd>
-                        </div>
+                        <div class="col-span-2"><dt class="text-xs text-gray-500 dark:text-gray-400">Supervisor</dt><dd class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ staff.supervisor.name }}</dd></div>
                         {% endif %}
                     </dl>
                 </div>
             </div>
 
-            <!-- Subject Assignments -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Subject Assignments</h3>
+            <!-- Subject Qualifications -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Subject Qualifications</h3>
                     {% if perms.staffs.add_subjectassignment %}
-                    <a href="{% url 'staffs:subject_assignments' staff.id %}" 
-                       class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                        Manage
-                    </a>
+                    <a href="{% url 'staffs:subject_assignments' staff_data.id %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">Manage</a>
                     {% endif %}
                 </div>
                 
-                {% if subject_assignments %}
-                <div class="divide-y divide-light-border dark:divide-dark-border">
-                    {% for assignment in subject_assignments %}
-                    <div class="p-3">
-                        <div class="flex justify-between">
-                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ assignment.subject.name }}</span>
-                            <span class="text-xs bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 px-2 py-0.5 rounded">
-                                {{ assignment.periods_per_week }} periods/wk
-                            </span>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ assignment.class.name }}
-                            {% if assignment.is_form_master %}
-                            <span class="ml-2 text-green-600 dark:text-green-400">(Form Master)</span>
-                            {% endif %}
-                        </p>
+                {% if qualifications %}
+                <div class="p-4">
+                    <div class="flex flex-wrap gap-2">
+                        {% for qual in qualifications %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm
+                                     {% if qual.is_primary %}bg-green-100 text-green-800 border border-green-300
+                                     {% else %}bg-blue-100 text-blue-800 border border-blue-300{% endif %}">
+                            <i class="fas fa-book mr-2 text-xs"></i>
+                            {{ qual.subject_name }}
+                            {% if qual.is_primary %}<span class="ml-1 text-yellow-500">★</span>{% endif %}
+                        </span>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="p-4 text-center text-gray-500 dark:text-gray-400">
                     <i class="fas fa-book-open text-2xl mb-2"></i>
-                    <p class="text-sm">No subject assignments</p>
+                    <p class="text-sm">No subject qualifications</p>
                 </div>
                 {% endif %}
             </div>
 
             <!-- Duty Assignments -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Duty Assignments</h3>
                     {% if perms.staffs.add_dutyassignment %}
-                    <a href="{% url 'staffs:duty_assignments' staff.id %}" 
-                       class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                        Manage
-                    </a>
+                    <a href="{% url 'staffs:duty_assignments' staff_data.id %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">Manage</a>
                     {% endif %}
                 </div>
                 
-                {% if duties %}
-                <div class="divide-y divide-light-border dark:divide-dark-border">
-                    {% for duty in duties %}
+                {% if duty_assignments %}
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for duty in duty_assignments %}
                     <div class="p-3">
-                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ duty.get_duty_post_display }}</p>
-                        {% if duty.club_name %}
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ duty.club_name }}</p>
-                        {% endif %}
-                        {% if duty.house_name %}
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ duty.house_name }}</p>
-                        {% endif %}
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ duty.duty_post_display }}</p>
+                        {% if duty.club_name %}<p class="text-xs text-gray-500 dark:text-gray-400">{{ duty.club_name }}</p>{% endif %}
+                        {% if duty.house_name %}<p class="text-xs text-gray-500 dark:text-gray-400">{{ duty.house_name }}</p>{% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -282,130 +259,66 @@
 
         <!-- Right column - Leave, Attendance, Performance -->
         <div class="lg:col-span-1 space-y-6">
-            <!-- Leave Balance -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Leave Balance</h3>
+            <!-- Leave Balances -->
+            {% if leave_balances %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Leave Balances</h3>
                 </div>
                 <div class="p-4">
-                    <div class="space-y-3">
-                        <div>
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="text-gray-600 dark:text-gray-400">Annual Leave</span>
-                                <span class="font-medium text-gray-900 dark:text-gray-100">21 days</span>
-                            </div>
-                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div class="bg-primary-500 h-2 rounded-full" style="width: 60%"></div>
-                            </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for type, balance in leave_balances.items %}
+                        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ type|title }}</p>
+                            <p class="text-lg font-bold text-primary-600 dark:text-primary-400">{{ balance }}</p>
                         </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="text-gray-600 dark:text-gray-400">Sick Leave</span>
-                                <span class="font-medium text-gray-900 dark:text-gray-100">10 days</span>
-                            </div>
-                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div class="bg-green-500 h-2 rounded-full" style="width: 30%"></div>
-                            </div>
-                        </div>
+                        {% endfor %}
                     </div>
-                </div>
-            </div>
-
-            <!-- Recent Leave Requests -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Leave Requests</h3>
-                </div>
-                
-                {% if leave_requests %}
-                <div class="divide-y divide-light-border dark:divide-dark-border">
-                    {% for leave in leave_requests|slice:":5" %}
-                    <div class="p-3">
-                        <div class="flex justify-between">
-                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ leave.leave_type_display }}</span>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                                {% if leave.status == 'approved' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                {% elif leave.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                {% elif leave.status == 'rejected' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
-                                {% endif %}">
-                                {{ leave.status_display }}
-                            </span>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {{ leave.start_date|date:"M d" }} - {{ leave.end_date|date:"M d" }} ({{ leave.days_requested }} days)
-                        </p>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-                    <i class="fas fa-calendar-alt text-2xl mb-2"></i>
-                    <p class="text-sm">No leave requests</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Attendance Summary -->
-            {% if attendance_summary %}
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Attendance Summary</h3>
-                </div>
-                <div class="p-4">
-                    <dl class="grid grid-cols-2 gap-4">
-                        <div class="text-center">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Present</dt>
-                            <dd class="text-xl font-bold text-green-600 dark:text-green-400">{{ attendance_summary.present }}</dd>
-                        </div>
-                        <div class="text-center">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Absent</dt>
-                            <dd class="text-xl font-bold text-red-600 dark:text-red-400">{{ attendance_summary.absent }}</dd>
-                        </div>
-                        <div class="text-center">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Late</dt>
-                            <dd class="text-xl font-bold text-yellow-600 dark:text-yellow-400">{{ attendance_summary.late }}</dd>
-                        </div>
-                        <div class="text-center">
-                            <dt class="text-xs text-gray-500 dark:text-gray-400">Rate</dt>
-                            <dd class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ attendance_summary.attendance_rate|floatformat:1 }}%</dd>
-                        </div>
-                    </dl>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Performance Evaluations -->
-            <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
-                <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Evaluations</h3>
+            <!-- Recent Leave Requests -->
+            {% if leave_requests %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Leave Requests</h3>
                 </div>
-                
-                {% if evaluations %}
-                <div class="divide-y divide-light-border dark:divide-dark-border">
-                    {% for eval in evaluations|slice:":3" %}
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for leave in leave_requests|slice:":5" %}
                     <div class="p-3">
                         <div class="flex justify-between">
-                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ eval.evaluation_period }}</span>
-                            <span class="text-sm font-bold 
-                                {% if eval.overall_rating >= 4 %}text-green-600 dark:text-green-400
-                                {% elif eval.overall_rating >= 3 %}text-yellow-600 dark:text-yellow-400
-                                {% else %}text-red-600 dark:text-red-400
-                                {% endif %}">
-                                {{ eval.overall_rating|floatformat:1 }}/5
+                            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ leave.leave_type_display }}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full 
+                                {% if leave.status == 'approved' %}bg-green-100 text-green-800
+                                {% elif leave.status == 'rejected' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ leave.status_display }}
                             </span>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ eval.evaluation_date|date:"M d, Y" }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ leave.start_date|date:"M d" }} - {{ leave.end_date|date:"M d, Y" }}</p>
                     </div>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-                    <i class="fas fa-star text-2xl mb-2"></i>
-                    <p class="text-sm">No evaluations yet</p>
-                </div>
-                {% endif %}
             </div>
+            {% endif %}
+
+            <!-- Medical Info -->
+            {% if staff.medical_conditions or staff.allergies %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Medical Information</h3>
+                </div>
+                <div class="p-4 space-y-3">
+                    {% if staff.medical_conditions %}
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400">Conditions</p><p class="text-sm text-gray-900 dark:text-gray-100">{{ staff.medical_conditions }}</p></div>
+                    {% endif %}
+                    {% if staff.allergies %}
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400">Allergies</p><p class="text-sm text-gray-900 dark:text-gray-100">{{ staff.allergies }}</p></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

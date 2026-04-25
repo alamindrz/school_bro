@@ -1,0 +1,61 @@
+{# timetable/htmx/stats_cards.html #}
+
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+    <!-- Total Slots -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_slots }}</p>
+            </div>
+            <i class="fas fa-table text-blue-500 text-xl sm:text-2xl"></i>
+        </div>
+    </div>
+    
+    <!-- Assigned -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Assigned</p>
+                <p class="text-xl sm:text-2xl font-bold text-green-600">{{ stats.assigned_slots }}</p>
+            </div>
+            <i class="fas fa-check-circle text-green-500 text-xl sm:text-2xl"></i>
+        </div>
+    </div>
+    
+    <!-- Free Periods -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Free</p>
+                <p class="text-xl sm:text-2xl font-bold text-yellow-600">{{ stats.free_periods }}</p>
+            </div>
+            <i class="fas fa-coffee text-yellow-500 text-xl sm:text-2xl"></i>
+        </div>
+    </div>
+    
+    <!-- Clashes -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Clashes</p>
+                <p class="text-xl sm:text-2xl font-bold {% if clash_summary.has_unresolved %}text-red-600{% else %}text-gray-600{% endif %}">
+                    {{ clash_summary.unresolved_clashes }}
+                </p>
+            </div>
+            <i class="fas fa-exclamation-triangle {% if clash_summary.has_unresolved %}text-red-500{% else %}text-gray-400{% endif %} text-xl sm:text-2xl"></i>
+        </div>
+    </div>
+    
+    <!-- Progress -->
+    <div class="col-span-2 lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+        <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Progress</p>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-primary-500 h-2 rounded-full transition-all" 
+                     style="width: {{ stats.assignment_rate }}%"></div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ stats.assignment_rate }}% complete</p>
+        </div>
+    </div>
+</div>

@@ -403,9 +403,16 @@ class StudentDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
         # Get additional data via selectors
         context['guardians'] = GuardianSelector.get_student_guardians(self.object.id)
         context['timeline'] = StudentHistorySelector.get_student_timeline(self.object.id)
+    
+        # Safe way to get next class
+        try:
+            next_class = self.object.current_class.next_class if self.object.current_class else None
+        except StudentClass.MultipleObjectsReturned:
+            next_class = None
         
         # Get class progression info
-        context['next_class'] = self.object.current_class.next_class if self.object.current_class else None
+        context['next_class'] = next_class
+        
         context['is_graduating'] = self.object.current_class.is_graduating_class if self.object.current_class else False
         
         # Check if user account exists

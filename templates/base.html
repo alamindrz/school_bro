@@ -1,52 +1,38 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="en" class="h-full" data-theme="light">
+<html lang="en" class="h-full" data-theme="{{ theme_preference|default:'light' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>{% block title %}School Management System{% endblock %}</title>
+    <title>{% block title %}DETs Toolkit - School Management System{% endblock %}</title>
     
-    
-    <!-- Tailwind CSS via CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- HTMX with extensions -->
+    <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/ext/response-targets.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/ext/loading-states.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/ext/debug.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/ext/class-tools.js"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.4/dist/ext/preload.js"></script>
-    
-
-    <!-- Alpine.js - ADD THIS LINE -->
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    
     <style>
-        /* Base styles */
         body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
         
-        /* Theme variables */
+        /* Theme CSS Variables */
         :root {
-            /* Light theme (default) */
             --bg-primary: 249 250 251;
             --bg-secondary: 255 255 255;
             --text-primary: 17 24 39;
             --text-secondary: 75 85 99;
             --border-color: 229 231 235;
             --nav-bg: 255 255 255;
-            --nav-text: 31 41 55;
             --nav-hover: 243 244 246;
             --nav-active: 59 130 246;
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
         }
-        [x-cloak] { display: none !important; }
         
-        /* Dark theme */
         [data-theme="dark"] {
             --bg-primary: 17 24 39;
             --bg-secondary: 31 41 55;
@@ -54,246 +40,86 @@
             --text-secondary: 156 163 175;
             --border-color: 55 65 81;
             --nav-bg: 31 41 55;
-            --nav-text: 243 244 246;
             --nav-hover: 55 65 81;
             --nav-active: 59 130 246;
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
         }
         
-        /* Apply theme variables */
         body {
             background-color: rgb(var(--bg-primary));
             color: rgb(var(--text-primary));
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
         
-        .theme-transition {
-            transition: all 0.3s ease;
+        .card {
+            background-color: rgb(var(--bg-secondary));
+            border-color: rgb(var(--border-color));
         }
         
-        /* Responsive breakpoint utilities */
-        @media (max-width: 640px) { /* sm */ }
-        @media (min-width: 641px) and (max-width: 768px) { /* md */ }
-        @media (min-width: 769px) and (max-width: 1024px) { /* lg */ }
-        @media (min-width: 1025px) and (max-width: 1280px) { /* xl */ }
-        @media (min-width: 1281px) { /* 2xl */ }
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1; }
         
-        /* Navigation transitions */
-        .nav-transition {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Mobile menu animations */
-        @keyframes slideIn {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(0); }
-        }
-        
-        @keyframes slideOut {
-            from { transform: translateX(0); }
-            to { transform: translateX(-100%); }
-        }
-        
-        .mobile-menu-enter {
-            animation: slideIn 0.3s ease-out forwards;
-        }
-        
-        .mobile-menu-exit {
-            animation: slideOut 0.3s ease-in forwards;
-        }
-        
-        /* Dropdown animations */
-        .dropdown-enter {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.95);
-        }
-        
-        .dropdown-enter-active {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            transition: opacity 0.2s, transform 0.2s;
-        }
-        
-        /* HTMX loading indicators */
-        .htmx-indicator {
-            opacity: 0;
-            transition: opacity 200ms ease-in;
-        }
-        
-        .htmx-request .htmx-indicator {
-            opacity: 1;
-        }
-        
-        .htmx-request.htmx-indicator {
-            opacity: 1;
-        }
-        
-        /* Smooth scrollbar */
-        .scrollbar-thin {
-            scrollbar-width: thin;
-            scrollbar-color: rgb(var(--border-color)) transparent;
-        }
-        
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 5px;
-        }
-        
-        .scrollbar-thin::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background: rgb(var(--border-color));
-            border-radius: 20px;
-        }
-        
-        /* Responsive font sizes */
-        @media (max-width: 640px) {
-            .responsive-text { font-size: 0.875rem; }
-        }
-        
-        @media (min-width: 641px) and (max-width: 1024px) {
-            .responsive-text { font-size: 0.9375rem; }
-        }
-        
-        @media (min-width: 1025px) {
-            .responsive-text { font-size: 1rem; }
-        }
+        .scrollbar-thin { scrollbar-width: thin; }
+        .scrollbar-thin::-webkit-scrollbar { width: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--border-color)); border-radius: 20px; }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body class="h-full antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <!-- Theme Toggle Script (runs immediately to prevent flash) -->
-    <script>
-        (function() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-    </script>
-
-    <!-- HTMX Loading Indicator (Global) -->
-    <div id="global-loading" class="fixed top-0 left-0 w-full h-1 bg-blue-600 transform -translate-x-full transition-transform duration-300 z-[100]" 
-         hx-indicator="this" 
-         class="htmx-indicator">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
+    
+    <div id="global-loading" class="fixed top-0 left-0 w-full h-1 bg-primary-600 transform -translate-x-full transition-transform duration-300 z-[100] htmx-indicator">
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-600 to-purple-600 animate-pulse"></div>
     </div>
 
-    <!-- Navigation Container -->
     <div class="min-h-full">
-        <!-- Loading Overlay for HTMX requests -->
-        <div id="nav-loading-overlay" 
-             class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 hidden transition-all duration-300"
-             hx-indicator="this">
-            <div class="flex items-center justify-center h-full">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-2xl flex flex-col items-center space-y-3">
-                    <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Loading...</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Navigation -->
         {% include 'includes/navigation.html' %}
 
-        <!-- Main Content -->
         <main class="lg:pl-72 xl:pl-80 transition-all duration-300" id="main-content">
-            <!-- Responsive Top Bar -->
+            
+            <!-- Mobile Top Bar -->
             <div class="sticky top-0 z-40 flex items-center justify-between gap-x-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-4 py-3 shadow-sm sm:px-6 lg:hidden">
-                <div class="flex items-center gap-x-3">
-                    <!-- Mobile menu button -->
-                    <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
-                        <span class="sr-only">Open sidebar</span>
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                        </svg>
-                    </button>
-                    
-                    <!-- Page title for mobile -->
-                    <span class="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[150px]">
-                        {% block mobile_title %}Dashboard{% endblock %}
-                    </span>
-                </div>
-                
-                <!-- Right side icons for mobile -->
-                <div class="flex items-center gap-x-2">
-                    <!-- Theme toggle for mobile -->
-                    <button id="mobile-theme-toggle" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                        <svg class="h-5 w-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                        </svg>
-                        <svg class="h-5 w-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
-                    </button>
-                    
-                    <!-- Search trigger for mobile -->
-                    <button id="mobile-search-button" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                    </button>
-                    
-                    <!-- User menu trigger for mobile -->
-                    <div class="relative" id="mobile-user-menu-container">
-                        <button type="button" id="mobile-user-menu-button" class="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            <span class="text-sm font-medium">{{ request.user.get_initials|default:request.user.username|first|upper }}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search Bar (Collapsible) -->
-            <div id="search-bar" class="hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto">
-                    <div class="relative">
-                        <input type="text" 
-                               placeholder="Search students, staff, invoices..." 
-                               class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               hx-post="/"
-                               hx-trigger="keyup changed delay:500ms"
-                               hx-target="#search-results"
-                               hx-indicator="#search-indicator">
-                        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
-                        <div id="search-indicator" class="absolute right-3 top-2.5 hidden">
-                            <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div id="search-results" class="mt-2"></div>
-                </div>
+                <button id="mobile-menu-button" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">{% block mobile_title %}{% endblock %}</span>
+                <button id="mobile-theme-toggle" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="h-5 w-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                    <svg class="h-5 w-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Breadcrumbs -->
+            {% if breadcrumbs %}
             <nav class="flex items-center space-x-2 text-sm px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-2 flex-wrap gap-y-2">
-                    <li>
-                        <a href="{% url 'corecode:dashboard' %}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                            </svg>
-                        </a>
-                    </li>
-                    {% block breadcrumbs_items %}
+                    {% for crumb in breadcrumbs %}
                     <li class="flex items-center">
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {% if not forloop.first %}
+                        <svg class="h-4 w-4 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
-                        <a href="#" class="ml-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">Current Page</a>
+                        {% endif %}
+                        {% if crumb.active %}
+                        <span class="text-gray-700 dark:text-gray-300 font-medium">{{ crumb.title }}</span>
+                        {% else %}
+                        <a href="{{ crumb.url }}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                            {{ crumb.title }}
+                        </a>
+                        {% endif %}
                     </li>
-                    {% endblock %}
+                    {% endfor %}
                 </ol>
             </nav>
+            {% endif %}
 
             <!-- Page Header -->
-            {% block page_header %}
             <div class="px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -305,270 +131,93 @@
                     </div>
                 </div>
             </div>
-            {% endblock %}
             
-            <!-- Main Content Area -->
+            <!-- Main Content -->
             <div class="px-4 sm:px-6 lg:px-8 pb-8">
                 {% block content %}{% endblock %}
             </div>
         </main>
-
-        <!-- Responsive Quick Action Menu -->
-        <div class="fixed bottom-6 right-6 flex flex-col items-end space-y-2 z-50">
-            <!-- Quick action buttons (responsive) -->
-            <div id="quick-action-menu" class="hidden flex-col items-end space-y-2 mb-2">
-                <button class="quick-action-item transform scale-0 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg shadow-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Add Student
-                </button>
-                <button class="quick-action-item transform scale-0 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg shadow-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Create Invoice
-                </button>
-                <button class="quick-action-item transform scale-0 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg shadow-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Record Attendance
-                </button>
-            </div>
-            
-            <!-- Main quick action button -->
-            <button id="quick-action-button" 
-                    class="flex items-center justify-center h-14 w-14 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 transform hover:scale-110"
-                    onclick="toggleQuickMenu()">
-                <svg class="h-6 w-6 transition-transform duration-300" id="quick-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-            </button>
-        </div>
     </div>
 
-    <!-- Toast Notification Container with HTMX integration -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 w-full max-w-sm pointer-events-none">
-        <!-- Toasts will be inserted here -->
-    </div>
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 w-full max-w-sm pointer-events-none"></div>
 
-    <!-- HTMX Event Listeners -->
     <script>
-        // Theme management
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            // Dispatch event for HTMX to pick up
-            document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: newTheme } }));
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.cookie = `theme=${theme}; path=/; max-age=31536000`;
         }
-
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            setTheme(current === 'light' ? 'dark' : 'light');
+        }
+        
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+        
         // Theme toggle buttons
         document.addEventListener('DOMContentLoaded', function() {
-            // Desktop theme toggle
             const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.addEventListener('click', toggleTheme);
-            }
+            if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
             
-            // Mobile theme toggle
             const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
-            if (mobileThemeToggle) {
-                mobileThemeToggle.addEventListener('click', toggleTheme);
-            }
+            if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
         });
-
-        // HTMX Configuration
+        
+        // Mobile menu
         document.addEventListener('DOMContentLoaded', function() {
-            // Configure HTMX
-            htmx.config.defaultSwapStyle = 'innerHTML';
-            htmx.config.defaultTransition = true;
-            htmx.config.globalViewTransitions = true;
-            
-            // Global error handler
-            document.body.addEventListener('htmx:responseError', function(evt) {
-                showToast('An error occurred: ' + evt.detail.error, 'error');
-            });
-            
-            // Show loading on global indicator
-            document.body.addEventListener('htmx:beforeRequest', function() {
-                document.getElementById('global-loading').classList.remove('-translate-x-full');
-            });
-            
-            document.body.addEventListener('htmx:afterRequest', function() {
-                setTimeout(() => {
-                    document.getElementById('global-loading').classList.add('-translate-x-full');
-                }, 300);
-            });
-        });
-
-        // Mobile menu functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenuBtn = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
-            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
-            const closeMobileMenu = document.getElementById('close-mobile-menu');
+            const mobileOverlay = document.getElementById('mobile-menu-overlay');
             
-            function openMobileMenu() {
-                mobileMenu.classList.remove('-translate-x-full');
-                mobileMenuOverlay.classList.remove('hidden');
+            function openMenu() {
+                mobileMenu?.classList.remove('-translate-x-full');
+                mobileOverlay?.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
             }
             
-            function closeMobileMenuFunc() {
-                mobileMenu.classList.add('-translate-x-full');
-                mobileMenuOverlay.classList.add('hidden');
+            function closeMenu() {
+                mobileMenu?.classList.add('-translate-x-full');
+                mobileOverlay?.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
             }
             
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', openMobileMenu);
-            }
+            mobileMenuBtn?.addEventListener('click', openMenu);
+            mobileOverlay?.addEventListener('click', closeMenu);
             
-            if (closeMobileMenu) {
-                closeMobileMenu.addEventListener('click', closeMobileMenuFunc);
-            }
-            
-            if (mobileMenuOverlay) {
-                mobileMenuOverlay.addEventListener('click', closeMobileMenuFunc);
-            }
-            
-            // Handle escape key
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && mobileMenu && !mobileMenu.classList.contains('-translate-x-full')) {
-                    closeMobileMenuFunc();
-                }
+                if (e.key === 'Escape') closeMenu();
             });
         });
-
-        // Search bar toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchButton = document.getElementById('mobile-search-button');
-            const searchBar = document.getElementById('search-bar');
-            
-            if (searchButton && searchBar) {
-                searchButton.addEventListener('click', function() {
-                    searchBar.classList.toggle('hidden');
-                    if (!searchBar.classList.contains('hidden')) {
-                        searchBar.querySelector('input').focus();
-                    }
-                });
-            }
-        });
-
-        // Quick action menu
-        function toggleQuickMenu() {
-            const menu = document.getElementById('quick-action-menu');
-            const icon = document.getElementById('quick-action-icon');
-            
-            if (menu.classList.contains('hidden')) {
-                menu.classList.remove('hidden');
-                setTimeout(() => {
-                    document.querySelectorAll('.quick-action-item').forEach((item, index) => {
-                        setTimeout(() => {
-                            item.classList.remove('scale-0');
-                        }, index * 50);
-                    });
-                }, 10);
-                icon.style.transform = 'rotate(45deg)';
-            } else {
-                document.querySelectorAll('.quick-action-item').forEach((item, index) => {
-                    setTimeout(() => {
-                        item.classList.add('scale-0');
-                    }, index * 50);
-                });
-                setTimeout(() => {
-                    menu.classList.add('hidden');
-                }, 300);
-                icon.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        // Toast notification system
-        function showToast(message, type = 'info', duration = 5000) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const colors = {
-                success: 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800',
-                error: 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
-                warning: 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
-                info: 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-            };
-            
-            toast.className = `pointer-events-auto flex items-center p-4 rounded-lg border ${colors[type]} shadow-lg transform transition-all duration-300 translate-x-full opacity-0`;
-            toast.innerHTML = `
-                <div class="flex-1 mr-2 text-sm">${message}</div>
-                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            `;
-            
-            container.appendChild(toast);
-            
-            // Trigger animation
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full', 'opacity-0');
-            }, 10);
-            
-            // Auto remove
-            if (duration > 0) {
-                setTimeout(() => {
-                    toast.classList.add('translate-x-full', 'opacity-0');
-                    setTimeout(() => {
-                        if (toast.parentElement) {
-                            toast.remove();
-                        }
-                    }, 300);
-                }, duration);
-            }
-        }
-
-        // Responsive breakpoint detection
-        function getBreakpoint() {
-            const width = window.innerWidth;
-            if (width < 640) return 'sm';
-            if (width < 768) return 'md';
-            if (width < 1024) return 'lg';
-            if (width < 1280) return 'xl';
-            return '2xl';
-        }
-
-        // Update UI based on breakpoint
-        window.addEventListener('resize', function() {
-            const breakpoint = getBreakpoint();
-            document.dispatchEvent(new CustomEvent('breakpointChanged', { detail: { breakpoint } }));
-        });
-
-        // Loading overlay control
-        window.showLoading = function() {
-            document.getElementById('nav-loading-overlay').classList.remove('hidden');
-        };
         
-        window.hideLoading = function() {
-            document.getElementById('nav-loading-overlay').classList.add('hidden');
-        };
-
-        // HTMX extension for responsive behavior
-        htmx.defineExtension('responsive', {
-            onEvent: function(name, evt) {
-                if (name === 'htmx:beforeRequest') {
-                    const breakpoint = getBreakpoint();
-                    evt.detail.requestConfig.headers['X-Breakpoint'] = breakpoint;
-                }
-            }
-        });
-
-        // Prefetch links on hover
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('a[href]').forEach(link => {
-                link.addEventListener('mouseenter', () => {
-                    if (link.getAttribute('hx-get') || link.getAttribute('hx-post')) {
-                        htmx.trigger(link, 'prefetch');
-                    }
-                });
-            });
-        });
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full opacity-0`;
+            toast.innerHTML = `<div class="flex items-center"><span class="mr-2">${message}</span><button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">×</button></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-full', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+        
+        window.showToast = showToast;
     </script>
-
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

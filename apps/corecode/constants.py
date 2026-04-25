@@ -13,14 +13,12 @@ class EducationLevel:
     PRIMARY = 'primary'
     JSS = 'jss'  # Junior Secondary School
     SSS = 'sss'  # Senior Secondary School
-    TERTIARY = 'tertiary'
     
     CHOICES = [
         (NURSERY, _('Nursery')),
         (PRIMARY, _('Primary')),
         (JSS, _('Junior Secondary')),
         (SSS, _('Senior Secondary')),
-        (TERTIARY, _('Tertiary')),
     ]
 
 
@@ -145,6 +143,19 @@ class SiteConfigKey:
     COMPANY_NAME = 'COMPANY_NAME'
     COMPANY_EMAIL = 'COMPANY_EMAIL'
     
+
+    # Timetable Settings
+    PERIOD_DURATION_MINUTES = 'PERIOD_DURATION_MINUTES'  # Default: 40
+    MORNING_PERIODS_COUNT = 'MORNING_PERIODS_COUNT'  # Default: 3
+    AFTERNOON_PERIODS_COUNT = 'AFTERNOON_PERIODS_COUNT'  # Default: 3
+    FINAL_PERIODS_COUNT = 'FINAL_PERIODS_COUNT'  # Default: 2
+    BREAKFAST_DURATION_MINUTES = 'BREAKFAST_DURATION_MINUTES'  # Default: 60
+    SHORT_BREAK_DURATION_MINUTES = 'SHORT_BREAK_DURATION_MINUTES'  # Default: 15
+    SCHOOL_START_TIME = 'SCHOOL_START_TIME'  # Default: 08:00
+    FRIDAY_END_TIME = 'FRIDAY_END_TIME'  # Default: 12:30
+    TIMETABLE_CLASH_DETECTION_ENABLED = 'TIMETABLE_CLASH_DETECTION_ENABLED'  # Default: True
+
+    
     # All configurable keys
     ALL_KEYS = [
         TERMS_PER_SESSION,
@@ -163,7 +174,18 @@ class SiteConfigKey:
         COMPANY_NAME,
         COMPANY_EMAIL,
         APPLICATION_FEE,
-        ADMISSION_DEADLINE_DAYS
+        ADMISSION_DEADLINE_DAYS,
+        
+        PERIOD_DURATION_MINUTES,
+        MORNING_PERIODS_COUNT,
+        AFTERNOON_PERIODS_COUNT,
+        FINAL_PERIODS_COUNT,
+        BREAKFAST_DURATION_MINUTES,
+        SHORT_BREAK_DURATION_MINUTES,
+        SCHOOL_START_TIME,
+        FRIDAY_END_TIME,
+        TIMETABLE_CLASH_DETECTION_ENABLED,        
+            
         ]
         
 class SubjectType:

@@ -12,7 +12,7 @@ import logging
 
 from ..models import Staff, LeaveRequest, StaffAttendance
 from ..selectors import (
-    StaffSelector, SubjectAssignmentSelector, LeaveRequestSelector,
+    StaffSelector, TeacherQualificationSelector, LeaveRequestSelector,
     StaffAttendanceSelector, PerformanceSelector
 )
 from ..services import StaffService, LeaveService, StaffAttendanceService
@@ -101,20 +101,15 @@ def get_staff_attendance(request, staff_id):
 @permission_required('staffs.view_subjectassignment')
 @require_http_methods(["GET"])
 def get_teaching_load(request, staff_id):
-    """Get teaching load for a staff member"""
-    session_id = request.GET.get('session_id')
-
-    assignments = SubjectAssignmentSelector.get_for_staff(
-        staff_id=int(staff_id),
-        session_id=int(session_id) if session_id else None
-    )
-
-    total_periods = sum(a['periods_per_week'] for a in assignments)
-
+    """Get teaching qualifications for a staff member"""
+    from ..selectors import TeacherQualificationSelector
+    
+    qualifications = TeacherQualificationSelector.get_for_teacher(int(staff_id))
+    
     return JsonResponse({
-        'assignments': assignments,
-        'total_periods': total_periods,
-        'subject_count': len(assignments)
+        'qualifications': qualifications,
+        'subject_count': len(qualifications),
+        'primary_subject': next((q for q in qualifications if q['is_primary']), None)
     })
 
 
@@ -182,7 +177,7 @@ def update_staff_status_ajax(request):
 @require_http_methods(["GET"])
 def get_performance_chart(request, staff_id):
     """Get performance data for charts"""
-    evaluations = PerformanceSelector.get_for_staff(int(staff_id), limit=20)
+    evaluations = PerformanceSelector.get_for_teacher(int(staff_id), limit=20)
 
     chart_data = {
         'labels': [e['evaluation_period'] for e in evaluations],
@@ -222,3 +217,28 @@ def get_birthdays(request):
         })
 
     return JsonResponse({'birthdays': birthdays})
+    
+    
+@login_required
+@permission_required('staffs.view_subjectassignment')
+@require_http_methods(["GET"])
+def get_class_form_master(request):
+    """Get form master for a specific class"""
+    class_id = request.GET.get('class_id')
+    
+    if not class_id:
+        return JsonResponse({'error': 'Class ID required'}, status=400)
+    
+    from ..selectors import TeacherQualificationSelector
+    form_master = TeacherQualificationSelector.get_form_master_for_class(int(class_id))
+    
+    if form_master:
+        return JsonResponse({
+            'form_master': {
+                'id': form_master['staff_id'],
+                'name': form_master['staff_name'],
+                'staff_id': form_master['staff_id'],
+            }
+        })
+    else:
+        return JsonResponse({'form_master': None})

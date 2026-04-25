@@ -11,15 +11,13 @@ from django.utils import timezone
 
 
 def navigation(request):
-    """
-    Inject navigation menu items into ALL templates
-    This runs on EVERY request, making navigation available globally
-    """
+    """Inject navigation menu items into ALL templates"""
     if not hasattr(request, 'user') or not request.user.is_authenticated:
         return {
             'main_menu': [],
             'user_menu': [],
             'footer_menu': MenuRegistry.get_footer_menu(request.user) if hasattr(request, 'user') else [],
+            'current_path': request.path,
         }
     
     return {
@@ -27,6 +25,7 @@ def navigation(request):
         'user_menu': MenuRegistry.get_user_menu(request.user, request.path),
         'footer_menu': MenuRegistry.get_footer_menu(request.user),
         'current_year': timezone.now().year,
+        'current_path': request.path,
     }
 
 
@@ -37,14 +36,12 @@ def site_config(request):
         'CURRENT_TERM': AcademicTermSelector.get_current_term(),
         'DEBUG': settings.DEBUG,
         'VERSION': getattr(settings, 'VERSION', '1.0.0'),
+        'theme_preference': request.COOKIES.get('theme', 'light'),
     }
 
 
 def breadcrumbs(request):
-    """
-    Generate breadcrumbs based on current URL
-    This helps with navigation context
-    """
+    """Generate breadcrumbs based on current URL"""
     if not hasattr(request, 'resolver_match') or not request.resolver_match:
         return {'breadcrumbs': []}
     
@@ -60,23 +57,22 @@ def breadcrumbs(request):
     })
     
     # App breadcrumb
-    if app_name:
-        app_titles = {
-            'students': 'Students',
-            'staffs': 'Staff',
-            'admissions': 'Admissions',
-            'finance': 'Finance',
-            'results': 'Results',
-            'attendance': 'Attendance',
-            'parents': 'Parents Portal',
-            'corecode': 'System',
-            'audit': 'Audit',
-            'notifications': 'Notifications',
-        }
-        app_title = app_titles.get(app_name, app_name.title())
+    app_titles = {
+        'students': 'Students',
+        'staffs': 'Staff',
+        'admissions': 'Admissions',
+        'finance': 'Finance',
+        'results': 'Results',
+        'attendance': 'Attendance',
+        'parents': 'Parents Portal',
+        'timetable': 'Timetable',
+        'corecode': 'System',
+    }
+    
+    if app_name and app_name in app_titles:
         breadcrumbs.append({
-            'url': reverse(f'{app_name}:dashboard') if hasattr(reverse, f'{app_name}:dashboard') else '#',
-            'title': app_title,
+            'url': '#',
+            'title': app_titles[app_name],
             'active': False
         })
     

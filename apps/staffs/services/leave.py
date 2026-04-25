@@ -1,7 +1,7 @@
 """
 Leave Service - Staff leave management
 """
-
+from django.db import models
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError

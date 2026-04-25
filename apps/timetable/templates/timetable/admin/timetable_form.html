@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Timetable | School Bro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+    
+    <!-- Header -->
+    <div class="mb-4 sm:mb-6">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            Create New Timetable
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Select the academic context for this timetable
+        </p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <form method="post" x-data="timetableForm()" @submit="handleSubmit">
+            {% csrf_token %}
+            
+            <div class="space-y-4 sm:space-y-5">
+                <!-- Timetable Name -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Timetable Name (optional)
+                    </label>
+                    <input type="text" name="name" 
+                           class="w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                           placeholder="e.g., SS1A 2024/2025 First Term">
+                    <p class="text-xs text-gray-500 mt-1">Leave blank to auto-generate</p>
+                </div>
+                
+                <!-- Academic Session -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Academic Session <span class="text-red-500">*</span>
+                    </label>
+                    <select name="session_id" required x-model="selectedSession" @change="loadTerms"
+                            class="w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                        <option value="">-- Select Session --</option>
+                        {% for session in sessions %}
+                        <option value="{{ session.id }}">{{ session.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Academic Term -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Academic Term
+                    </label>
+                    <select name="term_id" x-model="selectedTerm" id="term-select"
+                            class="w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            :disabled="!selectedSession || loadingTerms">
+                        <option value="">All Terms (session-wide)</option>
+                        <template x-for="term in terms" :key="term.id">
+                            <option :value="term.id" x-text="term.name"></option>
+                        </template>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Leave blank for a session-wide timetable
+                    </p>
+                    <p x-show="loadingTerms" class="text-xs text-primary-600 mt-1">
+                        <i class="fas fa-spinner fa-spin mr-1"></i>Loading terms...
+                    </p>
+                </div>
+                
+                <!-- Class -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Class <span class="text-red-500">*</span>
+                    </label>
+                    <select name="class_id" required
+                            class="w-full px-3 py-2 sm:py-2.5 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                        <option value="">-- Select Class --</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Info Box -->
+            <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+                <div class="flex gap-3">
+                    <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                    <div class="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                        <p class="font-medium mb-1">What happens next?</p>
+                        <ul class="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-300">
+                            <li>An empty timetable grid will be created</li>
+                            <li>You can assign teachers to each period</li>
+                            <li>Clash detection will run automatically</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+                <a href="{% url 'timetable:timetable_list' %}" 
+                   class="px-4 py-2 sm:py-2.5 text-sm text-center border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 sm:py-2.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 touch-manipulation"
+                        :disabled="!selectedSession">
+                    <i class="fas fa-plus mr-1 sm:mr-2"></i>Create Timetable
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function timetableForm() {
+        return {
+            selectedSession: '',
+            selectedTerm: '',
+            terms: [],
+            loadingTerms: false,
+            
+            async loadTerms() {
+                if (!this.selectedSession) {
+                    this.terms = [];
+                    return;
+                }
+                
+                this.loadingTerms = true;
+                this.terms = [];
+                
+                try {
+                    const response = await fetch(`/timetable/api/session-terms/?session_id=${this.selectedSession}`);
+                    const data = await response.json();
+                    this.terms = data.terms || [];
+                } catch (error) {
+                    console.error('Failed to load terms:', error);
+                } finally {
+                    this.loadingTerms = false;
+                }
+            },
+            
+            handleSubmit(e) {
+                const session = this.selectedSession;
+                if (!session) {
+                    e.preventDefault();
+                    alert('Please select an academic session.');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

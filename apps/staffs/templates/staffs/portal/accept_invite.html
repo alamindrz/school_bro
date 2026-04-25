@@ -1,0 +1,145 @@
+{% extends "base_public.html" %}
+
+{% block title %}Accept Invitation - Staff Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-light-bg dark:bg-dark-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md mx-auto">
+        <!-- Logo/Header -->
+        <div class="text-center mb-8">
+            <div class="flex justify-center mb-4">
+                <i class="fas fa-user-plus text-5xl text-primary-600 dark:text-primary-400"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                Complete Your Account
+            </h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Welcome to the staff portal, {{ staff_name }}
+            </p>
+        </div>
+
+        <!-- Accept Invite Card -->
+        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+            <div class="px-6 py-8">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="rounded-md bg-red-50 dark:bg-red-900/50 p-4">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-3"></i>
+                            <div class="text-sm text-red-700 dark:text-red-200">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Email (disabled, shown for info) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Email Address
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400 text-sm"></i>
+                            </div>
+                            <input type="email" 
+                                   value="{{ staff_email }}" 
+                                   disabled
+                                   class="block w-full pl-10 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed">
+                        </div>
+                    </div>
+
+                    <!-- Password Field (optional) -->
+                    <div>
+                        <label for="id_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Password <span class="text-gray-500 text-xs">(Optional)</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400 text-sm"></i>
+                            </div>
+                            <input type="password" 
+                                   name="password" 
+                                   id="id_password" 
+                                   class="block w-full pl-10 pr-10 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   placeholder="Enter a password (or leave blank for magic link)">
+                            <button type="button" 
+                                    id="togglePassword"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <i class="fas fa-eye-slash text-gray-400 hover:text-gray-600 text-sm"></i>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Leave blank to use magic link login instead</p>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div>
+                        <label for="id_password_confirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Confirm Password
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400 text-sm"></i>
+                            </div>
+                            <input type="password" 
+                                   name="password_confirm" 
+                                   id="id_password_confirm" 
+                                   class="block w-full pl-10 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100"
+                                   placeholder="Confirm your password">
+                        </div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                        <div class="flex">
+                            <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+                            <div class="text-sm text-blue-800 dark:text-blue-200">
+                                <p class="font-medium">What happens next?</p>
+                                <ul class="mt-1 list-disc list-inside space-y-1">
+                                    <li>You'll have access to the staff portal</li>
+                                    <li>You can view your assigned classes and subjects</li>
+                                    <li>You'll receive important updates and notifications</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div>
+                        <button type="submit" 
+                                class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Complete Account Setup
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Alternative Login -->
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                By completing this setup, you agree to our terms and conditions.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('id_password');
+    
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            const icon = togglePassword.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Duty Assignments - {{ staff.full_name }} - Staff Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-tasks text-primary-500 mr-3"></i>
+                    Duty Assignments
+                </h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Managing duties for: {{ staff.full_name }} ({{ staff.staff_id }})
+                </p>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Current Session: {{ current_session.name }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'staffs:detail' staff.id %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Add Duty Assignment Form -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-plus-circle text-primary-500 mr-2"></i>
+                    Assign New Duty
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">Assignment will apply to current session and all future terms</p>
+            </div>
+            <div class="p-6">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/50 p-4">
+                        {% for error in form.non_field_errors %}
+                        <p class="text-sm text-red-800 dark:text-red-200">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="space-y-4">
+                        <!-- Duty Post -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Duty Post <span class="text-red-500">*</span>
+                            </label>
+                            <select name="duty_post" required
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">Select duty post...</option>
+                                {% for value, label in duty_posts %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Hidden session (auto-set) -->
+                        <input type="hidden" name="session_id" value="{{ current_session.id }}">
+                        
+                        <!-- Class (for form masters, class teachers) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Class (Optional - for class-specific duties)
+                            </label>
+                            <select name="class_id"
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">Select class...</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Club/Sport/House (conditional fields) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Club Name (for Club Patron)
+                            </label>
+                            <input type="text" name="club_name" 
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., Science Club, Debate Club">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Sport Name (for Sports Coordinator)
+                            </label>
+                            <input type="text" name="sport_name" 
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., Football, Basketball, Athletics">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                House Name (for Housemaster)
+                            </label>
+                            <input type="text" name="house_name" 
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., Red House, Blue House, Green House">
+                        </div>
+                        
+                        <!-- Schedule -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Day of Week
+                                </label>
+                                <select name="day_of_week"
+                                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    <option value="">Select day...</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                    <option value="7">Sunday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Start Time
+                                </label>
+                                <input type="time" name="start_time" 
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                End Time
+                            </label>
+                            <input type="time" name="end_time" 
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Active Status -->
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_active" id="is_active" checked
+                                   class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                            <label for="is_active" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                Active (visible in portal)
+                            </label>
+                        </div>
+                        
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            This duty assignment will remain active for all future sessions unless manually removed.
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <i class="fas fa-save mr-2"></i> Assign Duty
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Existing Duty Assignments List -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <i class="fas fa-list text-primary-500 mr-2"></i>
+                    Current Duty Assignments
+                </h2>
+                <p class="text-xs text-gray-500">Active across all sessions (until removed)</p>
+            </div>
+            
+            {% if duties %}
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for duty in duties %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                                {{ duty.get_duty_post_display }}
+                            </h3>
+                            {% if duty.club_name %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-users mr-1"></i> Club: {{ duty.club_name }}
+                            </p>
+                            {% endif %}
+                            {% if duty.sport_name %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-futbol mr-1"></i> Sport: {{ duty.sport_name }}
+                            </p>
+                            {% endif %}
+                            {% if duty.house_name %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-home mr-1"></i> House: {{ duty.house_name }}
+                            </p>
+                            {% endif %}
+                            {% if duty.class %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-graduation-cap mr-1"></i> Class: {{ duty.class.name }}
+                            </p>
+                            {% endif %}
+                            {% if duty.start_time %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-clock mr-1"></i> Schedule: 
+                                {% if duty.day_of_week %}{{ duty.get_day_of_week_display }} at {% endif %}
+                                {{ duty.start_time|time:"H:i" }} - {{ duty.end_time|time:"H:i" }}
+                            </p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 mt-1">
+                                Session: {{ duty.session }}
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            {% if duty.is_active %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                Inactive
+                            </span>
+                            {% endif %}
+                            <form method="post" action="{% url 'staffs:duty_assignment_delete' duty.id %}" 
+                                  onsubmit="return confirm('Remove this duty assignment?')"
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-600 hover:text-red-700">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                <i class="fas fa-tasks text-4xl mb-3"></i>
+                <p class="text-sm">No duty assignments yet.</p>
+                <p class="text-xs mt-1">Use the form to assign duties to this staff member.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -79,6 +79,12 @@ class Staff(models.Model):
         max_length=30,
         choices=StaffType.CHOICES
     )
+
+    invite_token = models.UUIDField(unique=True, null=True, editable=False)
+    invite_sent_at = models.DateTimeField(null=True, blank=True)
+    invite_accepted_at = models.DateTimeField(null=True, blank=True)
+    invite_expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=False)  
     staff_category = models.CharField(
         max_length=20,
         choices=StaffCategory.CHOICES,
@@ -169,6 +175,35 @@ class Staff(models.Model):
     def __str__(self):
         return f"{self.staff_id} - {self.get_full_name}"
     
+    def create_user_account(self, password=None):
+        """Create or get Django user account for staff"""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        if not self.user:
+            username = self.staff_id.lower()
+            if not password:
+                import secrets
+                import string
+                alphabet = string.ascii_letters + string.digits
+                password = ''.join(secrets.choice(alphabet) for _ in range(12))
+            
+            user = User.objects.create_user(
+                username=username,
+                email=self.email,
+                password=password,
+                first_name=self.first_name,
+                last_name=self.last_name,
+                is_staff=True  # Staff can access admin
+            )
+            self.user = user
+            self.save(update_fields=['user'])
+            
+            # TODO: Send email with password
+            return user, password
+        return self.user, None
+        
+    
     def save(self, *args, **kwargs):
         """Auto-set staff category based on staff type"""
         self.staff_category = STAFF_CATEGORY_MAP.get(self.staff_type, StaffCategory.SUPPORT)
@@ -220,64 +255,47 @@ class Staff(models.Model):
         )
 
 
-class SubjectAssignment(models.Model):
+
+class TeacherSubjectQualification(models.Model):
     """
-    Subject assignments for teaching staff
+    Links teachers to subjects they are qualified to teach.
+    Global qualifications - applies to ALL classes.
     """
-    
-    staff = models.ForeignKey(
-        Staff,
+    teacher = models.ForeignKey(
+        'Staff',
         on_delete=models.CASCADE,
-        related_name='subject_assignments'
+        related_name='qualified_subjects'
     )
     subject = models.ForeignKey(
-        Subject,
+        'corecode.Subject',
         on_delete=models.CASCADE,
-        related_name='staff_assignments'
+        related_name='qualified_teachers'
     )
-    student_class = models.ForeignKey(
-        StudentClass,
-        on_delete=models.CASCADE,
-        related_name='staff_subjects'
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Primary subject for this teacher"
     )
-    
-    # Academic context
-    academic_session = models.ForeignKey(
-        'corecode.AcademicSession',
-        on_delete=models.CASCADE,
-        related_name='staff_assignments'
-    )
-    academic_term = models.ForeignKey(
-        'corecode.AcademicTerm',
-        on_delete=models.CASCADE,
-        null=True, blank=True,
-        related_name='staff_assignments'
-    )
-    
-    # Role in this class
-    is_class_teacher = models.BooleanField(default=False)
-    is_form_master = models.BooleanField(default=False)
-    
-    # Schedule
-    periods_per_week = models.IntegerField(default=1)
     
     # Metadata
-    assigned_by = models.ForeignKey(
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
-    assigned_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        ordering = ['student_class', 'subject']
-        unique_together = ['staff', 'subject', 'student_class', 'academic_session', 'academic_term']
-        verbose_name = _('Subject Assignment')
-        verbose_name_plural = _('Subject Assignments')
+        unique_together = ['teacher', 'subject']
+        verbose_name = 'Teacher Subject Qualification'
+        verbose_name_plural = 'Teacher Subject Qualifications'
+        permissions = [
+            ("manage_qualifications", "Can manage teacher subject qualifications"),
+        ]
     
     def __str__(self):
-        return f"{self.staff.get_full_name} - {self.subject.name} - {self.student_class.display_name}"
+        return f"{self.teacher.get_full_name()} - {self.subject.name}"
 
 
 class DutyAssignment(models.Model):
@@ -679,3 +697,15 @@ class StaffDocument(models.Model):
     
     def __str__(self):
         return f"{self.staff.get_full_name} - {self.title}"
+        
+        
+class PortalSession(models.Model):
+    """Track staff magic link sessions"""
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='sessions')
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at
