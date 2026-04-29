@@ -9,7 +9,11 @@ from crispy_forms.layout import Layout, Row, Column, Submit, HTML, Fieldset
 from crispy_tailwind.layout import Submit as TailwindSubmit
 from .models import AttendanceRegister, AttendanceRecord, QRCode
 from .constants import AttendanceStatus, SessionType, MarkingMethod
-from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
+from apps.corecode.selectors import (
+    StudentClassSelector,
+    AcademicSessionSelector,
+    AcademicTermSelector
+)
 
 
 class DateInput(forms.DateInput):
@@ -33,8 +37,14 @@ class AttendanceRegisterForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.fields['student_class'].queryset = StudentClassSelector.get_all_classes_queryset()
-        self.fields['academic_session'].queryset = AcademicSession.objects.filter(is_current=True)
+        # Use selectors - NO direct model imports
+        self.fields['student_class'].queryset = StudentClassSelector.get_queryset_for_forms(active_only=True)
+        self.fields['academic_session'].queryset = AcademicSessionSelector.get_current_session_queryset()
+        
+        # Set term queryset based on current session
+        current_session = AcademicSessionSelector.get_current_session()
+        if current_session:
+            self.fields['academic_term'].queryset = AcademicTermSelector.get_terms_queryset_for_session(current_session.id)
         
         self.helper = FormHelper()
         self.helper.form_method = 'post'
@@ -99,7 +109,6 @@ class AttendanceRecordForm(forms.ModelForm):
             """))
         
         layout.append(TailwindSubmit('submit', 'Save Attendance', css_class='bg-primary-600 hover:bg-primary-700 text-white'))
-        
         self.helper.layout = Layout(*layout)
 
 
@@ -132,35 +141,16 @@ class BulkAttendanceForm(forms.Form):
 class AttendanceSearchForm(forms.Form):
     """Form for searching attendance records"""
     
-    start_date = forms.DateField(
-        widget=DateInput,
-        required=False,
-        label="Start Date"
-    )
-    
-    end_date = forms.DateField(
-        widget=DateInput,
-        required=False,
-        label="End Date"
-    )
-    
-    student_id = forms.IntegerField(
-        required=False,
-        widget=forms.HiddenInput,
-        label="Student ID"
-    )
-    
+    start_date = forms.DateField(widget=DateInput, required=False, label="Start Date")
+    end_date = forms.DateField(widget=DateInput, required=False, label="End Date")
+    student_id = forms.IntegerField(required=False, widget=forms.HiddenInput, label="Student ID")
     class_id = forms.ModelChoiceField(
-        queryset=StudentClassSelector.get_all_classes_queryset(),
-        required=False,
-        label="Class",
-        empty_label="All Classes"
+        queryset=StudentClassSelector.get_queryset_for_forms(active_only=True),
+        required=False, label="Class", empty_label="All Classes"
     )
-    
     status = forms.ChoiceField(
         choices=[('', 'All Status')] + list(AttendanceStatus.CHOICES),
-        required=False,
-        label="Status"
+        required=False, label="Status"
     )
     
     def __init__(self, *args, **kwargs):
@@ -200,8 +190,7 @@ class QRCodeForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.form_class = 'space-y-4'
         self.helper.layout = Layout(
-            Fieldset(
-                'Student Information',
+            Fieldset('Student Information',
                 Row(
                     Column('student_id', css_class='w-1/3 pr-2'),
                     Column('student_name', css_class='w-2/3 pl-2'),

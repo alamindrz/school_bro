@@ -4,6 +4,7 @@ from .staff import (
     RegisterDetailView,
     RegisterCreateView,
     MarkAttendanceView,
+    EditAttendanceFormView,
     BulkMarkView,
     CloseRegisterView,
     QRCodeView,
@@ -11,7 +12,6 @@ from .staff import (
     ScanQRCodeView,
     ReportView,
     ExportReportView,
-    UpdateAttendanceView,
 )
 from .api import (
     daily_summary,
@@ -21,12 +21,12 @@ from .api import (
 )
 
 __all__ = [
-    # Staff views
     'DashboardView',
     'RegisterListView',
     'RegisterDetailView',
     'RegisterCreateView',
     'MarkAttendanceView',
+    'EditAttendanceFormView',
     'BulkMarkView',
     'CloseRegisterView',
     'QRCodeView',
@@ -34,9 +34,6 @@ __all__ = [
     'ScanQRCodeView',
     'ReportView',
     'ExportReportView',
-    'UpdateAttendanceView',
-    
-    # API views
     'daily_summary',
     'student_summary',
     'class_summary',

@@ -216,6 +216,13 @@
         }
         
         window.showToast = showToast;
+        
+        document.body.addEventListener('htmx:afterSwap', (e) => {
+            if (e.detail.target) {
+                htmx.process(e.detail.target);
+            }
+        });        
+                
     </script>
     
     {% block extra_js %}{% endblock %}

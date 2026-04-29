@@ -15,8 +15,8 @@ urlpatterns = [
     
     # Attendance marking
     path('registers/<int:pk>/mark/', staff.MarkAttendanceView.as_view(), name='mark_attendance'),
+    path('registers/<int:pk>/edit/', staff.EditAttendanceFormView.as_view(), name='edit_attendance'),
     path('registers/<int:pk>/bulk/', staff.BulkMarkView.as_view(), name='bulk_mark'),
-    path('records/<int:pk>/update/', staff.UpdateAttendanceView.as_view(), name='update_record'),
     
     # QR codes
     path('qrcodes/', staff.QRCodeView.as_view(), name='qrcodes'),

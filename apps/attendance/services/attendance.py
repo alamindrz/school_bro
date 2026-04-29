@@ -312,47 +312,47 @@ class AttendanceService:
         Process QR code check-in for a student
         """
         from ..selectors import QRCodeSelector
-
+    
         # Validate QR code
         qr_data = QRCodeSelector.validate_code(qr_code)
         if not qr_data:
             raise InvalidQRCodeError("Invalid or expired QR code")
-
+    
         student_id = qr_data['student_id']
-
-        # Get or create register for today
         today = date.today()
-
+    
+        # FIXED: Get student info first to find their class
+        student = StudentSelector.get_by_id(student_id)
+        if not student:
+            raise StudentNotFoundError(f"Student {student_id} not found")
+    
+        class_id = student.get('current_class', {}).get('id')
+        if not class_id:
+            raise ValidationError("Student has no assigned class")
+    
+        # Find or create register for this class today
         try:
             register = AttendanceRegister.objects.get(
-                student_class_id=student_id,  # This needs to be fixed - QR code doesn't know class
+                student_class_id=class_id,
                 date=today,
                 session_type=session_type
             )
         except AttendanceRegister.DoesNotExist:
-            # Need to determine student's class
-            student = StudentSelector.get_by_id(student_id)
-            if not student:
-                raise StudentNotFoundError(f"Student {student_id} not found")
-
-            # Create register for today
             register = AttendanceService.create_register(
-                class_id=student['current_class']['id'],
+                class_id=class_id,
                 date=today,
                 session_type=session_type,
                 marking_method=MarkingMethod.QR_CODE
             )
-
+    
         # Check if already marked
         existing = AttendanceRecord.objects.filter(
             register=register,
             student_id=student_id
         ).first()
-
+    
         if existing:
-            # Update existing record
             if existing.status == AttendanceStatus.ABSENT:
-                # Mark as present if was absent
                 existing.status = AttendanceStatus.PRESENT
                 existing.check_in_time = check_in_time or timezone.now().time()
                 existing.save(update_fields=['status', 'check_in_time', 'updated_at'])
@@ -360,23 +360,24 @@ class AttendanceService:
             else:
                 raise DuplicateAttendanceError("Attendance already marked for today")
         else:
-            # Mark as present
             record = AttendanceService.mark_attendance(
                 register_id=register.id,
                 student_id=student_id,
                 status=AttendanceStatus.PRESENT,
                 check_in_time=check_in_time,
                 remarks="Checked in via QR code",
-                marked_by_id=None  # System marked
+                marked_by_id=None
             )
-
-        # Update QR code usage
+    
+        # Update QR code usage (same-app model, acceptable)
         QRCode.objects.filter(code=qr_code).update(
             last_used=timezone.now(),
             use_count=models.F('use_count') + 1
         )
-
+    
         return record
+    
+
 
     @staticmethod
     def _check_attendance_alert(student_id: int):
