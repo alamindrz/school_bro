@@ -1,39 +1,24 @@
 """
 Staff views for results management
 """
-
-from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, View, FormView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.views.generic import ListView, TemplateView, View
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.shortcuts import redirect, get_object_or_404
-from django.db import transaction
+from django.shortcuts import redirect
 from django.http import JsonResponse, HttpResponse
-from django.utils import timezone
+from django.template.loader import render_to_string
 import logging
-from apps.corecode.models import Subject
 
-from ..models import ResultSheet, Result, ResultComment, CumulativeRecord
-from ..selectors import ( ResultSheetSelector, ResultSelector,
-    CumulativeSelector
-)
-
-from apps.corecode.selectors import SubjectSelector
-from ..services import ResultService, BulkResultService, ReportService
-from ..constants import ResultStatus
-from apps.corecode.constants import SubjectType
-from ..exceptions import (
-    ResultSheetClosedError, ResultSheetNotApprovedError,
-    StudentNotEligibleError, BulkOperationError
-)
+from ..models import ScoreSheet
+from ..selectors import ScoreSheetSelector, ScoreEntrySelector, CumulativeSelector
+from ..services.result import ScoreSheetService, PromotionService
 
 from apps.corecode.selectors import (
-    StudentClassSelector, AcademicSessionSelector, AcademicTermSelector
+    StudentClassSelector, AcademicSessionSelector, AcademicTermSelector, SubjectSelector
 )
-from apps.corecode.services import SystemLogService
-from apps.corecode.models import SystemLog
 from apps.students.selectors import StudentSelector
-from apps.finance.selectors import FinancialStatusSelector
 
 logger = logging.getLogger(__name__)
 
@@ -45,462 +30,244 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        # Get current session
         current_session = AcademicSessionSelector.get_current_session()
-        session_id = current_session.id if current_session else None
+        current_term = AcademicTermSelector.get_current_term()
 
-        # Statistics
-        context['total_sheets'] = ResultSheet.objects.filter(
-            academic_session_id=session_id
-        ).count()
+        context['classes'] = StudentClassSelector.get_all_classes(active_only=True)
+        context['current_session'] = current_session
+        context['current_term'] = current_term
 
-        context['published_sheets'] = ResultSheet.objects.filter(
-            academic_session_id=session_id,
-            status=ResultStatus.PUBLISHED
-        ).count()
-
-        context['pending_approval'] = ResultSheet.objects.filter(
-            academic_session_id=session_id,
-            status=ResultStatus.PENDING_APPROVAL
-        ).count()
-
-        # Recent sheets
-        context['recent_sheets'] = ResultSheetSelector.list_sheets(
-            session_id=session_id,
-            limit=10
-        )
-
-        # Classes without result sheets
-        if current_session:
-            all_classes = StudentClassSelector.get_all_classes()
-            classes_with_sheets = ResultSheet.objects.filter(
-                academic_session=current_session
-            ).values_list('student_class_id', flat=True)
-
-            context['classes_without_sheets'] = [
-                c for c in all_classes if c.id not in classes_with_sheets
-            ][:5]
-
-        return context
-
-
-class SubjectListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    """List all subjects"""
-    model = Subject
-    template_name = 'results/pages/subject_list.html'
-    context_object_name = 'subjects'
-    permission_required = 'results.view_subject'
-    paginate_by = 25
-
-    def get_queryset(self):
-        queryset = Subject.objects.all().order_by('name')
-
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(name__icontains=search)
-
-        subject_type = self.request.GET.get('type')
-        if subject_type:
-            queryset = queryset.filter(subject_type=subject_type)
-
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['subject_types'] = SubjectType.CHOICES
-        context['selected_type'] = self.request.GET.get('type', '')
-        context['search_query'] = self.request.GET.get('search', '')
-        return context
-
-
-class SubjectCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    """Create a new subject"""
-    model = Subject
-    template_name = 'results/pages/subject_form.html'
-    fields = ['name', 'code', 'subject_type', 'description', 'is_nigerian_core', 'offered_in_classes']
-    permission_required = 'results.add_subject'
-    success_url = reverse_lazy('results:subject_list')
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['offered_in_classes'].queryset = StudentClassSelector.get_all_classes_queryset()
-        form.fields['offered_in_classes'].widget.attrs['size'] = '10'
-        return form
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Subject {self.object.name} created successfully.')
-        return response
-
-
-class SubjectUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
-    """Update a subject"""
-    model = Subject
-    template_name = 'results/pages/subject_form.html'
-    fields = ['name', 'code', 'subject_type', 'description', 'is_nigerian_core', 'offered_in_classes']
-    permission_required = 'results.change_subject'
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['offered_in_classes'].queryset = StudentClassSelector.get_all_classes_queryset()
-        return form
-
-    def get_success_url(self):
-        return reverse_lazy('results:subject_list')
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, f'Subject {self.object.name} updated successfully.')
-        return response
-
-
-class ResultSheetListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    """List result sheets"""
-    template_name = 'results/pages/sheet_list.html'
-    context_object_name = 'sheets'
-    permission_required = 'results.view_resultsheet'
-    paginate_by = 25
-
-    def get_queryset(self):
-        class_id = self.request.GET.get('class_id')
-        session_id = self.request.GET.get('session_id')
-        term_id = self.request.GET.get('term_id')
-        status = self.request.GET.get('status')
-
-        return ResultSheetSelector.list_sheets(
-            class_id=class_id,
-            session_id=session_id,
-            term_id=term_id,
-            status=status
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context['classes'] = StudentClassSelector.get_all_classes()
-        context['sessions'] = AcademicSessionSelector.list_sessions(limit=5)
-        context['status_choices'] = ResultStatus.CHOICES
-
-        # Get terms for current session
-        current_session = AcademicSessionSelector.get_current_session()
-        if current_session:
-            from apps.corecode.selectors import AcademicTermSelector
-            context['terms'] = AcademicTermSelector.get_terms_for_session(current_session.id)
-
-        return context
-
-
-class ResultSheetCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """Create a result sheet"""
-    template_name = 'results/pages/sheet_create.html'
-    permission_required = 'results.add_resultsheet'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context['classes'] = StudentClassSelector.get_all_classes()
-        context['sessions'] = AcademicSessionSelector.list_sessions(limit=5)
-
-        # Get subjects
-        context['subjects'] = SubjectSelector.list_subjects(active_only=True)
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        class_id = request.POST.get('class_id')
-        session_id = request.POST.get('session_id')
-        term_id = request.POST.get('term_id')
-        subject_ids = request.POST.getlist('subjects')
-
-        if not all([class_id, session_id, term_id, subject_ids]):
-            messages.error(request, 'Please fill all required fields')
-            return self.get(request, *args, **kwargs)
-
-        try:
-            sheet = ResultService.create_result_sheet(
-                class_id=int(class_id),
-                session_id=int(session_id),
-                term_id=int(term_id),
-                subject_ids=[int(id) for id in subject_ids],
-                created_by_id=request.user.id
+        if current_session and current_term:
+            context['recent_sheets'] = ScoreSheetSelector.list_sheets(
+                session_id=current_session.id,
+                term_id=current_term.id,
+                limit=20
             )
 
-            messages.success(request, f'Result sheet created for {sheet.student_class.display_name}')
-            return redirect('results:sheet_detail', pk=sheet.id)
-
-        except Exception as e:
-            messages.error(request, f'Error creating result sheet: {str(e)}')
-            return self.get(request, *args, **kwargs)
-
-
-class ResultSheetDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
-    """Result sheet detail"""
-    model = ResultSheet
-    template_name = 'results/pages/sheet_detail.html'
-    context_object_name = 'sheet'
-    permission_required = 'results.view_resultsheet'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['sheet_data'] = ResultSheetSelector.get_by_id(self.object.id)
-
-        # Get students without results
-        if self.object.can_edit():
-            students_with_results = self.object.results.values_list('student_id', flat=True).distinct()
-            all_students = StudentSelector.get_class_students(
-                class_id=self.object.student_class_id,
-                academic_session_id=self.object.academic_session_id
-            )
-
-            context['students_without_results'] = [
-                s for s in all_students
-                if s['id'] not in students_with_results
-            ]
-
         return context
 
 
-class ResultEntryView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """Enter results for a student"""
-    template_name = 'results/pages/result_entry.html'
+class SheetEntryView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    template_name = 'results/pages/sheet_entry.html'
     permission_required = 'results.add_result'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        class_id = self.request.GET.get('class_id')
+        try:
+            class_id = int(class_id) if class_id else None
+        except (ValueError, TypeError):
+            class_id = None
+        subject_id = self.request.GET.get('subject_id')
+        try:
+            subject_id = int(subject_id) if subject_id else None
+        except (ValueError, TypeError):
+            subject_id = None
+        
+        current_session = AcademicSessionSelector.get_current_session()
+        current_term = AcademicTermSelector.get_current_term()
+        session_id = current_session.id if current_session else None
+        term_id = current_term.id if current_term else None
 
-        sheet_id = self.kwargs.get('pk')
-        student_id = self.request.GET.get('student_id')
+        # Get or create sheet
+        if class_id and subject_id and session_id and term_id:
+            sheet = ScoreSheetSelector.get_or_create_sheet(
+                subject_id=int(subject_id),
+                class_id=int(class_id),
+                session_id=int(session_id),
+                term_id=int(term_id)
+            )
+            context['sheet'] = sheet
 
-        sheet = ResultSheetSelector.get_by_id(sheet_id)
-        if not sheet:
-            messages.error(self.request, 'Result sheet not found')
-            return context
+        context['classes'] = StudentClassSelector.get_all_classes(active_only=True)
+        
+        # Filter subjects by teacher
+        user = self.request.user
+        if user.is_superuser or not hasattr(user, 'staff_profile'):
+            context['subjects'] = SubjectSelector.list_subjects(active_only=True)
+        else:
+            from apps.staffs.selectors import TeacherQualificationSelector
+            quals = TeacherQualificationSelector.get_for_teacher(user.staff_profile.id)
+            qualified_ids = [q['subject_id'] for q in quals]
+            all_subjects = SubjectSelector.list_subjects(active_only=True)
+            context['subjects'] = [s for s in all_subjects if s['id'] in qualified_ids]
 
-        context['sheet'] = sheet
-
-        if student_id:
-            student = StudentSelector.get_by_id(int(student_id))
-            context['student'] = student
-
-            # Get existing results for this student
-            existing_results = Result.objects.filter(
-                result_sheet_id=sheet_id,
-                student_id=student_id
-            ).select_related('subject')
-
-            results_dict = {}
-            for result in existing_results:
-                results_dict[result.subject_id] = {
-                    'ca1': result.ca1_score,
-                    'ca2': result.ca2_score,
-                    'ca3': result.ca3_score,
-                    'exam': result.exam_score,
-                    'practical': result.practical_score,
-                    'project': result.project_score,
-                }
-
-            context['existing_results'] = results_dict
+        context['current_session'] = current_session
+        context['current_term'] = current_term
+        context['selected_class'] = class_id or ''
+        context['selected_subject'] = subject_id or ''
 
         return context
 
-    def post(self, request, *args, **kwargs):
-        sheet_id = self.kwargs.get('pk')
-        student_id = request.POST.get('student_id')
-
-        if not student_id:
-            messages.error(request, 'No student selected')
-            return redirect('results:sheet_detail', pk=sheet_id)
-
-        # Process each subject
-        success_count = 0
-        error_count = 0
-
-        for key, value in request.POST.items():
-            if key.startswith('subject_'):
-                parts = key.split('_')
-                if len(parts) == 3:
-                    subject_id = parts[1]
-                    field = parts[2]
-
-                    # This is a bit complex - would need better implementation
-                    pass
-
-        try:
-            # For simplicity, we'll just redirect
-            messages.success(request, f'Results saved for student')
-        except Exception as e:
-            messages.error(request, str(e))
-
-        return redirect('results:sheet_detail', pk=sheet_id)
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        
+        # If HTMX request, return only the sheet partial
+        if request.headers.get('HX-Request'):
+            if context.get('sheet'):
+                return render(request, 'results/partials/sheet_table.html', context)
+            return HttpResponse('<div class="text-center text-gray-500 py-12">Select a class and subject.</div>')
+        
+        return self.render_to_response(context)
 
 
-class BulkResultUploadView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    """Bulk upload results via CSV"""
-    template_name = 'results/pages/bulk_upload.html'
-    permission_required = 'results.bulk_upload_results'
+class SheetDetailView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """View-only score sheet."""
+    template_name = 'results/pages/sheet_detail.html'
+    permission_required = 'results.view_result'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         sheet_id = self.kwargs.get('pk')
-        sheet = ResultSheetSelector.get_by_id(sheet_id)
-
-        if sheet:
-            context['sheet'] = sheet
-
+        context['sheet'] = ScoreSheetSelector.get_by_id(sheet_id)
         return context
 
+
+class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    HTMX endpoint: Update a single score field on blur.
+    Returns updated row data as JSON.
+    """
+    permission_required = 'results.change_result'
+
     def post(self, request, *args, **kwargs):
-        sheet_id = self.kwargs.get('pk')
-        csv_file = request.FILES.get('csv_file')
-
-        if not csv_file:
-            messages.error(request, 'Please select a CSV file')
-            return redirect('results:bulk_upload', pk=sheet_id)
-
+        print(f"RAW POST: {request.POST}")
+        print(f"BODY: {request.body}")
         try:
-            successful, failed = BulkResultService.import_from_csv(
-                csv_file=csv_file,
-                sheet_id=sheet_id,
-                entered_by_id=request.user.id
+            entry_id = request.POST.get('entry_id')
+            field = request.POST.get('field')
+            value = request.POST.get('value')
+
+            if not entry_id or not field:
+                return JsonResponse({'success': False, 'error': 'Missing entry_id or field'}, status=400)
+
+            try:
+                value = int(value) if value and value.strip() else None
+            except (ValueError, TypeError):
+                return JsonResponse({'success': False, 'error': 'Invalid score value'}, status=400)
+
+            if value is not None and (value < 0 or value > 100):
+                return JsonResponse({'success': False, 'error': 'Score must be between 0 and 100'}, status=400)
+
+            result = ScoreSheetService.update_score(
+                entry_id=int(entry_id),
+                field=field,
+                value=value,
+                user_id=request.user.id
             )
 
-            if failed:
-                messages.warning(
-                    request,
-                    f'Imported {len(successful)} results with {len(failed)} errors.'
-                )
-                # Store errors in session for display
-                request.session['bulk_errors'] = failed[:20]
-            else:
-                messages.success(request, f'Successfully imported {len(successful)} results.')
+            return JsonResponse({
+                'success': True,
+                'total_score': result['total_score'],
+                'grade': result['grade'],
+                'position': result['position'],
+                'all_filled': result['all_filled'],
+            })
 
-            return redirect('results:sheet_detail', pk=sheet_id)
-
-        except BulkOperationError as e:
-            messages.error(request, str(e))
-            return redirect('results:bulk_upload', pk=sheet_id)
-
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 class SubmitSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Submit result sheet for approval"""
+    """Submit a score sheet for approval."""
     permission_required = 'results.change_resultsheet'
 
-    def post(self, request, *args, **kwargs):
-        sheet_id = kwargs.get('pk')
-
+    def post(self, request, pk):
         try:
-            sheet = ResultService.submit_for_approval(
-                sheet_id=sheet_id,
-                submitted_by_id=request.user.id
-            )
-
-            messages.success(request, 'Result sheet submitted for approval.')
-
+            ScoreSheetService.submit_sheet(sheet_id=pk, user_id=request.user.id)
+            messages.success(request, 'Sheet submitted for approval.')
         except Exception as e:
             messages.error(request, str(e))
-
-        return redirect('results:sheet_detail', pk=sheet_id)
-
-
-class ApproveSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Approve result sheet"""
-    permission_required = 'results.approve_resultsheet'
-
-    def post(self, request, *args, **kwargs):
-        sheet_id = kwargs.get('pk')
-
-        try:
-            sheet = ResultService.approve_sheet(
-                sheet_id=sheet_id,
-                approved_by_id=request.user.id
-            )
-
-            messages.success(request, 'Result sheet approved.')
-
-        except Exception as e:
-            messages.error(request, str(e))
-
-        return redirect('results:sheet_detail', pk=sheet_id)
+        return redirect('results:sheet_detail', pk=pk)
 
 
 class PublishSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Publish result sheet"""
+    """Publish a score sheet."""
     permission_required = 'results.publish_resultsheet'
 
-    def post(self, request, *args, **kwargs):
-        sheet_id = kwargs.get('pk')
-
+    def post(self, request, pk):
         try:
-            sheet = ResultService.publish_sheet(
-                sheet_id=sheet_id,
-                published_by_id=request.user.id
-            )
-
-            messages.success(request, 'Result sheet published. Parents have been notified.')
-
-        except ResultSheetNotApprovedError as e:
-            messages.error(request, str(e))
+            ScoreSheetService.publish_sheet(sheet_id=pk)
+            messages.success(request, 'Sheet published.')
         except Exception as e:
-            messages.error(request, f'Error publishing results: {str(e)}')
+            messages.error(request, str(e))
+        return redirect('results:sheet_detail', pk=pk)
 
-        return redirect('results:sheet_detail', pk=sheet_id)
 
-
-class ReportCardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """View student report card"""
-    template_name = 'results/pages/report_card.html'
+class ClassResultView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """View all subject results for a class in a term."""
+    template_name = 'results/pages/class_result.html'
     permission_required = 'results.view_result'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        class_id = self.request.GET.get('class_id')
+        try:
+            class_id = int(class_id) if class_id else None
+        except (ValueError, TypeError):
+            class_id = None
+        session_id = self.request.GET.get('session_id')
+        term_id = self.request.GET.get('term_id')
 
-        student_id = self.kwargs.get('student_id')
-        session_id = self.kwargs.get('session_id')
-        term_id = self.kwargs.get('term_id')
+        current_session = AcademicSessionSelector.get_current_session()
+        current_term = AcademicTermSelector.get_current_term()
 
-        report = ReportService.generate_student_report_card(
-            student_id=student_id,
-            session_id=session_id,
-            term_id=term_id
-        )
+        if not session_id and current_session:
+            session_id = current_session.id
+        if not term_id and current_term:
+            term_id = current_term.id
 
-        context.update(report)
+        if class_id and session_id and term_id:
+            sheets = ScoreSheetSelector.list_sheets(
+                class_id=int(class_id),
+                session_id=int(session_id),
+                term_id=int(term_id)
+            )
+            context['sheets'] = sheets
 
-        return context
+            # Build student result matrix
+            all_entries = ScoreEntry.objects.filter(
+                score_sheet__student_class_id=class_id,
+                score_sheet__academic_session_id=session_id,
+                score_sheet__academic_term_id=term_id,
+                total_score__isnull=False
+            ).select_related('score_sheet__subject')
 
+            students_dict = {}
+            for entry in all_entries:
+                if entry.student_id not in students_dict:
+                    students_dict[entry.student_id] = {
+                        'id': entry.student_id,
+                        'name': entry.student_name,
+                        'subjects': {},
+                        'total': 0,
+                        'average': 0,
+                    }
+                students_dict[entry.student_id]['subjects'][entry.score_sheet.subject.name] = {
+                    'total': entry.total_score,
+                    'grade': entry.grade,
+                    'position': entry.position,
+                }
 
-class ClassPerformanceView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """View class performance report"""
-    template_name = 'results/pages/class_performance.html'
-    permission_required = 'results.view_result'
+            # Calculate totals and averages
+            for student in students_dict.values():
+                scores = [s['total'] for s in student['subjects'].values() if s['total']]
+                student['total'] = sum(scores)
+                student['average'] = round(sum(scores) / len(scores), 2) if scores else 0
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+            # Sort by average descending
+            student_list = sorted(students_dict.values(), key=lambda x: x['average'], reverse=True)
 
-        sheet_id = self.kwargs.get('pk')
-        report = ReportService.generate_term_report(sheet_id)
+            # Assign positions
+            for i, student in enumerate(student_list):
+                student['position'] = i + 1
 
-        context.update(report)
+            context['students'] = student_list
+            context['subjects'] = [s['subject_name'] for s in sheets]
 
-        return context
-
-
-class CumulativeRecordView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """View student cumulative record"""
-    template_name = 'results/pages/cumulative_record.html'
-    permission_required = 'results.view_cumulative'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        student_id = self.kwargs.get('student_id')
-        summary = CumulativeSelector.get_student_summary(student_id)
-        trends = ReportService.generate_performance_trends(student_id)
-
-        context['student'] = StudentSelector.get_by_id(student_id)
-        context['cumulative'] = summary
-        context['trends'] = trends
+        context['classes'] = StudentClassSelector.get_all_classes(active_only=True)
+        context['selected_class'] = class_id or ''
 
         return context

@@ -9,8 +9,8 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 import logging
 
-from ..models import ResultSheet, Result
-from ..services import ResultService
+# from ..models import ScoreSheet, Result  # OLD MODEL
+from ..services import ScoreSheetService
 from ..exceptions import BulkOperationError
 from ..validators import BulkResultValidator
 
@@ -40,8 +40,8 @@ class BulkResultService:
         Import results from CSV file
         """
         try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
+            sheet = ScoreSheet.objects.get(id=sheet_id)
+        except ScoreSheet.DoesNotExist:
             raise BulkOperationError(f"Result sheet {sheet_id} not found")
 
         if not sheet.can_edit():
@@ -96,7 +96,7 @@ class BulkResultService:
     def _process_batch(
         cls,
         batch: List[Tuple[int, Dict]],
-        sheet: ResultSheet,
+        sheet: ScoreSheet,
         entered_by_id: Optional[int]
     ) -> Tuple[List[Result], List[Dict[str, Any]]]:
         """Process a batch of CSV records"""
@@ -123,7 +123,7 @@ class BulkResultService:
                 project = cls._parse_score(row.get('project'))
 
                 # Enter result
-                result = ResultService.enter_result(
+                result = ScoreSheetService.enter_result(
                     sheet_id=sheet.id,
                     student_id=student_id,
                     subject_id=subject['id'],
@@ -161,9 +161,9 @@ class BulkResultService:
         """
         Generate CSV template for a result sheet
         """
-        from ..selectors import ResultSheetSelector
+        from ..selectors import ScoreSheetSelector
 
-        sheet = ResultSheetSelector.get_by_id(sheet_id)
+        sheet = ScoreSheetSelector.get_by_id(sheet_id)
         if not sheet:
             raise BulkOperationError(f"Result sheet {sheet_id} not found")
 
@@ -207,9 +207,9 @@ class BulkResultService:
         Copy results from previous term's result sheet
         """
         try:
-            target_sheet = ResultSheet.objects.get(id=target_sheet_id)
-            source_sheet = ResultSheet.objects.get(id=source_sheet_id)
-        except ResultSheet.DoesNotExist as e:
+            target_sheet = ScoreSheet.objects.get(id=target_sheet_id)
+            source_sheet = ScoreSheet.objects.get(id=source_sheet_id)
+        except ScoreSheet.DoesNotExist as e:
             raise BulkOperationError(str(e))
 
         if not target_sheet.can_edit():
@@ -232,7 +232,7 @@ class BulkResultService:
                     })
                     continue
 
-                result = ResultService.enter_result(
+                result = ScoreSheetService.enter_result(
                     sheet_id=target_sheet_id,
                     student_id=source.student_id,
                     subject_id=source.subject_id,

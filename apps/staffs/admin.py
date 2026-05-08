@@ -22,7 +22,12 @@ from .models import (
 )
 from .constants import EmploymentStatus, StaffCategory
 
+from apps.corecode.models import Subject
 
+@admin.register(Subject)
+class SubjectAdmin(admin.ModelAdmin):
+    search_fields = ['name', 'code']
+    list_display = ['name', 'code', 'subject_type', 'is_active']
 # ============================================================================
 # INLINE MODELS
 # ============================================================================

@@ -9,7 +9,7 @@ from django.utils import timezone
 import random
 
 from apps.results.models import (
-    Subject, ResultSheet, ResultSheetSubject,
+    Subject, ScoreSheet, ScoreSheetSubject,
     Result, ResultComment, CumulativeRecord
 )
 from apps.results.constants import (
@@ -44,10 +44,10 @@ class SubjectFactory(DjangoModelFactory):
                 self.offered_in_classes.add(class_obj)
 
 
-class ResultSheetFactory(DjangoModelFactory):
-    """Factory for ResultSheet model"""
+class ScoreSheetFactory(DjangoModelFactory):
+    """Factory for ScoreSheet model"""
     class Meta:
-        model = ResultSheet
+        model = ScoreSheet
 
     sheet_number = factory.Sequence(lambda n: f"RS-{n:06d}")
     student_class = factory.SubFactory(StudentClassFactory)
@@ -57,12 +57,12 @@ class ResultSheetFactory(DjangoModelFactory):
     created_by = factory.SubFactory(UserFactory)
 
 
-class ResultSheetSubjectFactory(DjangoModelFactory):
-    """Factory for ResultSheetSubject model"""
+class ScoreSheetSubjectFactory(DjangoModelFactory):
+    """Factory for ScoreSheetSubject model"""
     class Meta:
-        model = ResultSheetSubject
+        model = ScoreSheetSubject
 
-    result_sheet = factory.SubFactory(ResultSheetFactory)
+    result_sheet = factory.SubFactory(ScoreSheetFactory)
     subject = factory.SubFactory(SubjectFactory)
     teacher_name = Faker('name')
     pass_mark = 40
@@ -73,7 +73,7 @@ class ResultFactory(DjangoModelFactory):
     class Meta:
         model = Result
 
-    result_sheet = factory.SubFactory(ResultSheetFactory)
+    result_sheet = factory.SubFactory(ScoreSheetFactory)
     subject = factory.SubFactory(SubjectFactory)
     student_id = factory.Sequence(lambda n: n + 1)
     student_name = factory.LazyFunction(lambda: StudentFactory().full_name)
@@ -94,7 +94,7 @@ class ResultCommentFactory(DjangoModelFactory):
     class Meta:
         model = ResultComment
 
-    result_sheet = factory.SubFactory(ResultSheetFactory)
+    result_sheet = factory.SubFactory(ScoreSheetFactory)
     student_id = factory.Sequence(lambda n: n + 1)
     student_name = Faker('name')
     teacher_comment = Faker('paragraph')
@@ -127,12 +127,12 @@ class CumulativeRecordFactory(DjangoModelFactory):
 # Helper functions
 def create_complete_result_sheet(**kwargs):
     """Create a result sheet with subjects and sample results"""
-    sheet = ResultSheetFactory(**kwargs)
+    sheet = ScoreSheetFactory(**kwargs)
 
     # Add subjects
     subjects = SubjectFactory.create_batch(5)
     for subject in subjects:
-        ResultSheetSubjectFactory(
+        ScoreSheetSubjectFactory(
             result_sheet=sheet,
             subject=subject,
             teacher_name=Faker('name').generate()

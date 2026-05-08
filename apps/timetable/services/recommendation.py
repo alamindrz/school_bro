@@ -13,14 +13,13 @@ from ..models import Timetable
 from ..selectors import (
     TimetableSelector,
     TimetableSlotSelector,
-    TeacherQualificationSelector,
     SchoolDaySelector,
     TimetablePeriodSelector,
 )
 from ..services.clash_detection import ClashDetectionService
 from apps.staffs.selectors import StaffSelector
 from apps.corecode.selectors import SubjectSelector, StudentClassSelector
-
+from apps.staffs.selectors import TeacherQualificationSelector
 logger = logging.getLogger(__name__)
 
 
@@ -68,17 +67,25 @@ class TimetableRecommendationService:
                 'message': 'All slots are assigned!'
             }
         
-        # Get all qualified teachers for this class
-        qualified_teachers = TeacherQualificationSelector.get_all_qualified_teachers_for_class(
-            timetable.student_class_id
+        # Get all active academic staff with qualifications
+        all_teachers = StaffSelector.list_staff(
+            staff_category='academic',
+            employment_status='active',
+            limit=200
         )
         
-        if not qualified_teachers:
-            return {
-                'total_unassigned': len(unassigned_slots),
-                'recommendations': [],
-                'message': 'No qualified teachers found for this class.'
-            }
+        # Build qualified teachers list (same format the rest of the code expects)
+        qualified_teachers = []
+        for teacher in all_teachers:
+            quals = TeacherQualificationSelector.get_for_teacher(teacher['id'])
+            if quals:
+                qualified_teachers.append({
+                    'id': teacher['id'],
+                    'full_name': teacher['full_name'],
+                    'subjects': quals,
+                })
+    
+
         
         # Build teacher data map
         teachers_map = {t['id']: t for t in qualified_teachers}
@@ -157,23 +164,24 @@ class TimetableRecommendationService:
         return workload
     
     @classmethod
-    def _get_teacher_schedules(
-        cls,
-        timetable_id: int,
-        teacher_ids: List[int]
-    ) -> Dict[int, Set[Tuple[int, int]]]:
-        """Get occupied slots for each teacher"""
-        schedules = {}
+    def _get_teacher_schedules(cls, timetable_id: int, teacher_ids: List[int]) -> Dict[int, Set]:
+        """Get occupied slots for each teacher."""
+        from ..models import TimetableSlot
         
+        schedules = {}
         for teacher_id in teacher_ids:
-            slots = TimetableSlotSelector.get_teacher_slots(teacher_id, timetable_id)
+            slots = TimetableSlot.objects.filter(
+                timetable_id=timetable_id,
+                teacher_id=teacher_id
+            ).exclude(is_free_period=True)
+            
             occupied = set()
             for slot in slots:
-                if not slot.get('is_free_period'):
-                    occupied.add((slot['day_id'], slot['period_id']))
+                occupied.add((slot.day_id, slot.period_id))
             schedules[teacher_id] = occupied
-        
         return schedules
+
+
     
     @classmethod
     def _get_subjects_map(cls, class_id: int) -> Dict[int, Dict]:

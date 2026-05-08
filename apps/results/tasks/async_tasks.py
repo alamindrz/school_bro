@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 
-from ..models import ResultSheet, CumulativeRecord
-from ..services import ResultService, ReportService
+from ..models import ScoreSheet, CumulativeRecord
+from ..services import ScoreSheetService, ReportService
 from ..constants import ResultStatus
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def calculate_cumulative_records(session_id=None):
         session_id = current_session.id
 
     # Get all students with results in this session
-    students_with_results = ResultSheet.objects.filter(
+    students_with_results = ScoreSheet.objects.filter(
         academic_session_id=session_id,
         status=ResultStatus.PUBLISHED
     ).values_list('results__student_id', flat=True).distinct()
@@ -39,7 +39,7 @@ def calculate_cumulative_records(session_id=None):
     count = 0
     for student_id in students_with_results:
         try:
-            ResultService.update_cumulative_record(
+            ScoreSheetService.update_cumulative_record(
                 student_id=student_id,
                 session_id=session_id
             )
@@ -60,8 +60,8 @@ def send_result_notifications(sheet_id):
     from apps.parents.selectors import ChildLinkSelector
 
     try:
-        sheet = ResultSheet.objects.get(id=sheet_id)
-    except ResultSheet.DoesNotExist:
+        sheet = ScoreSheet.objects.get(id=sheet_id)
+    except ScoreSheet.DoesNotExist:
         logger.error(f"Result sheet {sheet_id} not found")
         return 0
 
@@ -95,7 +95,7 @@ def archive_old_results(years=2):
     """
     cutoff_date = timezone.now() - timedelta(days=365 * years)
 
-    old_sheets = ResultSheet.objects.filter(
+    old_sheets = ScoreSheet.objects.filter(
         created_at__lt=cutoff_date,
         status=ResultStatus.PUBLISHED
     )
@@ -116,7 +116,7 @@ def generate_term_reports():
     from django.core.mail import send_mail
     from django.conf import settings
 
-    published_sheets = ResultSheet.objects.filter(
+    published_sheets = ScoreSheet.objects.filter(
         status=ResultStatus.PUBLISHED
     ).select_related('student_class', 'academic_session', 'academic_term')
 

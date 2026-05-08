@@ -13,7 +13,7 @@ from .constants import PortalAccessStatus, NotificationType, NotificationChannel
 
 from apps.students.selectors import StudentSelector
 from apps.finance.selectors import InvoiceSelector, PaymentSelector, FinancialStatusSelector
-from apps.results.selectors import ResultSelector  # Will be implemented later
+from apps.results.selectors import ScoreEntrySelector as ScoreEntrySelector  # Will be implemented later
 from apps.attendance.selectors import AttendanceSelector  # Will be implemented later
 from apps.finance.selectors import InvoiceSelector
 
@@ -399,7 +399,7 @@ class PortalDashboardSelector:
                     }
                 
                 # Add results if available (will be implemented later)
-                # child_data['recent_results'] = ResultSelector.get_recent_for_student(student_id, limit=3)
+                # child_data['recent_results'] = ScoreEntrySelector.get_recent_for_student(student_id, limit=3)
                 
                 # Add attendance later when available
                 # child_data['attendance_summary'] = AttendanceSelector.get_student_summary(student_id)

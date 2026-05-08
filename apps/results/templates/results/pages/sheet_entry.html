@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Score Entry | School Bro{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Score Entry</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Enter student assessment scores per subject
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
+                    <i class="fas fa-calendar-check mr-2"></i>
+                    {{ current_session.name }}
+                </span>
+                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    <i class="fas fa-clock mr-2"></i>
+                    {{ current_term.name }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    <i class="fas fa-school mr-1"></i>Class
+                </label>
+                <select name="class_id" 
+                        class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        hx-get="{% url 'results:sheet_entry' %}"
+                        hx-vals='js:{subject_id: document.querySelector("[name=subject_id]")?.value || ""}'
+                        hx-target="#sheet-area"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-indicator="#loading">
+                    <option value="">Select class...</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}" {% if selected_class == class.id|stringformat:"i" %}selected{% endif %}>
+                        {{ class.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    <i class="fas fa-book mr-1"></i>Subject
+                </label>
+                <select name="subject_id" 
+                        class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        hx-get="{% url 'results:sheet_entry' %}"
+                        hx-vals='js:{class_id: document.querySelector("[name=class_id]")?.value || ""}'
+                        hx-target="#sheet-area"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-indicator="#loading">
+                    <option value="">Select subject...</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"i" %}selected{% endif %}>
+                        {{ subject.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div id="loading" class="htmx-indicator text-center text-sm text-gray-500 mt-3">
+            <i class="fas fa-spinner fa-spin mr-1"></i>Loading sheet...
+        </div>
+    </div>
+
+    <!-- Sheet Area -->
+    <div id="sheet-area">
+        {% if sheet %}
+            {% include "results/partials/sheet_table.html" %}
+        {% else %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <div class="max-w-sm mx-auto">
+                    <i class="fas fa-clipboard-list text-5xl text-gray-300 dark:text-gray-600 mb-4 block"></i>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Sheet Selected</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Select a <strong>class</strong> and <strong>subject</strong> above to open or create a score entry sheet.
+                    </p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                        Sheets are auto-created for {{ current_session.name }} • {{ current_term.name }}
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function handleUpdate(event, entryId) {
+        try {
+            const data = JSON.parse(event.detail.xhr.responseText);
+            if (data.success) {
+                document.getElementById('total-' + entryId).textContent = data.total_score ?? '—';
+                document.getElementById('grade-' + entryId).textContent = data.grade ?? '—';
+                document.getElementById('pos-' + entryId).textContent = data.position ?? '—';
+            }
+        } catch(e) {}
+    }
+
+    document.body.addEventListener('htmx:configRequest', (e) => {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content 
+                   || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (token) e.detail.headers['X-CSRFToken'] = token;
+    });
+</script>
+{% endblock %}

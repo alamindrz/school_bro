@@ -24,7 +24,7 @@ class ResultContract:
 
 
 @dataclass
-class ResultSheetContract:
+class ScoreSheetContract:
     """
     Contract for result sheet creation
     """
@@ -61,7 +61,7 @@ class ResultsServiceInterface:
         term_id: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Get results for a student"""
-        raise NotImplementedError("Use results.selectors.ResultSelector.get_student_results")
+        raise NotImplementedError("Use results.selectors.ScoreEntrySelector.get_student_results")
     
     @staticmethod
     def get_student_performance(
@@ -78,4 +78,4 @@ class ResultsServiceInterface:
         term_id: int
     ) -> bool:
         """Check if results are available for a student"""
-        raise NotImplementedError("Use results.selectors.ResultSelector.check_availability")
+        raise NotImplementedError("Use results.selectors.ScoreEntrySelector.check_availability")

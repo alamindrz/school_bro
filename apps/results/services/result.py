@@ -1,439 +1,386 @@
 """
-Result Service - Core result processing business logic
+Result Service - Core score entry and promotion business logic
 """
 
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 import logging
 
-from ..models import (
-    Subject, ResultSheet, ResultSheetSubject,
-    Result, ResultComment, CumulativeRecord
-)
-from ..constants import ResultStatus, GradeSystem
-from ..exceptions import (
-    ResultSheetNotFoundError,
-    ResultNotFoundError,
-    DuplicateResultError,
-    InvalidScoreError,
-    ResultSheetClosedError,
-    ResultSheetNotApprovedError,
-    StudentNotEligibleError,
-    SubjectNotFoundError,
-    InvalidAssessmentWeightError,
-)
-from ..selectors import  ResultSheetSelector
-from apps.corecode.selectors import SubjectSelector, AcademicSessionSelector
+from ..models import ScoreSheet, ScoreEntry, CumulativeRecord
+from ..constants import GradeSystem
 
 from apps.corecode.services import SystemLogService
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from apps.corecode.models import SystemLog
 from apps.students.selectors import StudentSelector
-from apps.finance.selectors import FinancialStatusSelector
+from apps.corecode.selectors import AcademicSessionSelector, AcademicTermSelector
 
 logger = logging.getLogger(__name__)
 
 
-class ResultService:
-    """
-    Result business operations
-    Single source of truth for result management
-    """
+class ScoreSheetService:
+    """Score sheet business operations"""
 
     @staticmethod
     @transaction.atomic
-    def create_result_sheet(
+    def create_sheet(
+        subject_id: int,
         class_id: int,
         session_id: int,
         term_id: int,
-        subject_ids: List[int],
         created_by_id: Optional[int] = None
-    ) -> ResultSheet:
-        """
-        Create a result sheet for a class and term
-        """
-        # Check if sheet already exists
-        existing = ResultSheet.objects.filter(
-            student_class_id=class_id,
-            academic_session_id=session_id,
-            academic_term_id=term_id
-        ).first()
-
-        if existing:
-            logger.info(f"Result sheet already exists for class {class_id}, term {term_id}")
-            return existing
-
-        # Create sheet
-        sheet = ResultSheet.objects.create(
+    ) -> ScoreSheet:
+        """Create a score sheet for a subject + class + term."""
+        sheet, created = ScoreSheet.objects.get_or_create(
+            subject_id=subject_id,
             student_class_id=class_id,
             academic_session_id=session_id,
             academic_term_id=term_id,
-            status=ResultStatus.DRAFT,
-            created_by_id=created_by_id
+            defaults={'created_by_id': created_by_id}
         )
 
-        # Add subjects
-        for subject_id in subject_ids:
-            ResultSheetSubject.objects.create(
-                result_sheet=sheet,
-                subject_id=subject_id
-            )
+        if created:
+            logger.info(f"Score sheet created: {sheet}")
+            # Auto-create empty entries for all students in the class
+            ScoreSheetService._populate_students(sheet)
 
-        logger.info(f"Result sheet created: {sheet.sheet_number}")
         return sheet
 
     @staticmethod
-    @transaction.atomic
-    def enter_result(
-        sheet_id: int,
-        student_id: int,
-        subject_id: int,
-        ca1_score: Optional[int] = None,
-        ca2_score: Optional[int] = None,
-        ca3_score: Optional[int] = None,
-        exam_score: Optional[int] = None,
-        practical_score: Optional[int] = None,
-        project_score: Optional[int] = None,
-        entered_by_id: Optional[int] = None
-    ) -> Result:
-        """
-        Enter or update a result for a student
-        """
-        try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
-            raise ResultSheetNotFoundError(f"Result sheet {sheet_id} not found")
-
-        # Check if sheet can be edited
-        if not sheet.can_edit():
-            raise ResultSheetClosedError("Result sheet is closed for editing")
-
-        # Validate student exists
-        student = StudentSelector.get_by_id(student_id)
-        if not student:
-            raise StudentNotEligibleError(f"Student {student_id} not found")
-
-        # Validate subject is in sheet
-        if not sheet.subjects.filter(id=subject_id).exists():
-            raise SubjectNotFoundError(f"Subject {subject_id} not in this result sheet")
-
-        # Validate scores
-        ResultService._validate_scores(
-            ca1=ca1_score,
-            ca2=ca2_score,
-            ca3=ca3_score,
-            exam=exam_score,
-            practical=practical_score,
-            project=project_score
-        )
-
-        # Check for existing result
-        result, created = Result.objects.update_or_create(
-            result_sheet=sheet,
-            student_id=student_id,
-            subject_id=subject_id,
-            defaults={
-                'student_name': student['full_name'],
-                'ca1_score': ca1_score,
-                'ca2_score': ca2_score,
-                'ca3_score': ca3_score,
-                'exam_score': exam_score,
-                'practical_score': practical_score,
-                'project_score': project_score,
-                'entered_by_id': entered_by_id
-            }
-        )
-
-        action = "CREATE" if created else "UPDATE"
-        logger.info(f"Result {action}d for student {student_id}, subject {subject_id}")
-
-        return result
-
-    @staticmethod
-    @transaction.atomic
-    def submit_for_approval(
-        sheet_id: int,
-        submitted_by_id: int
-    ) -> ResultSheet:
-        """
-        Submit result sheet for approval
-        """
-        try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
-            raise ResultSheetNotFoundError(f"Result sheet {sheet_id} not found")
-
-        if sheet.status != ResultStatus.DRAFT:
-            raise ValidationError(f"Cannot submit sheet with status {sheet.status}")
-
-        # Check if all results are entered
-        total_students = sheet.results.values('student_id').distinct().count()
-        expected_students = StudentSelector.get_class_students(
+    def _populate_students(sheet: ScoreSheet):
+        """Create empty ScoreEntry records for all students in the class."""
+        students = StudentSelector.get_class_students(
             class_id=sheet.student_class_id,
             academic_session_id=sheet.academic_session_id
         )
 
-        if total_students < len(expected_students):
-            raise ValidationError(
-                f"Results entered for only {total_students} out of {len(expected_students)} students"
-            )
+        entries = []
+        for student in students:
+            entries.append(ScoreEntry(
+                score_sheet=sheet,
+                student_id=student['id'],
+                student_name=student.get('full_name', student.get('name', 'Unknown'))
+            ))
 
-        sheet.status = ResultStatus.PENDING_APPROVAL
-        sheet.submitted_by_id = submitted_by_id
-        sheet.submitted_at = timezone.now()
-        sheet.save()
-
-        logger.info(f"Result sheet {sheet.sheet_number} submitted for approval")
-        return sheet
+        ScoreEntry.objects.bulk_create(entries, ignore_conflicts=True)
+        logger.info(f"Populated {len(entries)} students for sheet {sheet}")
 
     @staticmethod
     @transaction.atomic
-    def approve_sheet(
-        sheet_id: int,
-        approved_by_id: int
-    ) -> ResultSheet:
+    def update_score(
+        entry_id: int,
+        field: str,
+        value: Optional[int],
+        user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
-        Approve a result sheet
-        """
-        try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
-            raise ResultSheetNotFoundError(f"Result sheet {sheet_id} not found")
-
-        if not sheet.can_approve():
-            raise ValidationError(f"Cannot approve sheet with status {sheet.status}")
-
-        sheet.status = ResultStatus.APPROVED
-        sheet.approved_by_id = approved_by_id
-        sheet.approved_at = timezone.now()
-        sheet.save()
-
-        logger.info(f"Result sheet {sheet.sheet_number} approved")
-        return sheet
-
-    @staticmethod
-    @transaction.atomic
-    def publish_sheet(
-        sheet_id: int,
-        published_by_id: int
-    ) -> ResultSheet:
-        """
-        Publish a result sheet (make available to parents)
+        Update a single score field on an entry.
+        Auto-calculates total, grade, and position.
+        Returns updated entry data for HTMX response.
         """
         try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
-            raise ResultSheetNotFoundError(f"Result sheet {sheet_id} not found")
+            entry = ScoreEntry.objects.select_related('score_sheet').get(id=entry_id)
+        except ScoreEntry.DoesNotExist:
+            raise ValidationError(f"Score entry {entry_id} not found")
 
-        if not sheet.can_publish():
-            raise ResultSheetNotApprovedError("Sheet must be approved before publishing")
+        if not entry.score_sheet.is_editable:
+            raise ValidationError("Score sheet is not editable")
 
-        # Check financial clearance if required
-        from apps.corecode.services import SiteConfigService
-        from apps.corecode.constants import SiteConfigKey
+        # Validate field name
+        valid_fields = ['ca1', 'ca2', 'ca3', 'exam']
+        if field not in valid_fields:
+            raise ValidationError(f"Invalid field: {field}")
 
-        require_clearance = SiteConfigService.get_config(
-            SiteConfigKey.EXAM_CLEARANCE_REQUIRED,
-            True
+        # Validate value
+        if value is not None and (value < 0 or value > 100):
+            raise ValidationError(f"Score must be between 0 and 100")
+
+        old_value = getattr(entry, field)
+        setattr(entry, field, value)
+        entry.entered_by_id = user_id
+
+        # Check if all scores are filled
+        all_filled = all(
+            getattr(entry, f) is not None
+            for f in valid_fields
         )
 
-        if require_clearance:
-            # Get all students in this sheet
-            student_ids = sheet.results.values_list('student_id', flat=True).distinct()
+        if all_filled:
+            entry.calculate_total()
+            entry.determine_grade()
+        else:
+            entry.total_score = None
+            entry.grade = None
+            entry.position = None
 
-            not_cleared = []
-            for student_id in student_ids:
-                clearance = FinancialStatusSelector.is_student_cleared_for_exams(
-                    student_id=student_id,
-                    session_id=sheet.academic_session_id
-                )
-                if not clearance['is_cleared']:
-                    student = StudentSelector.get_by_id(student_id)
-                    not_cleared.append(student['full_name'] if student else f"Student {student_id}")
+        entry.save()
 
-            if not_cleared:
-                raise ValidationError(
-                    f"Cannot publish: {len(not_cleared)} students not financially cleared: "
-                    f"{', '.join(not_cleared[:5])}"
-                )
+        # Recalculate positions if all scores filled
+        if all_filled:
+            ScoreSheetService._recalculate_positions(entry.score_sheet)
 
-        sheet.status = ResultStatus.PUBLISHED
-        sheet.published_by_id = published_by_id
-        sheet.published_at = timezone.now()
-        sheet.save()
-
-        # Calculate positions
-        ResultService._calculate_positions(sheet)
-
-        # Send notifications to parents
-        ResultService._notify_parents(sheet)
-
-        logger.info(f"Result sheet {sheet.sheet_number} published")
-        return sheet
-
-    @staticmethod
-    def _validate_scores(**scores):
-        """Validate all scores are within range"""
-        from ..validators import ResultValidator
-        ResultValidator.validate_scores(**scores)
-
-    @staticmethod
-    def _calculate_positions(sheet: ResultSheet):
-        """
-        Calculate student positions based on total scores
-        """
-        # Group results by student
-        from django.db.models import Sum
-
-        student_totals = sheet.results.values('student_id').annotate(
-            total=Sum('total_score'),
-            name=Max('student_name')
-        ).order_by('-total')
-
-        position = 1
-        prev_total = None
-        same_position_count = 0
-
-        for student in student_totals:
-            # Handle ties
-            if prev_total is not None and student['total'] == prev_total:
-                same_position_count += 1
-            else:
-                position += same_position_count
-                same_position_count = 0
-
-            # Update all results for this student with position
-            Result.objects.filter(
-                result_sheet=sheet,
-                student_id=student['student_id']
-            ).update(position=position)
-
-            prev_total = student['total']
-
-    @staticmethod
-    def _notify_parents(sheet: ResultSheet):
-        """
-        Send notifications to parents about published results
-        """
-        from apps.parents.services import NotificationService
-        from apps.parents.selectors import ChildLinkSelector
-
-        student_ids = sheet.results.values_list('student_id', flat=True).distinct()
-
-        for student_id in student_ids:
-            parents = ChildLinkSelector.get_for_student(student_id)
-
-            for parent in parents:
-                try:
-                    NotificationService.send_results_published(
-                        parent_id=parent['parent_id'],
-                        student_id=student_id,
-                        term=sheet.academic_term.get_term_display(),
-                        session=sheet.academic_session.name
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to notify parent {parent['parent_id']}: {e}")
-
-    @staticmethod
-    @transaction.atomic
-    def add_comment(
-        sheet_id: int,
-        student_id: int,
-        teacher_comment: str = "",
-        class_teacher_comment: str = "",
-        principal_comment: str = "",
-        next_term_recommendation: str = "",
-        created_by_id: Optional[int] = None
-    ) -> ResultComment:
-        """
-        Add or update comments for a student
-        """
-        try:
-            sheet = ResultSheet.objects.get(id=sheet_id)
-        except ResultSheet.DoesNotExist:
-            raise ResultSheetNotFoundError(f"Result sheet {sheet_id} not found")
-
-        student = StudentSelector.get_by_id(student_id)
-        if not student:
-            raise StudentNotEligibleError(f"Student {student_id} not found")
-
-        comment, created = ResultComment.objects.update_or_create(
-            result_sheet=sheet,
-            student_id=student_id,
-            defaults={
-                'student_name': student['full_name'],
-                'teacher_comment': teacher_comment,
-                'class_teacher_comment': class_teacher_comment,
-                'principal_comment': principal_comment,
-                'next_term_recommendation': next_term_recommendation,
-                'created_by_id': created_by_id
+        # Log the change
+        SystemLogService.log_action(
+            user=User.objects.get(id=user_id) if user_id else None,
+            action=SystemLog.ActionType.GRADE_CHANGE,
+            app_label='results',
+            model_name='ScoreEntry',
+            object_id=str(entry.id),
+            object_repr=f"{entry.student_name} - {entry.score_sheet.subject.name}",
+            changes={
+                'field': field,
+                'old_value': old_value,
+                'new_value': value,
             }
         )
 
-        logger.info(f"Comment {'created' if created else 'updated'} for student {student_id}")
-        return comment
+        # Get updated position
+        entry.refresh_from_db()
+
+        return {
+            'entry_id': entry.id,
+            'field': field,
+            'value': value,
+            'total_score': entry.total_score,
+            'grade': entry.grade,
+            'position': entry.position,
+            'all_filled': all_filled,
+        }
 
     @staticmethod
-    def update_cumulative_record(
-        student_id: int,
-        session_id: int
-    ) -> CumulativeRecord:
-        """
-        Update cumulative record for a student after term completion
-        """
-        # Get all term results for this student in this session
-        sheets = ResultSheet.objects.filter(
-            academic_session_id=session_id,
-            results__student_id=student_id,
-            status=ResultStatus.PUBLISHED
-        ).distinct().order_by('academic_term__term')
+    def _recalculate_positions(sheet: ScoreSheet):
+        """Recalculate positions for all entries in a sheet."""
+        # Only rank entries that have all scores filled
+        entries = list(
+            sheet.entries.filter(total_score__isnull=False).order_by('-total_score')
+        )
 
-        if not sheets.exists():
-            logger.warning(f"No published results for student {student_id} in session {session_id}")
+        if not entries:
+            return
+
+        position = 1
+        prev_total = None
+        same_count = 0
+
+        for i, entry in enumerate(entries):
+            if prev_total is not None and entry.total_score == prev_total:
+                same_count += 1
+            else:
+                position += same_count
+                same_count = 0
+
+            ScoreEntry.objects.filter(id=entry.id).update(position=position)
+            prev_total = entry.total_score
+            position += 0  # Will increment on next different score
+
+        # Reset position for entries without all scores
+        sheet.entries.filter(total_score__isnull=True).update(position=None)
+
+    @staticmethod
+    @transaction.atomic
+    def submit_sheet(sheet_id: int, user_id: int) -> ScoreSheet:
+        """Submit a score sheet for approval."""
+        sheet = ScoreSheet.objects.get(id=sheet_id)
+        if sheet.status != ScoreSheet.DRAFT:
+            raise ValidationError("Only draft sheets can be submitted")
+
+        sheet.status = ScoreSheet.SUBMITTED
+        sheet.submitted_by_id = user_id
+        sheet.submitted_at = timezone.now()
+        sheet.save()
+
+        logger.info(f"Score sheet submitted: {sheet}")
+        return sheet
+
+    @staticmethod
+    @transaction.atomic
+    def approve_sheet(sheet_id: int) -> ScoreSheet:
+        """Approve a submitted score sheet."""
+        sheet = ScoreSheet.objects.get(id=sheet_id)
+        if sheet.status != ScoreSheet.SUBMITTED:
+            raise ValidationError("Only submitted sheets can be approved")
+
+        sheet.status = ScoreSheet.APPROVED
+        sheet.save()
+        return sheet
+
+    @staticmethod
+    @transaction.atomic
+    def publish_sheet(sheet_id: int) -> ScoreSheet:
+        """Publish an approved score sheet. Visible to parents."""
+        sheet = ScoreSheet.objects.get(id=sheet_id)
+        if sheet.status != ScoreSheet.APPROVED:
+            raise ValidationError("Only approved sheets can be published")
+
+        sheet.status = ScoreSheet.PUBLISHED
+        sheet.save()
+        return sheet
+
+
+class PromotionService:
+    """Student promotion calculations"""
+
+    # Default promotion rules (configurable via SiteConfig later)
+    MIN_PASS_SCORE = 40
+    MIN_SUBJECTS_PASSED = 5
+    MAX_FAILED_SUBJECTS = 3
+    CORE_SUBJECTS = ['English Language', 'Mathematics']
+
+    @classmethod
+    def calculate_promotion(
+        cls,
+        student_id: int,
+        session_id: int,
+        term_id: int
+    ) -> Dict[str, Any]:
+        """
+        Determine if a student qualifies for promotion.
+        Checks: total subjects passed, core subjects, max failures.
+        """
+        # Get all score entries for this student in the current term
+        entries = ScoreEntry.objects.filter(
+            student_id=student_id,
+            score_sheet__academic_session_id=session_id,
+            score_sheet__academic_term_id=term_id,
+            total_score__isnull=False  # Only entries with all scores filled
+        ).select_related('score_sheet__subject')
+
+        if not entries.exists():
+            return {
+                'eligible': False,
+                'reason': 'No complete score entries found',
+                'promoted': False,
+            }
+
+        total_subjects = entries.count()
+        passed_subjects = entries.filter(total_score__gte=cls.MIN_PASS_SCORE).count()
+        failed_subjects = total_subjects - passed_subjects
+
+        # Check core subjects
+        core_passed = True
+        failed_core = []
+        for core in cls.CORE_SUBJECTS:
+            core_entry = entries.filter(
+                score_sheet__subject__name__iexact=core
+            ).first()
+            if core_entry and core_entry.total_score < cls.MIN_PASS_SCORE:
+                core_passed = False
+                failed_core.append(core)
+
+        # Apply rules
+        if failed_subjects > cls.MAX_FAILED_SUBJECTS:
+            return {
+                'eligible': False,
+                'reason': f'Failed {failed_subjects} subjects (max {cls.MAX_FAILED_SUBJECTS})',
+                'total_subjects': total_subjects,
+                'passed': passed_subjects,
+                'failed': failed_subjects,
+                'core_passed': core_passed,
+                'failed_core': failed_core,
+                'promoted': False,
+            }
+
+        if not core_passed:
+            return {
+                'eligible': False,
+                'reason': f'Failed core subject(s): {", ".join(failed_core)}',
+                'total_subjects': total_subjects,
+                'passed': passed_subjects,
+                'failed': failed_subjects,
+                'core_passed': False,
+                'failed_core': failed_core,
+                'promoted': False,
+            }
+
+        if passed_subjects < cls.MIN_SUBJECTS_PASSED:
+            return {
+                'eligible': False,
+                'reason': f'Passed only {passed_subjects} subjects (min {cls.MIN_SUBJECTS_PASSED})',
+                'total_subjects': total_subjects,
+                'passed': passed_subjects,
+                'failed': failed_subjects,
+                'core_passed': core_passed,
+                'promoted': False,
+            }
+
+        # Promotion qualified
+        return {
+            'eligible': True,
+            'reason': 'All promotion criteria met',
+            'total_subjects': total_subjects,
+            'passed': passed_subjects,
+            'failed': failed_subjects,
+            'core_passed': True,
+            'failed_core': [],
+            'promoted': True,
+        }
+
+    @classmethod
+    @transaction.atomic
+    def update_cumulative_record(
+        cls,
+        student_id: int,
+        session_id: int,
+        term_id: int
+    ) -> CumulativeRecord:
+        """Update or create cumulative record after term completion."""
+        student = StudentSelector.get_by_id(student_id)
+        if not student:
+            raise ValidationError(f"Student {student_id} not found")
+
+        # Get all entries for this term
+        entries = ScoreEntry.objects.filter(
+            student_id=student_id,
+            score_sheet__academic_session_id=session_id,
+            score_sheet__academic_term_id=term_id,
+            total_score__isnull=False
+        )
+
+        if not entries.exists():
+            logger.warning(f"No complete scores for student {student_id}")
             return None
+
+        total = sum(e.total_score for e in entries)
+        average = total / entries.count()
 
         # Get or create cumulative record
         record, _ = CumulativeRecord.objects.get_or_create(
             student_id=student_id,
             academic_session_id=session_id,
-            defaults={'student_name': StudentSelector.get_by_id(student_id)['full_name']}
+            defaults={'student_name': student.get('full_name', student.get('name', 'Unknown'))}
         )
 
-        # Update term data
-        for sheet in sheets:
-            term = sheet.academic_term.term
-            summary = ResultSelector.get_term_summary(student_id, sheet.id)
+        # Update term field based on term number
+        if term_id == 1 or term_id == '1':
+            record.term1_total = total
+            record.term1_average = round(average, 2)
+            # Get position from any entry (they share the same sheet positions are per-sheet)
+            first_entry = entries.first()
+            record.term1_position = first_entry.position if first_entry else None
+        elif term_id == 2 or term_id == '2':
+            record.term2_total = total
+            record.term2_average = round(average, 2)
+            first_entry = entries.first()
+            record.term2_position = first_entry.position if first_entry else None
+        elif term_id == 3 or term_id == '3':
+            record.term3_total = total
+            record.term3_average = round(average, 2)
+            first_entry = entries.first()
+            record.term3_position = first_entry.position if first_entry else None
 
-            if term == 1:
-                record.term1_average = summary.get('average')
-                record.term1_position = Result.objects.filter(
-                    result_sheet=sheet,
-                    position=1
-                ).exists() and Result.objects.filter(
-                    result_sheet=sheet,
-                    student_id=student_id
-                ).first().position
-            elif term == 2:
-                record.term2_average = summary.get('average')
-                record.term2_position = Result.objects.filter(
-                    result_sheet=sheet,
-                    position=1
-                ).exists() and Result.objects.filter(
-                    result_sheet=sheet,
-                    student_id=student_id
-                ).first().position
-            elif term == 3:
-                record.term3_average = summary.get('average')
-                record.term3_position = Result.objects.filter(
-                    result_sheet=sheet,
-                    position=1
-                ).exists() and Result.objects.filter(
-                    result_sheet=sheet,
-                    student_id=student_id
-                ).first().position
+        # Check promotion (only after Term 3)
+        term_obj = AcademicTermSelector.get_by_id(int(term_id)) if term_id else None
+        term_number = term_obj.get('term') if term_obj else int(term_id) if isinstance(term_id, int) else None
+        
+        if term_number == 3:
+            promotion = PromotionService.calculate_promotion(
+                student_id, session_id, term_id
+            )
+            record.promoted_to_next_class = promotion['promoted']
 
-        # Calculate session average
         record.calculate_session_average()
         record.save()
 

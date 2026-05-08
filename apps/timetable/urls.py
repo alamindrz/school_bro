@@ -11,12 +11,13 @@ urlpatterns = [
     # ============================================================
     path('', views.TimetableListView.as_view(), name='timetable_list'),
     path('create/', views.TimetableCreateView.as_view(), name='timetable_create'),
+    
     path('<int:pk>/', views.TimetableView.as_view(), name='timetable_view'),
     path('<int:pk>/edit/', views.TimetableEditView.as_view(), name='timetable_edit'),
     path('<int:pk>/delete/', views.TimetableDeleteView.as_view(), name='timetable_delete'),
     path('<int:pk>/copy/', views.TimetableCopyView.as_view(), name='timetable_copy'),
     path('<int:pk>/publish/', views.TimetablePublishView.as_view(), name='timetable_publish'),
-    
+
     # ============================================================
     # HTMX FRAGMENT ENDPOINTS
     # ============================================================

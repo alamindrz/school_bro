@@ -1,9 +1,6 @@
-from .result import ResultService
-from .bulk import BulkResultService
-from .report import ReportService
+from .result import ScoreSheetService, PromotionService
 
 __all__ = [
-    'ResultService',
-    'BulkResultService',
-    'ReportService',
+    'ScoreSheetService',
+    'PromotionService',
 ]

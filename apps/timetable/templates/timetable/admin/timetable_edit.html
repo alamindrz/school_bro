@@ -146,5 +146,12 @@
         const editor = document.querySelector('[x-data="timetableEditor()"]');
         if (editor && editor.__x) editor.__x.$data.showToast(e.detail.message, e.detail.type);
     });
+    
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+        console.log('HTMX swap detected on:', e.detail.target.id);
+        htmx.process(e.detail.target);
+        console.log('Processed target for HTMX attributes');
+    });    
+    
 </script>
 {% endblock %}

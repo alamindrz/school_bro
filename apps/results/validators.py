@@ -75,7 +75,7 @@ class SubjectValidator:
         return True
 
 
-class ResultSheetValidator:
+class ScoreSheetValidator:
     """Validate result sheet data"""
     
     @staticmethod

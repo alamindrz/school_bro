@@ -9,7 +9,7 @@ from crispy_forms.layout import Layout, Row, Column, Submit, HTML, Fieldset
 from crispy_tailwind.layout import Submit as TailwindSubmit
 from apps.corecode.models import Subject
 
-from .models import ResultSheet, Result, ResultComment
+from .models import ScoreSheet, Result, ResultComment
 from .constants import SubjectType, GradeSystem, RemarkType
 from apps.corecode.selectors import StudentClassSelector, AcademicSessionSelector
 from apps.staffs.selectors import StaffSelector
@@ -58,7 +58,7 @@ class SubjectForm(forms.ModelForm):
         return code.upper()
 
 
-class ResultSheetForm(forms.ModelForm):
+class ScoreSheetForm(forms.ModelForm):
     """Form for creating result sheets"""
     
     subjects = forms.ModelMultipleChoiceField(
@@ -69,7 +69,7 @@ class ResultSheetForm(forms.ModelForm):
     )
     
     class Meta:
-        model = ResultSheet
+        model = ScoreSheet
         fields = ['student_class', 'academic_session', 'academic_term']
     
     def __init__(self, *args, **kwargs):

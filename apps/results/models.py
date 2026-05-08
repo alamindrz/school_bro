@@ -1,6 +1,6 @@
 """
-Results Models - Student academic performance tracking
-Depends on: corecode, students (via student_id only), finance (for clearance)
+Results Models - Student academic scores
+One ScoreSheet per subject per class stream per term.
 """
 
 from django.db import models
@@ -8,384 +8,192 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from decimal import Decimal
-import uuid
 
-from apps.corecode.models import AcademicSession, AcademicTerm, StudentClass
-from .constants import (
-    GradeSystem, ResultStatus,
-    AssessmentType, RemarkType, DEFAULT_PASS_MARK
-)
-from apps.corecode.models import Subject
-from apps.corecode.constants import SubjectType
-
-
-
+from apps.corecode.models import AcademicSession, AcademicTerm, StudentClass, Subject
 
 User = get_user_model()
 
 
-
-class ResultSheet(models.Model):
+class ScoreSheet(models.Model):
     """
-    Master result sheet for a class/term
-    Groups all results for a specific class and term
+    A score sheet for ONE subject in ONE class stream for ONE term.
+    Only the subject teacher or school heads can edit.
     """
-    
-    # Identification
-    sheet_number = models.CharField(
-        max_length=50,
-        unique=True,
-        help_text=_("Unique result sheet identifier")
-    )
     
     # Context
+    subject = models.ForeignKey(
+        Subject, on_delete=models.PROTECT, related_name='score_sheets'
+    )
     student_class = models.ForeignKey(
-        StudentClass,
-        on_delete=models.PROTECT,
-        related_name='result_sheets'
+        StudentClass, on_delete=models.PROTECT, related_name='score_sheets'
     )
     academic_session = models.ForeignKey(
-        AcademicSession,
-        on_delete=models.PROTECT,
-        related_name='result_sheets'
+        AcademicSession, on_delete=models.PROTECT, related_name='score_sheets'
     )
     academic_term = models.ForeignKey(
-        AcademicTerm,
-        on_delete=models.PROTECT,
-        related_name='result_sheets'
-    )
-    
-    # Subjects in this sheet
-    subjects = models.ManyToManyField(
-        Subject,
-        related_name='result_sheets',
-        through='ResultSheetSubject'
+        AcademicTerm, on_delete=models.PROTECT, related_name='score_sheets'
     )
     
     # Status
-    status = models.CharField(
-        max_length=20,
-        choices=ResultStatus.CHOICES,
-        default=ResultStatus.DRAFT
-    )
+    DRAFT = 'draft'
+    SUBMITTED = 'submitted'
+    APPROVED = 'approved'
+    PUBLISHED = 'published'
     
-    # Approval workflow
-    submitted_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='submitted_result_sheets'
-    )
-    submitted_at = models.DateTimeField(null=True, blank=True)
-    
-    approved_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='approved_result_sheets'
-    )
-    approved_at = models.DateTimeField(null=True, blank=True)
-    
-    published_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='published_result_sheets'
-    )
-    published_at = models.DateTimeField(null=True, blank=True)
+    STATUS_CHOICES = [
+        (DRAFT, _('Draft')),
+        (SUBMITTED, _('Submitted')),
+        (APPROVED, _('Approved')),
+        (PUBLISHED, _('Published')),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=DRAFT)
     
     # Metadata
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='created_result_sheets'
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_score_sheets'
     )
+    submitted_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='submitted_score_sheets'
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['-academic_session', '-academic_term', 'student_class']
-        unique_together = ['student_class', 'academic_session', 'academic_term']
-        indexes = [
-            models.Index(fields=['sheet_number']),
-            models.Index(fields=['status']),
-        ]
-        verbose_name = _('Result Sheet')
-        verbose_name_plural = _('Result Sheets')
-    
-    def __str__(self):
-        return f"{self.student_class.display_name} - {self.academic_term.name}"
-    
-    def save(self, *args, **kwargs):
-        """Generate sheet number if not set"""
-        if not self.sheet_number:
-            self.sheet_number = self._generate_sheet_number()
-        super().save(*args, **kwargs)
-    
-    def _generate_sheet_number(self):
-        """Generate unique sheet number"""
-        import uuid
-        return f"RS-{uuid.uuid4().hex[:8].upper()}"
-    
-    def can_edit(self):
-        """Check if result sheet can be edited"""
-        return self.status in [ResultStatus.DRAFT, ResultStatus.PENDING_APPROVAL]
-    
-    def can_approve(self):
-        """Check if result sheet can be approved"""
-        return self.status == ResultStatus.PENDING_APPROVAL
-    
-    def can_publish(self):
-        """Check if result sheet can be published"""
-        return self.status == ResultStatus.APPROVED
-
-
-class ResultSheetSubject(models.Model):
-    """
-    Through model for subjects in a result sheet
-    Stores subject-specific settings
-    """
-    
-    result_sheet = models.ForeignKey(
-        ResultSheet,
-        on_delete=models.CASCADE,
-        related_name='sheet_subjects'
-    )
-    subject = models.ForeignKey(
-        Subject,
-        on_delete=models.PROTECT,
-        related_name='sheet_subjects'
-    )
-    
-    # Teacher for this subject
-    teacher_id = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text=_("Teacher ID from staffs app")
-    )
-    teacher_name = models.CharField(max_length=200, blank=True)
-    
-    # Subject settings
-    pass_mark = models.IntegerField(
-        default=DEFAULT_PASS_MARK,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )
-    has_practical = models.BooleanField(default=False)
-    has_project = models.BooleanField(default=False)
-    
-    class Meta:
-        unique_together = ['result_sheet', 'subject']
+        unique_together = ['subject', 'student_class', 'academic_session', 'academic_term']
         ordering = ['subject__name']
+        verbose_name = _('Score Sheet')
+        verbose_name_plural = _('Score Sheets')
     
     def __str__(self):
-        return f"{self.result_sheet} - {self.subject.name}"
+        return f"{self.subject.name} - {self.student_class.display_name} - {self.academic_term.name}"
+    
+    @property
+    def is_editable(self):
+        return self.status == self.DRAFT
 
 
-class Result(models.Model):
+class ScoreEntry(models.Model):
     """
-    Individual student result for a subject
+    A single student's scores for one subject in one term.
     """
     
-    # Links
-    result_sheet = models.ForeignKey(
-        ResultSheet,
-        on_delete=models.CASCADE,
-        related_name='results'
-    )
-    subject = models.ForeignKey(
-        Subject,
-        on_delete=models.PROTECT,
-        related_name='results'
+    score_sheet = models.ForeignKey(
+        ScoreSheet, on_delete=models.CASCADE, related_name='entries'
     )
     
     # Student reference (decoupled)
-    student_id = models.IntegerField(
-        db_index=True,
-        help_text=_("Student ID from students app")
-    )
-    student_name = models.CharField(
-        max_length=200,
-        help_text=_("Denormalized student name")
-    )
+    student_id = models.IntegerField(db_index=True)
+    student_name = models.CharField(max_length=200, help_text=_("Denormalized for display"))
     
-    # Assessment scores
-    ca1_score = models.IntegerField(
+    # Assessment scores (3 CAs + Exam = 4 default slots)
+    ca1 = models.IntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_("Continuous Assessment 1")
+        help_text=_("1st Continuous Assessment")
     )
-    ca2_score = models.IntegerField(
+    ca2 = models.IntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_("Continuous Assessment 2")
+        help_text=_("2nd Continuous Assessment")
     )
-    ca3_score = models.IntegerField(
+    ca3 = models.IntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_("Continuous Assessment 3")
+        help_text=_("3rd Continuous Assessment")
     )
-    exam_score = models.IntegerField(
+    exam = models.IntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text=_("End of Term Examination")
     )
-    practical_score = models.IntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_("Practical Assessment")
-    )
-    project_score = models.IntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text=_("Project Work")
-    )
     
     # Calculated fields
-    total_score = models.IntegerField(
-        null=True, blank=True,
-        help_text=_("Weighted total score")
-    )
-    grade = models.CharField(
-        max_length=2,
-        choices=GradeSystem.CHOICES,
-        null=True, blank=True
-    )
-    grade_point = models.IntegerField(
-        null=True, blank=True,
-        help_text=_("Grade point for GPA calculation")
-    )
-    remark = models.CharField(
-        max_length=20,
-        choices=RemarkType.CHOICES,
-        null=True, blank=True
-    )
-    custom_remark = models.TextField(blank=True)
-    
-    # Position in class
+    total_score = models.IntegerField(null=True, blank=True)
+    grade = models.CharField(max_length=2, null=True, blank=True)
     position = models.IntegerField(null=True, blank=True)
     
     # Metadata
     entered_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='entered_results'
+        User, on_delete=models.SET_NULL, null=True, blank=True
     )
-    entered_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        unique_together = ['score_sheet', 'student_id']
         ordering = ['student_name']
-        unique_together = ['result_sheet', 'subject', 'student_id']
         indexes = [
             models.Index(fields=['student_id']),
-            models.Index(fields=['result_sheet', 'subject']),
-            models.Index(fields=['grade']),
+            models.Index(fields=['score_sheet', 'student_id']),
         ]
-        verbose_name = _('Result')
-        verbose_name_plural = _('Results')
+        verbose_name = _('Score Entry')
+        verbose_name_plural = _('Score Entries')
     
     def __str__(self):
-        return f"{self.student_name} - {self.subject.name} - {self.grade}"
+        return f"{self.student_name} - {self.score_sheet.subject.name}"
     
     def calculate_total(self):
-        """Calculate weighted total score"""
-        from .constants import AssessmentType
+        """Calculate weighted total from CA and Exam scores."""
+        scores = []
+        weights = []
         
-        total = 0
-        weights = AssessmentType.WEIGHTS
+        if self.ca1 is not None:
+            scores.append(self.ca1)
+            weights.append(10)
+        if self.ca2 is not None:
+            scores.append(self.ca2)
+            weights.append(10)
+        if self.ca3 is not None:
+            scores.append(self.ca3)
+            weights.append(10)
+        if self.exam is not None:
+            scores.append(self.exam)
+            weights.append(60)
         
-        if self.ca1_score is not None:
-            total += self.ca1_score * (weights[AssessmentType.CA1] / 100)
-        if self.ca2_score is not None:
-            total += self.ca2_score * (weights[AssessmentType.CA2] / 100)
-        if self.ca3_score is not None:
-            total += self.ca3_score * (weights[AssessmentType.CA3] / 100)
-        if self.exam_score is not None:
-            total += self.exam_score * (weights[AssessmentType.EXAM] / 100)
-        if self.practical_score is not None:
-            total += self.practical_score * (weights[AssessmentType.PRACTICAL] / 100)
-        if self.project_score is not None:
-            total += self.project_score * (weights[AssessmentType.PROJECT] / 100)
+        if not scores:
+            self.total_score = None
+            return None
         
-        self.total_score = round(total)
+        total_weight = sum(weights)
+        if total_weight == 0:
+            self.total_score = None
+            return None
+        
+        weighted_sum = sum(s * w for s, w in zip(scores, weights))
+        self.total_score = int(weighted_sum / total_weight)
         return self.total_score
     
     def determine_grade(self):
-        """Determine grade based on total score"""
+        """Determine grade based on total score."""
         if self.total_score is None:
-            self.calculate_total()
+            return None
         
-        for grade, (min_score, max_score) in GradeSystem.PERCENTAGE_RANGES.items():
-            if min_score <= self.total_score <= max_score:
-                self.grade = grade
-                self.grade_point = GradeSystem.GRADE_POINTS.get(grade, 0)
-                break
+        if self.total_score >= 75:
+            self.grade = 'A1'
+        elif self.total_score >= 70:
+            self.grade = 'B2'
+        elif self.total_score >= 65:
+            self.grade = 'B3'
+        elif self.total_score >= 60:
+            self.grade = 'C4'
+        elif self.total_score >= 55:
+            self.grade = 'C5'
+        elif self.total_score >= 50:
+            self.grade = 'C6'
+        elif self.total_score >= 45:
+            self.grade = 'D7'
+        elif self.total_score >= 40:
+            self.grade = 'E8'
+        else:
+            self.grade = 'F9'
         
         return self.grade
     
-    def determine_remark(self):
-        """Determine automated remark"""
-        if self.grade:
-            self.remark = GradeSystem.REMARKS.get(self.grade)
-        return self.remark
-    
     def save(self, *args, **kwargs):
-        """Auto-calculate totals and grades"""
         self.calculate_total()
         self.determine_grade()
-        self.determine_remark()
         super().save(*args, **kwargs)
 
-
-class ResultComment(models.Model):
-    """
-    Teacher's comments on student performance
-    """
-    
-    result_sheet = models.ForeignKey(
-        ResultSheet,
-        on_delete=models.CASCADE,
-        related_name='comments'
-    )
-    student_id = models.IntegerField(
-        db_index=True,
-        help_text=_("Student ID from students app")
-    )
-    student_name = models.CharField(max_length=200)
-    
-    # Comments
-    teacher_comment = models.TextField(blank=True)
-    principal_comment = models.TextField(blank=True)
-    class_teacher_comment = models.TextField(blank=True)
-    
-    # Next term recommendations
-    next_term_recommendation = models.TextField(blank=True)
-    
-    # Metadata
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        unique_together = ['result_sheet', 'student_id']
-        verbose_name = _('Result Comment')
-        verbose_name_plural = _('Result Comments')
-    
-    def __str__(self):
-        return f"Comments for {self.student_name}"
 
 
 class CumulativeRecord(models.Model):

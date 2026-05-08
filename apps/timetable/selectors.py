@@ -268,7 +268,7 @@ class TimetableSlotSelector:
                 },
                 'teacher': {
                     'id': slot.teacher.id,
-                    'name': slot.teacher.get_full_name(),
+                    'name': slot.teacher.get_full_name,
                     'staff_id': slot.teacher.staff_id,
                 } if slot.teacher else None,
                 'subject': {
@@ -328,7 +328,7 @@ class TimetableSlotSelector:
                 'period_name': slot.period.display_name,
                 'period_order': slot.period.order,
                 'teacher_id': slot.teacher_id,
-                'teacher_name': slot.teacher.get_full_name() if slot.teacher else None,
+                'teacher_name': slot.teacher.get_full_name if slot.teacher else None,
                 'subject_id': slot.subject_id,
                 'subject_name': slot.subject.name if slot.subject else None,
                 'room': slot.room,
@@ -380,7 +380,7 @@ class TimetableSlotSelector:
                 'day_id': slot.day_id,
                 'period_id': slot.period_id,
                 'teacher_id': slot.teacher_id,
-                'teacher_name': slot.teacher.get_full_name() if slot.teacher else None,
+                'teacher_name': slot.teacher.get_full_name if slot.teacher else None,
                 'subject_id': slot.subject_id,
                 'subject_name': slot.subject.name if slot.subject else None,
                 'room': slot.room,
@@ -647,7 +647,7 @@ class TimetableStatsSelector:
             if teacher_id not in workload:
                 workload[teacher_id] = {
                     'teacher_id': teacher_id,
-                    'teacher_name': slot.teacher.get_full_name(),
+                    'teacher_name': slot.teacher.get_full_name,
                     'total_periods': 0,
                     'subjects': set(),
                     'by_day': {},
@@ -696,7 +696,7 @@ class TimetableStatsSelector:
             'recent': [
                 {
                     'id': c.id,
-                    'teacher_name': c.teacher.get_full_name(),
+                    'teacher_name': c.teacher.get_full_name,
                     'day': c.day.name,
                     'detected_at': c.detected_at.isoformat(),
                     'resolved': c.resolved_at is not None,

@@ -7,9 +7,9 @@ from typing import List, Dict, Any, Optional
 from datetime import date
 import logging
 
-from ..models import ResultSheet, Result, CumulativeRecord
+from ..models import ScoreSheet, Result, CumulativeRecord
 from ..constants import GradeSystem, ResultStatus
-from ..selectors import ResultSelector, CumulativeSelector
+from ..selectors import ScoreEntrySelector, CumulativeSelector
 
 from apps.corecode.selectors import AcademicSessionSelector
 from apps.students.selectors import StudentSelector
@@ -29,9 +29,9 @@ class ReportService:
         """
         Generate comprehensive term report for a result sheet
         """
-        from ..selectors import ResultSheetSelector
+        from ..selectors import ScoreSheetSelector
 
-        sheet = ResultSheetSelector.get_by_id(sheet_id)
+        sheet = ScoreSheetSelector.get_by_id(sheet_id)
         if not sheet:
             return {'error': 'Result sheet not found'}
 
@@ -112,12 +112,12 @@ class ReportService:
 
         # Get result sheet
         try:
-            sheet = ResultSheet.objects.get(
+            sheet = ScoreSheet.objects.get(
                 academic_session_id=session_id,
                 academic_term_id=term_id,
                 status=ResultStatus.PUBLISHED
             )
-        except ResultSheet.DoesNotExist:
+        except ScoreSheet.DoesNotExist:
             return {'error': 'Results not published'}
 
         # Get student's results
@@ -200,7 +200,7 @@ class ReportService:
         Generate summary report for an entire session
         """
         # Get all result sheets for this session
-        sheets = ResultSheet.objects.filter(
+        sheets = ScoreSheet.objects.filter(
             academic_session_id=session_id,
             status=ResultStatus.PUBLISHED
         ).select_related('student_class', 'academic_term')

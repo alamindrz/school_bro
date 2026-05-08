@@ -9,13 +9,13 @@ from django.shortcuts import get_object_or_404
 import json
 import logging
 
-from ..models import Subject, ResultSheet, Result
+from ..models import Subject, ScoreSheet, Result
 from ..selectors import (
-  ResultSheetSelector, ResultSelector,
+  ScoreSheetSelector, ScoreEntrySelector,
     CumulativeSelector
 )
 from apps.corecode.selectors import SubjectSelector
-from ..services import ResultService, ReportService
+from ..services import ScoreSheetService, ReportService
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def search_subjects(request):
 @require_http_methods(["GET"])
 def get_sheet_status(request, sheet_id):
     """Get result sheet status"""
-    sheet = get_object_or_404(ResultSheet, id=sheet_id)
+    sheet = get_object_or_404(ScoreSheet, id=sheet_id)
 
     return JsonResponse({
         'id': sheet.id,
@@ -58,7 +58,7 @@ def get_student_results(request, student_id):
     session_id = request.GET.get('session_id')
     term_id = request.GET.get('term_id')
 
-    results = ResultSelector.get_student_results(
+    results = ScoreEntrySelector.get_student_results(
         student_id=student_id,
         session_id=session_id,
         term_id=term_id
@@ -159,7 +159,7 @@ def download_template(request, sheet_id):
     """Download CSV template for bulk upload"""
     from django.http import HttpResponse
 
-    csv_content = BulkResultService.generate_csv_template(sheet_id)
+    csv_content = BulkScoreSheetService.generate_csv_template(sheet_id)
 
     response = HttpResponse(csv_content, content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="result_template_{sheet_id}.csv"'

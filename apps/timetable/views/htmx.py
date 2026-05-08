@@ -82,10 +82,10 @@ class SlotEditFormView(LoginRequiredMixin, PermissionRequiredMixin, View):
         logger.debug(f"Found {teachers.count()} active academic staff")
         
         # If editing an existing slot with a teacher, get their qualified subjects
-        subjects = []
+        subjects = [{'id': q['subject_id'], 'name': q['subject_name']} for q in qualifications]
         if slot and slot.teacher:
             from apps.staffs.selectors import TeacherQualificationSelector
-            qualifications = TeacherQualificationSelector.get_for_teacher(int(teacher_id))
+            qualifications = TeacherQualificationSelector.get_for_teacher(int(slot.teacher_id))
             subjects = [q.subject for q in qualifications]
             logger.debug(f"Pre-loaded {len(subjects)} subjects for teacher {slot.teacher.get_full_name}")
         
@@ -123,7 +123,6 @@ class TeacherSubjectsSelectView(LoginRequiredMixin, View):
         
         qualifications = TeacherQualificationSelector.get_for_teacher(int(teacher_id))
         
-        # Build subject list from qualifications (no cross-app model import)
         subjects = [
             {
                 'id': q['subject_id'],
@@ -143,7 +142,22 @@ class TeacherSubjectsSelectView(LoginRequiredMixin, View):
             'period_id': period_id,
         }
         
-        return render(request, 'timetable/htmx/subject_select.html', context)
+        response = render(request, 'timetable/htmx/subject_select.html', context)
+        
+        # Debug script
+        debug_script = '''
+        <script>
+            console.log("Subject buttons loaded");
+            document.querySelectorAll('button[hx-post]').forEach(btn => {
+                console.log("Found HTMX button:", btn.textContent.trim());
+            });
+            console.log("HTMX available:", typeof htmx !== 'undefined');
+        </script>
+        '''
+        response.content = response.content + debug_script.encode()
+        return response    
+        
+            
 
 @method_decorator(require_http_methods(["POST"]), name='dispatch')
 class SlotUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -151,6 +165,13 @@ class SlotUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'timetable.change_timetable'
     
     def post(self, request, slot_id):
+        print("\n" + "="*50)
+        print(f"🔴 SlotUpdateView.post() CALLED")
+        print(f"🔴 slot_id: {slot_id}")
+        print(f"🔴 POST data: {dict(request.POST)}")
+        print(f"🔴 HX-Request header: {request.headers.get('HX-Request')}")
+        print("="*50 + "\n")
+        
         logger.info(f"SlotUpdateView called: slot_id={slot_id}, user={request.user}")
         
         # Validate with form

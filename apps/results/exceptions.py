@@ -12,7 +12,7 @@ class ResultError(CorecodeError):
     code = 'result_error'
 
 
-class ResultSheetNotFoundError(ResultError):
+class ScoreSheetNotFoundError(ResultError):
     """Result sheet not found"""
     default_message = "Result sheet not found"
     code = 'result_sheet_not_found'
@@ -42,13 +42,13 @@ class InvalidScoreError(ResultError):
     code = 'invalid_score'
 
 
-class ResultSheetClosedError(ResultError):
+class ScoreSheetClosedError(ResultError):
     """Result sheet is closed for editing"""
     default_message = "Result sheet is closed and cannot be modified"
     code = 'result_sheet_closed'
 
 
-class ResultSheetNotApprovedError(ResultError):
+class ScoreSheetNotApprovedError(ResultError):
     """Result sheet not approved for publishing"""
     default_message = "Result sheet must be approved before publishing"
     code = 'result_sheet_not_approved'
