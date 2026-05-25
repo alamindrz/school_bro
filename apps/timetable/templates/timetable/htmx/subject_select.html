@@ -1,5 +1,5 @@
 {# timetable/htmx/subject_select.html #}
-<div>
+<div id="subject-select-wrapper">
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         <i class="fas fa-book-open mr-1 text-primary-500"></i> Select Subject
     </label>
@@ -8,13 +8,15 @@
     <div class="space-y-2">
         {% for subject in subjects %}
         <button type="button"
-                hx-trigger="click"
-                hx-post="{% url 'timetable:htmx_slot_update' slot_id %}"
-                hx-vals='{"teacher_id": "{{ teacher_id }}", "subject_id": "{{ subject.id }}", "timetable_id": "{{ timetable_id }}", "day_id": "{{ day_id }}", "period_id": "{{ period_id }}", "is_free_period": "false"}'
-                hx-target="#slot-{{ timetable_id }}-{{ day_id }}-{{ period_id }}"
-                hx-swap="outerHTML"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-on::after-request="if(event.detail.successful) { $dispatch('close-modal'); $dispatch('slot-updated'); }"
+                onclick="assignSubject(this)"
+                data-slot-id="{{ slot_id }}"
+                data-teacher-id="{{ teacher_id }}"
+                data-subject-id="{{ subject.id }}"
+                data-timetable-id="{{ timetable_id }}"
+                data-day-id="{{ day_id }}"
+                data-period-id="{{ period_id }}"
+                data-url="{% url 'timetable:htmx_slot_update' slot_id %}"
+                data-target="#slot-{{ timetable_id }}-{{ day_id }}-{{ period_id }}"
                 class="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group cursor-pointer">
             <div class="flex items-center justify-between">
                 <span class="flex items-center gap-2">
@@ -26,14 +28,17 @@
         </button>
         {% endfor %}
     </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+        <i class="fas fa-hand-pointer mr-1"></i>Click a subject to assign
+    </p>
     {% else %}
     <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
         <p class="text-sm text-yellow-800 dark:text-yellow-200">
-            <i class="fas fa-exclamation-triangle mr-2"></i> No qualified subjects found.
+            <i class="fas fa-exclamation-triangle mr-2"></i>No qualified subjects found.
         </p>
         <a href="{% url 'staffs:subject_assignments' teacher_id %}" 
-           class="text-xs text-primary-600 hover:underline mt-2 inline-block" target="_blank">
-            Add Qualifications
+           class="inline-block mt-2 text-xs text-primary-600 hover:underline" target="_blank">
+            <i class="fas fa-plus mr-1"></i>Add Qualifications
         </a>
     </div>
     {% endif %}
