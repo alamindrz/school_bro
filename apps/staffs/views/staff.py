@@ -278,6 +278,7 @@ class StaffCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
                 return redirect(self.success_url)
                 
         except Exception as e:
+            logger.error(f"Staff creation failed: {e}", exc_info=True)
             messages.error(self.request, f'Error creating staff: {str(e)}')
             return self.form_invalid(form)
 
@@ -309,6 +310,7 @@ class StaffUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
             return redirect(self.success_url)
             
         except Exception as e:
+            logger.error(f"Staff update failed: {e}", exc_info=True)
             messages.error(self.request, f'Error updating staff: {str(e)}')
             return self.form_invalid(form)
 
@@ -354,6 +356,7 @@ class StaffDeleteView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
             return redirect('staffs:list')
 
         except Exception as e:
+            logger.error(f"Staff deactivation failed for {staff_id}: {e}", exc_info=True)
             messages.error(request, f'Error deactivating staff: {str(e)}')
             return redirect('staffs:detail', pk=staff_id)
 
@@ -620,6 +623,7 @@ class SubjectAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, V
             return redirect('staffs:subject_assignments', pk=staff_id)
             
         except Exception as e:
+            logger.error(f"Qualification removal failed: {e}", exc_info=True)
             messages.error(request, f'Error removing qualification: {str(e)}')
             return redirect('staffs:dashboard')
 
@@ -748,6 +752,7 @@ class DutyAssignmentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View
             return redirect('staffs:duty_assignments', pk=staff_id)
             
         except Exception as e:
+            logger.error(f"Duty assignment deletion failed: {e}", exc_info=True)
             messages.error(request, f'Error deleting duty assignment: {str(e)}')
             return redirect('staffs:dashboard')
 # ============================================================================
@@ -804,6 +809,7 @@ class LeaveRequestView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
         except InsufficientLeaveBalanceError as e:
             messages.error(request, str(e))
         except Exception as e:
+            logger.error(f"Leave request failed for staff {staff_id}: {e}", exc_info=True)
             messages.error(request, f'Leave request failed: {str(e)}')
 
         return redirect('staffs:detail', pk=staff_id)
@@ -888,6 +894,7 @@ class LeaveRequestApproveView(LoginRequiredMixin, PermissionRequiredMixin, View)
             messages.success(request, 'Leave request approved.')
 
         except Exception as e:
+            logger.error(f"Leave approval failed for {leave_id}: {e}", exc_info=True)
             messages.error(request, f'Approval failed: {str(e)}')
 
         return redirect('staffs:leave_detail', pk=leave_id)
@@ -914,6 +921,7 @@ class LeaveRequestRejectView(LoginRequiredMixin, PermissionRequiredMixin, View):
             messages.info(request, 'Leave request rejected.')
 
         except Exception as e:
+            logger.error(f"Leave rejection failed for {leave_id}: {e}", exc_info=True)
             messages.error(request, f'Rejection failed: {str(e)}')
 
         return redirect('staffs:leave_detail', pk=leave_id)
@@ -938,6 +946,7 @@ class LeaveRequestCancelView(LoginRequiredMixin, PermissionRequiredMixin, View):
             messages.info(request, 'Leave request cancelled.')
 
         except Exception as e:
+            logger.error(f"Leave cancellation failed for {leave_id}: {e}", exc_info=True)
             messages.error(request, f'Cancellation failed: {str(e)}')
 
         return redirect('staffs:leave_detail', pk=leave_id)
@@ -1052,6 +1061,7 @@ class StaffAttendanceView(LoginRequiredMixin, PermissionRequiredMixin, TemplateV
                 messages.success(request, 'Staff marked as absent.')
 
         except Exception as e:
+            logger.error(f"Staff attendance recording failed: {e}", exc_info=True)
             messages.error(request, str(e))
 
         return redirect('staffs:attendance')
@@ -1108,6 +1118,7 @@ class PerformanceEvaluationView(LoginRequiredMixin, PermissionRequiredMixin, Tem
             messages.success(request, 'Performance evaluation submitted successfully.')
 
         except Exception as e:
+            logger.error(f"Performance evaluation failed for staff {staff_id}: {e}", exc_info=True)
             messages.error(request, f'Evaluation failed: {str(e)}')
 
         return redirect('staffs:detail', pk=staff_id)
@@ -1625,6 +1636,7 @@ class PerformanceEvaluationEditView(LoginRequiredMixin, PermissionRequiredMixin,
             return redirect('staffs:performance_detail', pk=evaluation_id)
             
         except Exception as e:
+            logger.error(f"Evaluation update failed for {evaluation_id}: {e}", exc_info=True)
             messages.error(request, f'Error updating evaluation: {str(e)}')
             return redirect('staffs:performance_detail', pk=evaluation_id)
 
@@ -1659,6 +1671,7 @@ class PerformanceEvaluationDeleteView(LoginRequiredMixin, PermissionRequiredMixi
             return redirect('staffs:detail', pk=staff_id)
             
         except Exception as e:
+            logger.error(f"Evaluation deletion failed: {e}", exc_info=True)
             messages.error(request, f'Error deleting evaluation: {str(e)}')
             return redirect('staffs:dashboard')
 

@@ -141,7 +141,7 @@ def generate_term_reports():
                     """,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[settings.RESULTS_EMAIL],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
             count += 1
 

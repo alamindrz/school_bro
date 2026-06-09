@@ -234,6 +234,7 @@ class StudentStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, FormV
             messages.error(self.request, str(e))
             return self.form_invalid(form)
         except Exception as e:
+            logger.error(f"Status update failed for student {self.student.id}: {e}", exc_info=True)
             messages.error(self.request, f'Error updating status: {str(e)}')
             return self.form_invalid(form)
 
@@ -351,6 +352,7 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
                 messages.success(self.request, f'Successfully imported {success_count} students.')
                 
         except Exception as e:
+            logger.error(f"Bulk import failed: {e}", exc_info=True)
             messages.error(self.request, f'Bulk import failed: {str(e)}')
         
         return super().form_valid(form)
@@ -386,6 +388,7 @@ class StudentGenerateUserView(TemplateView):
                 f'User account created for {student.get_full_name}. Username: {user.username}'
             )
         except Exception as e:
+            logger.error(f"User account creation failed for student {student_id}: {e}", exc_info=True)
             messages.error(request, f'Failed to create user account: {str(e)}')
         
         return redirect('students:detail', pk=student_id)
@@ -563,6 +566,7 @@ class StudentPromotionView(LoginRequiredMixin, PermissionRequiredMixin, Template
                 messages.success(request, f'Successfully promoted {len(successful)} students.')
                 
         except Exception as e:
+            logger.error(f"Promotion failed: {e}", exc_info=True)
             messages.error(request, f'Promotion failed: {str(e)}')
         
         return redirect('students:list')

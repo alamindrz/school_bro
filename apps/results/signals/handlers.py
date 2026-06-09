@@ -30,4 +30,4 @@ def result_sheet_post_save(sender, instance, created, **kwargs):
                 # Notify parents
                 ScoreSheetService._notify_parents(instance)
         except ScoreSheet.DoesNotExist:
-            pass
+            logger.warning(f"ScoreSheet pk={instance.pk} not found during post_save signal")

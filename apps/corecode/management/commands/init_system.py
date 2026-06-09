@@ -416,7 +416,8 @@ class Command(BaseCommand):
                     class_name=student_class.name,
                     session_code=session_code
                 )
-            except:
+            except Exception as e:
+                self.stderr.write(self.style.WARNING(f"Admission number generation failed: {e}"))
                 admission_number = f"{date.today().year}/{student_class.name}/{i+1:03d}"
             
             # Create student

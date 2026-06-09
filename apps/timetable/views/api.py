@@ -44,9 +44,11 @@ class ClashCheckView(LoginRequiredMixin, View):
                 'clash_details': clash_details if has_clash else None
             })
             
+        except ValueError:
+            return JsonResponse({'error': 'Invalid parameter format'}, status=400)
         except Exception as e:
             logger.exception(f"Clash check failed: {e}")
-            return JsonResponse({'has_clash': False, 'error': str(e)}, status=500)
+            return JsonResponse({'error': str(e)}, status=500)
 
 
 @method_decorator(require_http_methods(["GET"]), name='dispatch')
@@ -67,6 +69,8 @@ class TeacherAvailabilityView(LoginRequiredMixin, View):
             )
             return JsonResponse({'available_slots': available})
             
+        except ValueError:
+            return JsonResponse({'error': 'Invalid parameter format'}, status=400)
         except Exception as e:
             logger.exception(f"Teacher availability failed: {e}")
             return JsonResponse({'error': str(e)}, status=500)

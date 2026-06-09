@@ -158,6 +158,7 @@ class NotificationCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templa
                 return redirect('notifications:detail', pk=notification.id)
             
         except Exception as e:
+            logger.error(f"Notification creation failed: {e}", exc_info=True)
             messages.error(request, f'Error creating notification: {str(e)}')
             return self.get(request, *args, **kwargs)
 
@@ -278,6 +279,7 @@ class NotificationPreferenceView(LoginRequiredMixin, PermissionRequiredMixin, Te
             messages.success(request, 'Preferences updated successfully.')
             
         except Exception as e:
+            logger.error(f"Preference update failed: {e}", exc_info=True)
             messages.error(request, f'Error updating preferences: {str(e)}')
         
         return redirect('notifications:preferences')
@@ -357,6 +359,7 @@ class BulkNotificationView(LoginRequiredMixin, PermissionRequiredMixin, Template
             )
             
         except Exception as e:
+            logger.error(f"Bulk notification failed: {e}", exc_info=True)
             messages.error(request, f'Error sending bulk notification: {str(e)}')
         
         return redirect('notifications:list')
@@ -383,6 +386,7 @@ class NotificationResendView(LoginRequiredMixin, PermissionRequiredMixin, View):
         except NotificationError as e:
             messages.error(request, str(e))
         except Exception as e:
+            logger.error(f"Notification resend failed for {notification_id}: {e}", exc_info=True)
             messages.error(request, f'Error resending notification: {str(e)}')
         
         return redirect('notifications:detail', pk=notification_id)
@@ -403,6 +407,7 @@ class NotificationArchiveView(LoginRequiredMixin, PermissionRequiredMixin, View)
             messages.success(request, f'{count} notifications archived.')
             
         except Exception as e:
+            logger.error(f"Notification archiving failed: {e}", exc_info=True)
             messages.error(request, f'Error archiving notifications: {str(e)}')
         
         return redirect('notifications:list')

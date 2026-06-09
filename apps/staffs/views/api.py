@@ -140,6 +140,7 @@ def quick_check_in(request):
     except Staff.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Staff not found'}, status=404)
     except Exception as e:
+        logger.error(f"Attendance recording failed: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
@@ -169,6 +170,7 @@ def update_staff_status_ajax(request):
         })
 
     except Exception as e:
+        logger.error(f"Staff status update failed: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 

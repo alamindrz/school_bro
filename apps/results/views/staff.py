@@ -132,8 +132,8 @@ class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'results.change_result'
 
     def post(self, request, *args, **kwargs):
-        print(f"RAW POST: {request.POST}")
-        print(f"BODY: {request.body}")
+        logger.debug(f"RAW POST: {request.POST}")
+        logger.debug(f"BODY: {request.body}")
         try:
             entry_id = request.POST.get('entry_id')
             field = request.POST.get('field')
@@ -166,8 +166,7 @@ class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             })
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Score update failed: {e}", exc_info=True)
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 class SubmitSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -179,6 +178,7 @@ class SubmitSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
             ScoreSheetService.submit_sheet(sheet_id=pk, user_id=request.user.id)
             messages.success(request, 'Sheet submitted for approval.')
         except Exception as e:
+            logger.error(f"Sheet submission failed for sheet {pk}: {e}", exc_info=True)
             messages.error(request, str(e))
         return redirect('results:sheet_detail', pk=pk)
 
@@ -192,6 +192,7 @@ class PublishSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
             ScoreSheetService.publish_sheet(sheet_id=pk)
             messages.success(request, 'Sheet published.')
         except Exception as e:
+            logger.error(f"Sheet publishing failed for sheet {pk}: {e}", exc_info=True)
             messages.error(request, str(e))
         return redirect('results:sheet_detail', pk=pk)
 
