@@ -63,15 +63,15 @@ class SlotEditFormView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if day_id:
             try:
                 day = SchoolDay.objects.get(id=int(day_id))
-            except SchoolDay.DoesNotExist:
-                logger.warning(f"SchoolDay id={day_id} not found")
+            except (SchoolDay.DoesNotExist, ValueError):
+                logger.warning(f"SchoolDay id={day_id} not found or invalid")
         
         period = None
         if period_id:
             try:
                 period = TimetablePeriod.objects.get(id=int(period_id))
-            except TimetablePeriod.DoesNotExist:
-                logger.warning(f"TimetablePeriod id={period_id} not found")
+            except (TimetablePeriod.DoesNotExist, ValueError):
+                logger.warning(f"TimetablePeriod id={period_id} not found or invalid")
         
         # Get all active academic staff
         from apps.staffs.models import Staff

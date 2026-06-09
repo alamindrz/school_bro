@@ -28,4 +28,4 @@ def invoice_pre_save(sender, instance, **kwargs):
             if old.amount_paid != instance.amount_paid:
                 logger.info(f"Invoice {instance.invoice_number} payment updated")
         except Invoice.DoesNotExist:
-            pass
+            logger.warning(f"Invoice pk={instance.pk} not found during pre_save signal")

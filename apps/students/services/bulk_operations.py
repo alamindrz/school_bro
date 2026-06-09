@@ -199,7 +199,10 @@ class BulkStudentService:
                                 created_by_id=imported_by_id
                             )
                         except Exception as e:
-                            logger.warning(f"Failed to create user for student {student.id}: {e}")
+                            logger.warning(
+                                f"Student {student.id} imported but user account creation failed: {e}",
+                                exc_info=True
+                            )
                     
                     successful.append(student)
                     

@@ -118,7 +118,8 @@ def update_result_ajax(request):
         })
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        logger.error(f"Error updating result: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required

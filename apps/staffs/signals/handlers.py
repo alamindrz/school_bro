@@ -29,4 +29,4 @@ def leave_request_post_save(sender, instance, created, **kwargs):
             if old.status != instance.status:
                 logger.info(f"Leave request {instance.id} status changed: {old.status} -> {instance.status}")
         except LeaveRequest.DoesNotExist:
-            pass
+            logger.warning(f"LeaveRequest pk={instance.pk} not found during post_save signal")

@@ -338,7 +338,7 @@ class ApplicationService:
                     user_agent=''
                 )
             except User.DoesNotExist:
-                pass
+                logger.warning(f"Audit log skipped: User {submitted_by_id} not found for application {application.application_number}")
         
         logger.info(f"Application submitted: {application.application_number}")
         return application
@@ -415,7 +415,7 @@ class ApplicationService:
                     user_agent=''
                 )
             except User.DoesNotExist:
-                pass
+                logger.warning(f"Audit log skipped: User {reviewed_by_id} not found for application {application.application_number}")
         
         logger.info(f"Application {application.application_number} reviewed: {new_status}")
         return application

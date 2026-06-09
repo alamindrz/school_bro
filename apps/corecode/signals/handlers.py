@@ -7,9 +7,12 @@ from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+import logging
 
 from ..models import SystemLog, AcademicSession, AcademicTerm, StudentClass, SiteConfig
 from ..services import SystemLogService
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -45,4 +48,4 @@ def track_session_changes(sender, instance, **kwargs):
                 timestamp=timezone.now()
             )
     except sender.DoesNotExist:
-        pass
+        logger.debug(f"{sender.__name__} pk={instance.pk} not found during pre_save signal")

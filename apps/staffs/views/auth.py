@@ -10,6 +10,9 @@ from django.shortcuts import redirect, render
 from django.views.generic import FormView, TemplateView
 from django import forms
 from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -52,18 +55,14 @@ class StaffLoginView(FormView):
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
         
-        print(f"=== LOGIN ATTEMPT ===")
-        print(f"Email: {email}")
-        print(f"Password provided: {'Yes' if password else 'No'}")
+        logger.debug(f"Login attempt for email: {email}")
         
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
         try:
             user = User.objects.get(email=email)
-            print(f"User found: {user.username}")
-            print(f"User is_staff: {user.is_staff}")
-            print(f"Has staff_profile: {hasattr(user, 'staff_profile')}")
+            logger.debug(f"User found: {user.username}, is_staff={user.is_staff}")
             
             authenticated_user = authenticate(
                 self.request,
@@ -71,19 +70,17 @@ class StaffLoginView(FormView):
                 password=password
             )
             
-            print(f"Authenticated: {authenticated_user is not None}")
-            
             if authenticated_user is not None:
                 login(self.request, authenticated_user)
                 messages.success(self.request, f'Welcome back!')
                 return redirect(self.success_url)
             else:
-                print("Authentication failed - wrong password")
+                logger.warning(f"Authentication failed for email: {email}")
                 messages.error(self.request, 'Invalid password. Please try again.')
                 return self.form_invalid(form)
                 
         except User.DoesNotExist:
-            print(f"No user found with email: {email}")
+            logger.warning(f"Login attempt for non-existent email: {email}")
             messages.error(self.request, 'No account found with this email address.')
             return self.form_invalid(form)
 

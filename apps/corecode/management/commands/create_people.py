@@ -552,8 +552,9 @@ class Command(BaseCommand):
                 class_name=student_class.name,
                 session_code=session_code
             )
-        except:
+        except Exception as e:
             # Fallback if service fails
+            self.stderr.write(self.style.WARNING(f"Admission number generation failed: {e}"))
             last_student = Student.objects.order_by('-id').first()
             next_id = (last_student.id + 1) if last_student else 1
             admission_number = f"{date.today().year}/{student_class.name}/{next_id:03d}"

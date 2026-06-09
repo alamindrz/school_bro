@@ -55,7 +55,7 @@ def get_unread_count(request):
         
     except Exception as e:
         logger.error(f"Error getting unread count: {e}")
-        return JsonResponse({'count': 0, 'error': str(e)})
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
@@ -93,7 +93,7 @@ def get_recent_notifications(request):
         
     except Exception as e:
         logger.error(f"Error getting recent notifications: {e}")
-        return JsonResponse({'notifications': [], 'error': str(e)})
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
