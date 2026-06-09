@@ -4,6 +4,12 @@ Inherit from corecode exceptions
 """
 
 from apps.corecode.exceptions import CorecodeError
+from apps.shared.exceptions import (
+    InvalidStatusTransitionError as _SharedStatusTransition,
+    PaymentError as _SharedPayment,
+    PaymentVerificationError as _SharedPaymentVerification,
+    PaymentIdempotencyError as _SharedPaymentIdempotency,
+)
 
 
 class AdmissionsError(CorecodeError):
@@ -18,17 +24,10 @@ class ApplicationNotFoundError(AdmissionsError):
     code = 'application_not_found'
 
 
-class InvalidApplicationStatusError(AdmissionsError):
+class InvalidApplicationStatusError(AdmissionsError, _SharedStatusTransition):
     """Invalid status transition"""
     default_message = "Cannot transition application to this status"
     code = 'invalid_status_transition'
-    
-    def __init__(self, from_status=None, to_status=None, message=None):
-        self.from_status = from_status
-        self.to_status = to_status
-        if from_status and to_status and not message:
-            message = f"Cannot transition from '{from_status}' to '{to_status}'"
-        super().__init__(message=message, code=self.code)
 
 
 class DuplicateApplicationError(AdmissionsError):
@@ -37,19 +36,19 @@ class DuplicateApplicationError(AdmissionsError):
     code = 'duplicate_application'
 
 
-class PaymentError(AdmissionsError):
+class PaymentError(AdmissionsError, _SharedPayment):
     """Payment processing errors"""
     default_message = "Payment processing error"
     code = 'payment_error'
 
 
-class PaymentVerificationError(PaymentError):
+class PaymentVerificationError(PaymentError, _SharedPaymentVerification):
     """Payment verification failed"""
     default_message = "Payment verification failed"
     code = 'payment_verification_failed'
 
 
-class PaymentIdempotencyError(PaymentError):
+class PaymentIdempotencyError(PaymentError, _SharedPaymentIdempotency):
     """Duplicate payment detected"""
     default_message = "This payment has already been processed"
     code = 'payment_idempotency_error'

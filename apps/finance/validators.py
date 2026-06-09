@@ -7,6 +7,10 @@ from datetime import date
 from django.core.exceptions import ValidationError
 
 from .constants import InvoiceStatus, PaymentMethod, FeeType, DiscountType
+from apps.shared.validators import (
+    validate_status_transition as _shared_validate_status_transition,
+    validate_choice as _shared_validate_choice,
+)
 
 
 class InvoiceValidator:
@@ -60,12 +64,9 @@ class InvoiceValidator:
     @staticmethod
     def validate_status_transition(current_status: str, new_status: str) -> bool:
         """Validate invoice status transition"""
-        valid_transitions = InvoiceStatus.VALID_TRANSITIONS.get(current_status, [])
-        if new_status not in valid_transitions:
-            raise ValidationError(
-                f"Cannot transition from {current_status} to {new_status}"
-            )
-        return True
+        return _shared_validate_status_transition(
+            current_status, new_status, InvoiceStatus.VALID_TRANSITIONS,
+        )
 
 
 class PaymentValidator:
@@ -88,10 +89,7 @@ class PaymentValidator:
     @staticmethod
     def validate_payment_method(method: str) -> bool:
         """Validate payment method"""
-        valid_methods = [pm[0] for pm in PaymentMethod.CHOICES]
-        if method not in valid_methods:
-            raise ValidationError(f"Invalid payment method: {method}")
-        return True
+        return _shared_validate_choice(method, PaymentMethod.CHOICES, "payment method")
     
     @staticmethod
     def validate_transaction_id(transaction_id: str) -> bool:
@@ -112,10 +110,7 @@ class FeeStructureValidator:
     @staticmethod
     def validate_fee_type(fee_type: str) -> bool:
         """Validate fee type"""
-        valid_types = [ft[0] for ft in FeeType.CHOICES]
-        if fee_type not in valid_types:
-            raise ValidationError(f"Invalid fee type: {fee_type}")
-        return True
+        return _shared_validate_choice(fee_type, FeeType.CHOICES, "fee type")
     
     @staticmethod
     def validate_term(term: str) -> bool:

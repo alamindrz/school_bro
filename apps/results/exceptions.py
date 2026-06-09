@@ -4,6 +4,10 @@ Inherit from corecode exceptions
 """
 
 from apps.corecode.exceptions import CorecodeError
+from apps.shared.exceptions import (
+    BulkOperationError as _SharedBulkOp,
+    NotEligibleError as _SharedNotEligible,
+)
 
 
 class ResultError(CorecodeError):
@@ -54,7 +58,7 @@ class ScoreSheetNotApprovedError(ResultError):
     code = 'result_sheet_not_approved'
 
 
-class StudentNotEligibleError(ResultError):
+class StudentNotEligibleError(ResultError, _SharedNotEligible):
     """Student not eligible for results"""
     default_message = "Student is not eligible for results"
     code = 'student_not_eligible'
@@ -66,7 +70,7 @@ class SubjectNotFoundError(ResultError):
     code = 'subject_not_found'
 
 
-class BulkOperationError(ResultError):
+class BulkOperationError(ResultError, _SharedBulkOp):
     """Bulk operation failed"""
     default_message = "Bulk operation failed"
     code = 'bulk_operation_error'

@@ -7,6 +7,11 @@ from decimal import Decimal
 from typing import Optional, List
 from datetime import date
 from .constants import GradeSystem, AssessmentType, RemarkType
+from apps.shared.validators import (
+    validate_status_transition as _shared_validate_status_transition,
+    validate_csv_headers as _shared_validate_csv_headers,
+    validate_batch_size as _shared_validate_batch_size,
+)
 
 
 class ResultValidator:
@@ -82,7 +87,7 @@ class ScoreSheetValidator:
     def validate_status_transition(current_status: str, new_status: str) -> bool:
         """Validate result sheet status transition"""
         from .constants import ResultStatus
-        
+
         valid_transitions = {
             ResultStatus.DRAFT: [ResultStatus.PENDING_APPROVAL, ResultStatus.ARCHIVED],
             ResultStatus.PENDING_APPROVAL: [ResultStatus.APPROVED, ResultStatus.DRAFT],
@@ -90,14 +95,9 @@ class ScoreSheetValidator:
             ResultStatus.PUBLISHED: [ResultStatus.ARCHIVED],
             ResultStatus.ARCHIVED: [],
         }
-        
-        allowed = valid_transitions.get(current_status, [])
-        if new_status not in allowed:
-            raise ValidationError(
-                f"Cannot transition from {current_status} to {new_status}"
-            )
-        
-        return True
+        return _shared_validate_status_transition(
+            current_status, new_status, valid_transitions,
+        )
     
     @staticmethod
     def validate_term_completion(term_end_date: date, current_date: date) -> bool:
@@ -114,24 +114,14 @@ class BulkResultValidator:
     
     @staticmethod
     def validate_csv_headers(headers: List[str], required_fields: List[str]) -> bool:
-        """Validate CSV headers for bulk import"""
-        missing = [f for f in required_fields if f not in headers]
-        if missing:
-            raise ValidationError(f"Missing required columns: {', '.join(missing)}")
-        
-        # Check for at least one score column
+        """Validate CSV headers for bulk import (with extra score-column check)."""
+        _shared_validate_csv_headers(headers, required_fields)
+
         score_columns = ['ca1', 'ca2', 'ca3', 'exam', 'practical', 'project']
-        has_score = any(col in headers for col in score_columns)
-        if not has_score:
+        if not any(col in headers for col in score_columns):
             raise ValidationError("CSV must contain at least one score column")
-        
         return True
     
     @staticmethod
     def validate_batch_size(batch_size: int, max_batch: int = 500) -> bool:
-        """Validate batch size for bulk operations"""
-        if batch_size > max_batch:
-            raise ValidationError(f"Batch size {batch_size} exceeds maximum {max_batch}")
-        if batch_size <= 0:
-            raise ValidationError("Batch size must be positive")
-        return True
+        return _shared_validate_batch_size(batch_size, max_batch)

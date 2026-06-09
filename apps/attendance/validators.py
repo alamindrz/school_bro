@@ -6,6 +6,10 @@ from datetime import date, time
 from django.core.exceptions import ValidationError
 
 from .constants import AttendanceStatus, SessionType, MarkingMethod
+from apps.shared.validators import (
+    validate_choice as _shared_validate_choice,
+    validate_date_range as _shared_validate_date_range,
+)
 
 
 class AttendanceValidator:
@@ -14,18 +18,12 @@ class AttendanceValidator:
     @staticmethod
     def validate_status(status: str) -> bool:
         """Validate attendance status"""
-        valid_statuses = [s[0] for s in AttendanceStatus.CHOICES]
-        if status not in valid_statuses:
-            raise ValidationError(f"Invalid attendance status: {status}")
-        return True
+        return _shared_validate_choice(status, AttendanceStatus.CHOICES, "attendance status")
     
     @staticmethod
     def validate_session_type(session_type: str) -> bool:
         """Validate session type"""
-        valid_types = [s[0] for s in SessionType.CHOICES]
-        if session_type not in valid_types:
-            raise ValidationError(f"Invalid session type: {session_type}")
-        return True
+        return _shared_validate_choice(session_type, SessionType.CHOICES, "session type")
     
     @staticmethod
     def validate_check_in_time(check_in_time: time, session_type: str) -> bool:
@@ -51,13 +49,7 @@ class AttendanceValidator:
     @staticmethod
     def validate_date_range(start_date: date, end_date: date) -> bool:
         """Validate date range"""
-        if start_date > end_date:
-            raise ValidationError("Start date cannot be after end date")
-        
-        if (end_date - start_date).days > 365:
-            raise ValidationError("Date range cannot exceed one year")
-        
-        return True
+        return _shared_validate_date_range(start_date, end_date, max_days=365)
 
 
 class QRCodeValidator:

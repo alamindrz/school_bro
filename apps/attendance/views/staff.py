@@ -437,28 +437,35 @@ class ExportReportView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'attendance.view_attendancereport'
     
     def get(self, request, *args, **kwargs):
-        import csv
-        from django.http import HttpResponse
+        from apps.shared.csv_export import build_csv_response
+
         report_type = request.GET.get('type', 'daily')
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="attendance_{report_type}_{date.today()}.csv"'
-        writer = csv.writer(response)
+
         if report_type == 'daily':
             report_date = request.GET.get('date', date.today().isoformat())
             report = ReportService.generate_daily_report(date.fromisoformat(report_date))
-            if report['has_data']:
-                writer.writerow(['Class', 'Total', 'Present', 'Absent', 'Late', 'Percentage'])
-                for class_data in report['by_class']:
-                    writer.writerow([class_data['class_name'], class_data['total'],
-                                     class_data['present'], class_data['absent'],
-                                     class_data['late'], f"{class_data['percentage']:.1f}%"])
+            headers = ['Class', 'Total', 'Present', 'Absent', 'Late', 'Percentage']
+            rows = [
+                [d['class_name'], d['total'], d['present'], d['absent'],
+                 d['late'], f"{d['percentage']:.1f}%"]
+                for d in report.get('by_class', [])
+            ] if report.get('has_data') else []
         elif report_type == 'student':
             student_id = request.GET.get('student_id')
+            headers = ['Date', 'Status', 'Check In', 'Session']
+            rows = []
             if student_id:
                 report = ReportService.generate_student_report(int(student_id))
-                if report['has_data']:
-                    writer.writerow(['Date', 'Status', 'Check In', 'Session'])
-                    for record in report['recent']:
-                        writer.writerow([record['date'], record['status'],
-                                         record.get('check_in', ''), record.get('session', '')])
-        return response
+                if report.get('has_data'):
+                    rows = [
+                        [r['date'], r['status'], r.get('check_in', ''), r.get('session', '')]
+                        for r in report['recent']
+                    ]
+        else:
+            headers, rows = [], []
+
+        return build_csv_response(
+            filename=f"attendance_{report_type}",
+            headers=headers,
+            rows=rows,
+        )

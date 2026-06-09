@@ -303,6 +303,32 @@ def get_filter_options(request):
     return HttpResponse('')
 
 
+_STUDENT_EXPORT_HEADERS = [
+    'Admission Number', 'Full Name', 'First Name', 'Last Name', 'Middle Name',
+    'Gender', 'Date of Birth', 'Age', 'Email', 'Phone', 'Address', 'City',
+    'State of Origin', 'Current Class', 'Status', 'Enrollment Date',
+]
+
+_STUDENT_EXPORT_KEYS = [
+    'admission_number', 'full_name', 'first_name', 'last_name', 'middle_name',
+    'gender', 'date_of_birth', 'age', 'email', 'phone', 'address', 'city',
+    'state_of_origin', None, 'status_display', 'enrollment_date',
+]
+
+
+def _student_row(student):
+    """Build a CSV row from a student dict, handling nested current_class."""
+    row = []
+    for key in _STUDENT_EXPORT_KEYS:
+        if key is None:
+            # current_class (nested dict)
+            cc = student.get('current_class')
+            row.append(cc.get('display_name', '') if isinstance(cc, dict) else '')
+        else:
+            row.append(student.get(key, ''))
+    return row
+
+
 @login_required
 @permission_required('students.view_student')
 @require_http_methods(["GET"])
@@ -310,61 +336,22 @@ def export_students(request):
     """
     Export filtered students as CSV.
     """
-    import csv
-    from django.http import HttpResponse
-    
-    # Get filter parameters
-    search = request.GET.get('search', '')
-    class_id = request.GET.get('class_id')
-    status = request.GET.get('status')
-    gender = request.GET.get('gender')
-    session_id = request.GET.get('session_id')
-    
-    # Get filtered students
+    from apps.shared.csv_export import build_csv_response
+
     students = StudentSelector.search_students(
-        query=search,
-        class_id=class_id,
-        status=status,
-        gender=gender,
-        session_id=session_id,
-        limit=5000  # Reasonable limit for export
+        query=request.GET.get('search', ''),
+        class_id=request.GET.get('class_id'),
+        status=request.GET.get('status'),
+        gender=request.GET.get('gender'),
+        session_id=request.GET.get('session_id'),
+        limit=5000,
     )
-    
-    # Create CSV response
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="students_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
-    
-    writer = csv.writer(response)
-    
-    # Write headers
-    writer.writerow([
-        'Admission Number', 'Full Name', 'First Name', 'Last Name', 'Middle Name',
-        'Gender', 'Date of Birth', 'Age', 'Email', 'Phone', 'Address', 'City',
-        'State of Origin', 'Current Class', 'Status', 'Enrollment Date'
-    ])
-    
-    # Write data
-    for student in students:
-        writer.writerow([
-            student.get('admission_number', ''),
-            student.get('full_name', ''),
-            student.get('first_name', ''),
-            student.get('last_name', ''),
-            student.get('middle_name', ''),
-            student.get('gender', ''),
-            student.get('date_of_birth', ''),
-            student.get('age', ''),
-            student.get('email', ''),
-            student.get('phone', ''),
-            student.get('address', ''),
-            student.get('city', ''),
-            student.get('state_of_origin', ''),
-            student.get('current_class', {}).get('display_name', '') if student.get('current_class') else '',
-            student.get('status_display', ''),
-            student.get('enrollment_date', ''),
-        ])
-    
-    return response
+
+    return build_csv_response(
+        filename="students",
+        headers=_STUDENT_EXPORT_HEADERS,
+        rows=[_student_row(s) for s in students],
+    )
 
 
 @login_required
@@ -386,33 +373,25 @@ def bulk_action(request):
         return JsonResponse({'error': 'Invalid student IDs'}, status=400)
     
     if action == 'export_selected':
-        # Export selected students
-        import csv
-        from django.http import HttpResponse
-        
-        students = []
-        for student_id in student_ids:
-            student = StudentSelector.get_by_id(student_id)
-            if student:
-                students.append(student)
-        
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="selected_students_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Admission Number', 'Full Name', 'Email', 'Phone', 'Class', 'Status'])
-        
-        for student in students:
-            writer.writerow([
-                student.get('admission_number', ''),
-                student.get('full_name', ''),
-                student.get('email', ''),
-                student.get('phone', ''),
-                student.get('current_class', {}).get('display_name', '') if student.get('current_class') else '',
-                student.get('status_display', ''),
-            ])
-        
-        return response
+        from apps.shared.csv_export import build_csv_response
+
+        students = [s for sid in student_ids
+                     if (s := StudentSelector.get_by_id(sid)) is not None]
+
+        def _class_name(s):
+            cc = s.get('current_class')
+            return cc.get('display_name', '') if isinstance(cc, dict) else ''
+
+        return build_csv_response(
+            filename="selected_students",
+            headers=['Admission Number', 'Full Name', 'Email', 'Phone', 'Class', 'Status'],
+            rows=[
+                [s.get('admission_number', ''), s.get('full_name', ''),
+                 s.get('email', ''), s.get('phone', ''),
+                 _class_name(s), s.get('status_display', '')]
+                for s in students
+            ],
+        )
     
     elif action == 'update_status':
         new_status = request.POST.get('status')

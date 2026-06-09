@@ -4,6 +4,12 @@ Inherit from corecode exceptions
 """
 
 from apps.corecode.exceptions import CorecodeError
+from apps.shared.exceptions import (
+    PaymentError as _SharedPayment,
+    PaymentVerificationError as _SharedPaymentVerification,
+    PaymentIdempotencyError as _SharedPaymentIdempotency,
+    NotEligibleError as _SharedNotEligible,
+)
 
 
 class FinanceError(CorecodeError):
@@ -30,19 +36,19 @@ class InvalidInvoiceStatusError(FinanceError):
     code = 'invalid_invoice_status'
 
 
-class PaymentError(FinanceError):
+class PaymentError(FinanceError, _SharedPayment):
     """Payment processing errors"""
     default_message = "Payment processing error"
     code = 'payment_error'
 
 
-class PaymentVerificationError(PaymentError):
+class PaymentVerificationError(PaymentError, _SharedPaymentVerification):
     """Payment verification failed"""
     default_message = "Payment verification failed"
     code = 'payment_verification_failed'
 
 
-class PaymentIdempotencyError(PaymentError):
+class PaymentIdempotencyError(PaymentError, _SharedPaymentIdempotency):
     """Duplicate payment detected"""
     default_message = "This payment has already been processed"
     code = 'payment_idempotency_error'
@@ -72,7 +78,7 @@ class WaiverLimitExceededError(WaiverError):
     code = 'waiver_limit_exceeded'
 
 
-class StudentNotEligibleError(FinanceError):
+class StudentNotEligibleError(FinanceError, _SharedNotEligible):
     """Student not eligible for operation"""
     default_message = "Student is not eligible for this operation"
     code = 'student_not_eligible'

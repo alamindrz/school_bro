@@ -10,6 +10,14 @@ from typing import Optional, Dict, Any, List, Union
 from django.utils.translation import gettext_lazy as _
 
 from apps.corecode.constants import NigerianClassLevel
+from apps.shared.validators import (
+    NIGERIAN_PHONE_PATTERN,
+    EMAIL_PATTERN,
+    validate_status_transition as _shared_validate_status_transition,
+    validate_csv_headers as _shared_validate_csv_headers,
+    validate_batch_size as _shared_validate_batch_size,
+    validate_date_of_birth as _shared_validate_dob,
+)
 from .exceptions import (
     StudentValidationError,
     AdmissionNumberFormatError,
@@ -17,6 +25,7 @@ from .exceptions import (
     InvalidStatusTransitionError,
     GuardianLimitExceededError,
     PrimaryGuardianRequiredError,
+    BulkOperationError,
 )
 
 
@@ -26,8 +35,8 @@ class StudentValidator:
     # Regular expressions
     ADMISSION_NUMBER_PATTERN = re.compile(r'^\d{2,20}/[A-Z0-9]{2,10}/\d{3,5}$')
 
-    PHONE_PATTERN = re.compile(r'^0[789]\d{9}$|^\+234[789]\d{9}$')
-    EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    PHONE_PATTERN = NIGERIAN_PHONE_PATTERN
+    EMAIL_PATTERN = EMAIL_PATTERN
     
     @classmethod
     def validate_admission_number_format(cls, admission_number: str) -> bool:
@@ -72,32 +81,20 @@ class StudentValidator:
     
     @classmethod
     def validate_date_of_birth(cls, dob: Union[str, date], min_age: int = 2, max_age: int = 25) -> date:
-        """Validate date of birth and calculate age"""
-        if isinstance(dob, str):
-            try:
-                dob = datetime.strptime(dob, '%Y-%m-%d').date()
-            except ValueError:
-                raise StudentValidationError(
-                    message="Invalid date format. Use YYYY-MM-DD",
-                    field_errors={'date_of_birth': ['Use YYYY-MM-DD format']}
-                )
-        
-        today = date.today()
-        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-        
-        if age < min_age:
+        """Validate date of birth and calculate age.
+
+        Delegates core logic to ``apps.shared.validators.validate_date_of_birth``
+        and wraps any ``ValidationError`` in the app-specific
+        ``StudentValidationError``.
+        """
+        from django.core.exceptions import ValidationError
+        try:
+            return _shared_validate_dob(dob, min_age=min_age, max_age=max_age)
+        except ValidationError as exc:
             raise StudentValidationError(
-                message=f"Student must be at least {min_age} years old",
-                field_errors={'date_of_birth': [f'Must be at least {min_age} years old']}
+                message=str(exc.message if hasattr(exc, 'message') else exc),
+                field_errors={'date_of_birth': [str(exc.message if hasattr(exc, 'message') else exc)]}
             )
-        
-        if age > max_age:
-            raise StudentValidationError(
-                message=f"Student cannot be older than {max_age} years",
-                field_errors={'date_of_birth': [f'Cannot be older than {max_age} years']}
-            )
-        
-        return dob
     
     @classmethod
     def validate_class_for_age(cls, student_class_name: str, age: int) -> bool:
@@ -145,17 +142,11 @@ class StudentValidator:
     def validate_status_transition(cls, current_status: str, new_status: str) -> bool:
         """Validate student status transition"""
         from .constants import StudentStatus
-        
-        if current_status == new_status:
-            return True
-        
-        valid_transitions = StudentStatus.VALID_TRANSITIONS.get(current_status, [])
-        if new_status not in valid_transitions:
-            raise InvalidStatusTransitionError(
-                from_status=current_status,
-                to_status=new_status
-            )
-        return True
+        return _shared_validate_status_transition(
+            current_status, new_status,
+            StudentStatus.VALID_TRANSITIONS,
+            error_class=InvalidStatusTransitionError,
+        )
 
 
 class GuardianValidator:
@@ -198,25 +189,20 @@ class GuardianValidator:
 
 
 class BulkOperationValidator:
-    """Validator for bulk operations"""
-    
+    """Validator for bulk operations — delegates to shared helpers."""
+
     @classmethod
     def validate_csv_headers(cls, headers: List[str], required_fields: List[str]) -> bool:
-        """Validate CSV headers for bulk import"""
-        missing = [field for field in required_fields if field not in headers]
-        if missing:
-            raise BulkOperationError(
-                message=f"Missing required columns: {', '.join(missing)}"
-            )
-        return True
-    
+        from django.core.exceptions import ValidationError
+        try:
+            return _shared_validate_csv_headers(headers, required_fields)
+        except ValidationError as exc:
+            raise BulkOperationError(message=str(exc.message if hasattr(exc, 'message') else exc))
+
     @classmethod
     def validate_batch_size(cls, batch_size: int, max_batch: int = 1000) -> bool:
-        """Validate batch size for bulk operations"""
-        if batch_size > max_batch:
-            raise BulkOperationError(
-                message=f"Batch size {batch_size} exceeds maximum {max_batch}"
-            )
-        if batch_size <= 0:
-            raise BulkOperationError(message="Batch size must be positive")
-        return True
+        from django.core.exceptions import ValidationError
+        try:
+            return _shared_validate_batch_size(batch_size, max_batch)
+        except ValidationError as exc:
+            raise BulkOperationError(message=str(exc.message if hasattr(exc, 'message') else exc))
