@@ -8,7 +8,6 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 
@@ -55,7 +54,7 @@ def get_unread_count(request):
         
     except Exception as e:
         logger.error(f"Error getting unread count: {e}")
-        return JsonResponse({'count': 0, 'error': str(e)})
+        return JsonResponse({'count': 0})
 
 
 @login_required
@@ -93,7 +92,7 @@ def get_recent_notifications(request):
         
     except Exception as e:
         logger.error(f"Error getting recent notifications: {e}")
-        return JsonResponse({'notifications': [], 'error': str(e)})
+        return JsonResponse({'notifications': []})
 
 
 @login_required
@@ -129,7 +128,7 @@ def mark_as_read(request):
         
     except Exception as e:
         logger.error(f"Error marking notification as read: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to update notification'}, status=400)
 
 
 @login_required
@@ -166,7 +165,7 @@ def mark_all_as_read(request):
         
     except Exception as e:
         logger.error(f"Error marking all as read: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to update notifications'}, status=400)
 
 
 @login_required
@@ -183,7 +182,7 @@ def get_notification_preferences(request):
         
     except Exception as e:
         logger.error(f"Error getting preferences: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to load preferences'}, status=400)
 
 
 @login_required
@@ -205,7 +204,7 @@ def update_notification_preferences(request):
         
     except Exception as e:
         logger.error(f"Error updating preferences: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to update preferences'}, status=400)
 
 
 @login_required
@@ -236,7 +235,7 @@ def send_test_notification(request):
         
     except Exception as e:
         logger.error(f"Error sending test notification: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to send test notification'}, status=400)
 
 
 @login_required
@@ -256,7 +255,7 @@ def get_notification_stats(request):
         
     except Exception as e:
         logger.error(f"Error getting notification stats: {e}")
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse({'error': 'Failed to load notification stats'}, status=400)
 
 
 @login_required

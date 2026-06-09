@@ -143,17 +143,26 @@ class DataGenerator:
         print("Creating admin user...")
         
         if not User.objects.filter(username='admin').exists():
+            import os, secrets, string
+            password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+            if not password:
+                alphabet = string.ascii_letters + string.digits + string.punctuation
+                password = ''.join(secrets.choice(alphabet) for _ in range(16))
             self.admin_user = User.objects.create_superuser(
                 username='admin',
                 email='admin@school.edu.ng',
-                password='admin123',
+                password=password,
                 first_name='System',
                 last_name='Administrator'
             )
-            print(f"  ✅ Admin user created: admin@school.edu.ng / admin123")
+            if os.environ.get('DJANGO_SUPERUSER_PASSWORD'):
+                print("  Admin user created (password from DJANGO_SUPERUSER_PASSWORD)")
+            else:
+                print(f"  Admin user created (admin / {password})")
+                print("  WARNING: Save this password now - it will not be shown again.")
         else:
             self.admin_user = User.objects.get(username='admin')
-            print(f"  ✅ Admin user already exists")
+            print("  Admin user already exists")
     
     def create_groups_and_permissions(self):
         """Create user groups and assign permissions"""

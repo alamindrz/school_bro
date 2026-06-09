@@ -165,13 +165,6 @@ class SlotUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'timetable.change_timetable'
     
     def post(self, request, slot_id):
-        print("\n" + "="*50)
-        print(f"🔴 SlotUpdateView.post() CALLED")
-        print(f"🔴 slot_id: {slot_id}")
-        print(f"🔴 POST data: {dict(request.POST)}")
-        print(f"🔴 HX-Request header: {request.headers.get('HX-Request')}")
-        print("="*50 + "\n")
-        
         logger.info(f"SlotUpdateView called: slot_id={slot_id}, user={request.user}")
         
         # Validate with form

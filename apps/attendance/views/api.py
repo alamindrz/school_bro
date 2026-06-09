@@ -5,7 +5,6 @@ API endpoints for attendance app (AJAX/HTMX)
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from datetime import date
 import json
@@ -80,12 +79,23 @@ def class_summary(request, class_id):
     return JsonResponse(summary)
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def process_qr_code(request):
     """
-    Process QR code scan (public endpoint, but validated)
+    Process QR code scan.
+    Rate-limited by client IP to prevent brute-force scanning.
     """
+    from django.core.cache import cache
+
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+    if ',' in ip:
+        ip = ip.split(',')[0].strip()
+    cache_key = f"qr_rate:{ip}"
+    hits = cache.get(cache_key, 0)
+    if hits >= 30:
+        return JsonResponse({'error': 'Too many requests. Please wait.'}, status=429)
+    cache.set(cache_key, hits + 1, timeout=60)
+
     try:
         data = json.loads(request.body)
         qr_code = data.get('code')

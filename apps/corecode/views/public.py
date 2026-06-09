@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.utils import timezone
 
 from ..selectors import AcademicTermSelector, SiteConfigSelector
 from ..constants import SiteConfigKey
@@ -20,8 +21,6 @@ class HealthCheckView(TemplateView):
         return JsonResponse({
             'status': 'healthy',
             'timestamp': timezone.now().isoformat(),
-            'version': '1.0.0',
-            'environment': 'production' if not settings.DEBUG else 'development',
         })
 
 

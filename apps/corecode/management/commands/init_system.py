@@ -3,6 +3,10 @@ Management command to initialize the entire school system
 Run: python manage.py init_system
 """
 
+import os
+import secrets
+import string
+
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -10,6 +14,11 @@ from datetime import date, timedelta, datetime
 import random
 
 User = get_user_model()
+
+
+def _generate_password(length=16):
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 class Command(BaseCommand):
@@ -57,14 +66,19 @@ class Command(BaseCommand):
     def create_superuser(self):
         self.stdout.write('Creating superuser...')
         if not User.objects.filter(username='admin').exists():
+            password = os.environ.get('DJANGO_SUPERUSER_PASSWORD') or _generate_password()
             User.objects.create_superuser(
                 username='admin',
                 email='admin@school.com',
-                password='admin123',
+                password=password,
                 first_name='Admin',
                 last_name='User'
             )
-            self.stdout.write(self.style.SUCCESS('  ✅ Superuser created (admin/admin123)'))
+            if os.environ.get('DJANGO_SUPERUSER_PASSWORD'):
+                self.stdout.write(self.style.SUCCESS('  Superuser created (admin / password from DJANGO_SUPERUSER_PASSWORD)'))
+            else:
+                self.stdout.write(self.style.SUCCESS(f'  Superuser created (admin / {password})'))
+                self.stdout.write(self.style.WARNING('  ⚠ Save this password now — it will not be shown again.'))
         else:
             self.stdout.write('  ⏩ Superuser already exists')
     

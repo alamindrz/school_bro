@@ -377,7 +377,8 @@ class PaymentInitializeView(LoginRequiredMixin, PermissionRequiredMixin, View):
             messages.error(request, 'Application not found')
             return redirect('admissions:list')
         except Exception as e:
-            messages.error(request, f'Payment initialization failed: {str(e)}')
+            logger.exception(f"Payment initialization failed for application {application_id}")
+            messages.error(request, 'Payment initialization failed. Please try again.')
             return redirect('admissions:detail', pk=application_id)
 
 
@@ -417,7 +418,8 @@ class PaymentCallbackView(TemplateView):
                 return redirect('admissions:list')
                 
         except Exception as e:
-            messages.error(request, f'Payment verification error: {str(e)}')
+            logger.exception("Payment verification error")
+            messages.error(request, 'Payment verification error. Please contact support.')
             return redirect('admissions:list')
 
 

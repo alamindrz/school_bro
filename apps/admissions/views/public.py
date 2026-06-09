@@ -69,16 +69,11 @@ class PublicApplicationCreateView(FormView):
 
     def dispatch(self, request, *args, **kwargs):
         """Check if admissions are open using AdmissionsPeriod"""
-        print(f"DISPATCH CALLED - User authenticated: {request.user.is_authenticated}")
-        print(f"DISPATCH CALLED - Path: {request.path}")
-        
         from ..selectors import AdmissionsPeriodSelector
         
         current_period = AdmissionsPeriodSelector.get_current_period()
-        print(f"DISPATCH CALLED - Current period: {current_period is not None}")
         
         if not current_period:
-            print("DISPATCH CALLED - No period, redirecting to closed")
             return redirect("admissions:public_closed")
         
         # Store period in request for use in form_valid
@@ -317,8 +312,8 @@ class PublicPaymentView(TemplateView):
             return redirect(result["authorization_url"])
 
         except Exception as e:
-            logger.exception(f"Payment initialization failed: {e}")
-            messages.error(request, f"Unable to initialize payment: {str(e)}")
+            logger.exception(f"Payment initialization failed for {app_number}")
+            messages.error(request, "Unable to initialize payment. Please try again or contact support.")
             return redirect(
                 "admissions:public_payment",
                 application_number=app_number,
@@ -332,45 +327,38 @@ class PublicPaymentCallbackView(TemplateView):
     def get(self, request, *args, **kwargs):
         reference = request.GET.get("reference") or request.GET.get("trxref")
         
-        print(f"=== CALLBACK RECEIVED ===")
-        print(f"Reference: {reference}")
-        
         if not reference:
             messages.error(request, "Missing payment reference.")
             return redirect("admissions:public_apply")
 
         try:
             result = PaymentService.verify_paystack_payment(reference)
-            print(f"Verification result: {result}")
 
             if not result.get("success"):
                 messages.error(request, result.get("message", "Verification failed"))
                 return redirect("admissions:public_payment_failed")
 
             invoice_id = result.get("invoice_id")
-            print(f"Invoice ID: {invoice_id}")
             
             if invoice_id:
                 from apps.admissions.models import Application
                 try:
                     application = Application.objects.get(invoice_id=invoice_id)
-                    print(f"Found application: {application.application_number}, status: {application.status}")
                     
                     # Auto-submit application after successful payment
                     if application.status == ApplicationStatus.DRAFT:
-                        print("Attempting to auto-submit...")
                         ApplicationService.submit_application(
                             application_id=application.id,
                             submitted_by_id=None
                         )
-                        print(f"Application auto-submitted, new status: {application.status}")
+                        logger.info(f"Application {application.application_number} auto-submitted after payment")
                     
                     return redirect(
                         "admissions:public_success",
                         application_number=application.application_number
                     )
                 except Application.DoesNotExist:
-                    print(f"No application found for invoice {invoice_id}")
+                    logger.warning(f"No application found for invoice {invoice_id}")
                     messages.error(request, "Application not found.")
                     return redirect("admissions:public_apply")
 
@@ -378,10 +366,8 @@ class PublicPaymentCallbackView(TemplateView):
             return redirect("admissions:public_apply")
 
         except Exception as e:
-            print(f"Callback error: {e}")
-            import traceback
-            traceback.print_exc()
-            messages.error(request, f"Error verifying payment: {str(e)}")
+            logger.exception(f"Payment callback error for ref={reference}")
+            messages.error(request, "An error occurred while verifying payment. Please contact support.")
             return redirect("admissions:public_payment_failed")
             
 

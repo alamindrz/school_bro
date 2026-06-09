@@ -1,3 +1,6 @@
+import os
+os.environ.setdefault('SECRET_KEY', 'django-insecure-dev-only-key-do-not-use-in-production')
+
 from .base import *
 
 # ------------------------------------------------------------------------------
