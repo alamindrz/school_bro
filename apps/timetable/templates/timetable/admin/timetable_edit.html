@@ -151,7 +151,65 @@
         console.log('HTMX swap detected on:', e.detail.target.id);
         htmx.process(e.detail.target);
         console.log('Processed target for HTMX attributes');
+        
+    function assignSubject(btn) {
+        const url = btn.dataset.url;
+        const targetSelector = btn.dataset.target;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content 
+                       || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+        const formData = new FormData();
+        formData.append('teacher_id', btn.dataset.teacherId);
+        formData.append('subject_id', btn.dataset.subjectId);
+        formData.append('timetable_id', btn.dataset.timetableId);
+        formData.append('day_id', btn.dataset.dayId);
+        formData.append('period_id', btn.dataset.periodId);
+        formData.append('is_free_period', 'false');
+    
+        // Disable buttons during request
+        document.querySelectorAll('#subject-select-wrapper button').forEach(b => {
+            b.disabled = true;
+            b.style.opacity = '0.5';
+        });
+    
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'HX-Request': 'true'   // So the view returns HTML fragment, not redirect
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Server error');
+            return response.text();
+        })
+        .then(html => {
+            // Replace the slot cell in the timetable grid
+            const target = document.querySelector(targetSelector);
+            if (target) {
+                target.outerHTML = html;
+            }
+            // Close modal and refresh
+            window.dispatchEvent(new CustomEvent('close-modal'));
+            window.dispatchEvent(new CustomEvent('slot-updated'));
+        })
+        .catch(err => {
+            console.error('Assignment failed:', err);
+            alert('Failed to assign subject. Please try again.');
+        })
+        .finally(() => {
+            // Re-enable buttons
+            document.querySelectorAll('#subject-select-wrapper button').forEach(b => {
+                b.disabled = false;
+                b.style.opacity = '1';
+            });
+        });
+    }    
     });    
+
+    
+    
     
 </script>
 {% endblock %}

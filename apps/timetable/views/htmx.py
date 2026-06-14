@@ -82,11 +82,13 @@ class SlotEditFormView(LoginRequiredMixin, PermissionRequiredMixin, View):
         logger.debug(f"Found {teachers.count()} active academic staff")
         
         # If editing an existing slot with a teacher, get their qualified subjects
-        subjects = [{'id': q['subject_id'], 'name': q['subject_name']} for q in qualifications]
+        subjects = []
+        qualifications = []
+        
         if slot and slot.teacher:
             from apps.staffs.selectors import TeacherQualificationSelector
             qualifications = TeacherQualificationSelector.get_for_teacher(int(slot.teacher_id))
-            subjects = [q.subject for q in qualifications]
+            subjects = [{'id': q['subject_id'], 'name': q['subject_name']} for q in qualifications]
             logger.debug(f"Pre-loaded {len(subjects)} subjects for teacher {slot.teacher.get_full_name}")
         
         context = {
