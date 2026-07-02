@@ -108,58 +108,54 @@ class SlotEditFormView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return render(request, 'timetable/htmx/slot_edit_modal.html', context)
 
 
-class TeacherSubjectsSelectView(LoginRequiredMixin, View):
-    """GET: Return subject selection buttons for selected teacher"""
-    
+
+
+class TeacherSubjectsSelectView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'timetable.change_timetableslot'
+
     def get(self, request):
         teacher_id = request.GET.get('teacher_id')
         slot_id = request.GET.get('slot_id')
+        
+        # Fallback to URL query parameter if slot attribute is empty
         timetable_id = request.GET.get('timetable_id')
         day_id = request.GET.get('day_id')
         period_id = request.GET.get('period_id')
+        room = request.GET.get('room', '')
+
+        # If slot_id is 0 or missing, we need to ensure timetable_id, day_id, period_id are still passed to context
+        # These are crucial for the hx-target in subject_select.html when a new slot is being created
+        if slot_id and slot_id != '0':
+            try:
+                slot = TimetableSlot.objects.get(id=slot_id)
+                # If a slot exists, prefer its timetable_id, day_id, period_id
+                timetable_id = slot.timetable.id if slot.timetable else timetable_id
+                day_id = slot.day.id if slot.day else day_id
+                period_id = slot.period.id if slot.period else period_id
+            except TimetableSlot.DoesNotExist:
+                logger.warning(f"Slot with ID {slot_id} not found when fetching subjects.")
         
-        if not teacher_id:
-            return HttpResponse('<div class="text-sm text-gray-500 p-4">Select a teacher first</div>')
-        
-        from apps.staffs.selectors import TeacherQualificationSelector
-        
-        qualifications = TeacherQualificationSelector.get_for_teacher(int(teacher_id))
-        
-        subjects = [
-            {
-                'id': q['subject_id'],
-                'name': q['subject_name'],
-                'code': q.get('subject_code', ''),
-                'is_primary': q.get('is_primary', False),
-            }
-            for q in qualifications
-        ]
-        
+        subjects = []
+        if teacher_id and teacher_id != 'undefined':
+            try:
+                teacher_pk = int(teacher_id)
+                subjects = TeacherQualificationSelector.get_for_teacher(teacher_pk)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid teacher_id {teacher_id}: {e}")
+                pass
+
         context = {
             'subjects': subjects,
+            'slot_id': slot_id if slot_id != '0' else 0, # Ensure slot_id is 0 if it's a new slot
             'teacher_id': teacher_id,
-            'slot_id': slot_id,
             'timetable_id': timetable_id,
             'day_id': day_id,
             'period_id': period_id,
+            'room': room,
         }
-        
-        response = render(request, 'timetable/htmx/subject_select.html', context)
-        
-        # Debug script
-        debug_script = '''
-        <script>
-            console.log("Subject buttons loaded");
-            document.querySelectorAll('button[hx-post]').forEach(btn => {
-                console.log("Found HTMX button:", btn.textContent.trim());
-            });
-            console.log("HTMX available:", typeof htmx !== 'undefined');
-        </script>
-        '''
-        response.content = response.content + debug_script.encode()
-        return response    
-        
-            
+        return render(request, 'timetable/htmx/subject_select.html', context)
+
+
 
 @method_decorator(require_http_methods(["POST"]), name='dispatch')
 class SlotUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):

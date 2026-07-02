@@ -321,6 +321,7 @@ class TimetableSlotSelector:
         for slot in queryset.select_related('teacher', 'subject', 'day', 'period'):
             slots.append({
                 'id': slot.id,
+                'timetable_id': slot.timetable_id,
                 'day_id': slot.day_id,
                 'day_name': slot.day.name,
                 'day_order': slot.day.order,

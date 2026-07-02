@@ -1,4 +1,4 @@
-{# timetable/htmx/slot_edit_modal.html #}
+{# timetable/templates/timetable/htmx/slot_edit_modal.html #}
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden" 
      @click.outside="$dispatch('close-modal')"
      x-data="{ isFree: {{ slot.is_free_period|yesno:'true,false' }} }">
@@ -14,6 +14,7 @@
     </div>
 
     <div class="p-6 space-y-4">
+        <!-- Toggle Free Period Status -->
         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             <span class="text-sm font-medium">Mark as Free Period?</span>
             <button type="button" 
@@ -31,6 +32,7 @@
             </button>
         </div>
 
+        <!-- Teacher Selection Dropdown Menu -->
         <div x-show="!isFree" x-transition>
             <label class="block text-sm font-medium mb-2">Assign Teacher</label>
             <select name="teacher_id" 
@@ -43,7 +45,7 @@
                         timetable_id: "{{ timetable_id }}", 
                         day_id: "{{ day.id }}", 
                         period_id: "{{ period.id }}", 
-                        slot_id: "{{ slot.id }}"
+                        slot_id: "{{ slot_id }}"
                     }'>
                 <option value="">Select a teacher...</option>
                 {% for teacher in teachers %}
@@ -54,13 +56,15 @@
             </select>
         </div>
 
+        <!-- Dynamic Subject Qualification Selection Area -->
         <div id="subject-selection-area" class="mt-4" x-show="!isFree">
             {% if slot.teacher %}
-                <div hx-get="{% url 'timetable:htmx_teacher_subjects' %}?teacher_id={{ slot.teacher_id }}&timetable_id={{ timetable_id }}&day_id={{ day.id }}&period_id={{ period.id }}&slot_id={{ slot.id }}" hx-trigger="load"></div>
+                <div hx-get="{% url 'timetable:htmx_teacher_subjects' %}?teacher_id={{ slot.teacher_id }}&timetable_id={{ timetable_id }}&day_id={{ day.id }}&period_id={{ period.id }}&slot_id={{ slot_id }}" hx-trigger="load"></div>
             {% endif %}
         </div>
     </div>
 
+    <!-- Modal Actions Footer Layout -->
     <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 flex justify-between">
         {% if slot.teacher or slot.is_free_period %}
         <button hx-post="{% url 'timetable:htmx_slot_clear' slot.id %}"

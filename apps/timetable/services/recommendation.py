@@ -246,7 +246,8 @@ class TimetableRecommendationService:
                 if score > best_subject_score:
                     best_subject_score = score
                     best_subject_id = subject_id
-                    best_subject_name = subject['name']
+                    # FIX: Safely read 'subject_name' if 'name' doesn't exist
+                    best_subject_name = subject.get('name', subject.get('subject_name', 'Unknown Subject'))
             
             if best_subject_id:
                 candidates.append({

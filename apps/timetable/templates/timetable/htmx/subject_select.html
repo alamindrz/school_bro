@@ -1,45 +1,52 @@
-{# timetable/htmx/subject_select.html #}
-<div id="subject-select-wrapper">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        <i class="fas fa-book-open mr-1 text-primary-500"></i> Select Subject
+{# timetable/templates/timetable/htmx/subject_select.html #}
+<div id="subject-select-wrapper" class="space-y-3">
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+        <i class="fas fa-book-open mr-1 text-primary-500"></i> Select Subject to Assign
     </label>
     
     {% if subjects %}
-    <div class="space-y-2">
-        {% for subject in subjects %}
-        <button type="button"
-                onclick="assignSubject(this)"
-                data-slot-id="{{ slot_id }}"
-                data-teacher-id="{{ teacher_id }}"
-                data-subject-id="{{ subject.id }}"
-                data-timetable-id="{{ timetable_id }}"
-                data-day-id="{{ day_id }}"
-                data-period-id="{{ period_id }}"
-                data-url="{% url 'timetable:htmx_slot_update' slot_id %}"
-                data-target="#slot-{{ timetable_id }}-{{ day_id }}-{{ period_id }}"
-                class="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group cursor-pointer">
-            <div class="flex items-center justify-between">
-                <span class="flex items-center gap-2">
-                    <i class="fas fa-book text-primary-500 text-sm"></i>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ subject.name }}</span>
+    <div class="grid grid-cols-1 gap-2">
+        {% for item in subjects %}
+        <form hx-post="{% url 'timetable:htmx_slot_update' slot_id %}"
+              hx-target="#slot-{{ timetable_id }}-{{ day_id }}-{{ period_id }}"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) { window.dispatchEvent(new CustomEvent('close-modal')); }">
+            {% csrf_token %}
+            
+            <!-- Using the exact dictionary keys from your selector -->
+            <input type="hidden" name="teacher_id" value="{{ teacher_id }}">
+            <input type="hidden" name="subject_id" value="{{ item.subject_id }}">
+            <input type="hidden" name="is_free_period" value="false">
+            <input type="hidden" name="room" value="{{ room|default:'' }}">
+            <input type="hidden" name="timetable_id" value="{{ timetable_id }}">
+            <input type="hidden" name="day_id" value="{{ day_id }}">
+            <input type="hidden" name="period_id" value="{{ period_id }}">
+
+            <button type="submit"
+                    class="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group flex items-center justify-between cursor-pointer bg-transparent">
+                <span class="flex items-center gap-3">
+                    <span class="h-8 w-8 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-xs uppercase">
+                        {{ item.subject_code|default:"SUB" }}
+                    </span>
+                    <div>
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white block">
+                            {{ item.subject_name }}
+                        </span>
+                        {% if item.is_primary %}
+                        <span class="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-1.5 py-0.5 rounded font-medium">Primary Specialization</span>
+                        {% endif %}
+                    </div>
                 </span>
-                <i class="fas fa-arrow-right text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
-            </div>
-        </button>
+                <i class="fas fa-chevron-right text-gray-400 text-xs transform group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </form>
         {% endfor %}
     </div>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-        <i class="fas fa-hand-pointer mr-1"></i>Click a subject to assign
-    </p>
     {% else %}
-    <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-        <p class="text-sm text-yellow-800 dark:text-yellow-200">
-            <i class="fas fa-exclamation-triangle mr-2"></i>No qualified subjects found.
+    <div class="p-4 text-center bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200/60 dark:border-yellow-900/30 rounded-xl">
+        <p class="text-sm text-yellow-800 dark:text-yellow-300">
+            <i class="fas fa-exclamation-triangle mr-1"></i> No qualified subjects found for this teacher.
         </p>
-        <a href="{% url 'staffs:subject_assignments' teacher_id %}" 
-           class="inline-block mt-2 text-xs text-primary-600 hover:underline" target="_blank">
-            <i class="fas fa-plus mr-1"></i>Add Qualifications
-        </a>
     </div>
     {% endif %}
 </div>

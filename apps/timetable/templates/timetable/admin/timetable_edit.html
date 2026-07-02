@@ -112,7 +112,6 @@
             },
 
             handleUpdate(event) {
-                // If the update came from a modal action, close it
                 this.showModal = false;
                 const msg = event.detail?.message || 'Updated successfully';
                 this.showToast(msg, 'success');
@@ -147,11 +146,16 @@
         if (editor && editor.__x) editor.__x.$data.showToast(e.detail.message, e.detail.type);
     });
     
+    // 1. FIXED: Cleanly close the htmx:afterSwap listener block here
     document.body.addEventListener('htmx:afterSwap', (e) => {
         console.log('HTMX swap detected on:', e.detail.target.id);
-        htmx.process(e.detail.target);
+        if (typeof htmx !== 'undefined') {
+            htmx.process(e.detail.target);
+        }
         console.log('Processed target for HTMX attributes');
-        
+    });    
+
+    // 2. FIXED: Moving assignSubject out to the global scope perfectly!
     function assignSubject(btn) {
         const url = btn.dataset.url;
         const targetSelector = btn.dataset.target;
@@ -177,7 +181,7 @@
             body: formData,
             headers: {
                 'X-CSRFToken': csrfToken,
-                'HX-Request': 'true'   // So the view returns HTML fragment, not redirect
+                'HX-Request': 'true'
             }
         })
         .then(response => {
@@ -185,31 +189,26 @@
             return response.text();
         })
         .then(html => {
-            // Replace the slot cell in the timetable grid
             const target = document.querySelector(targetSelector);
             if (target) {
                 target.outerHTML = html;
+                if (typeof htmx !== 'undefined') htmx.process(target);
             }
-            // Close modal and refresh
+            // Close modal and notify editor component layout
             window.dispatchEvent(new CustomEvent('close-modal'));
-            window.dispatchEvent(new CustomEvent('slot-updated'));
+            window.dispatchEvent(new CustomEvent('slot-updated', { detail: { message: 'Subject assigned successfully' } }));
         })
         .catch(err => {
             console.error('Assignment failed:', err);
             alert('Failed to assign subject. Please try again.');
         })
         .finally(() => {
-            // Re-enable buttons
             document.querySelectorAll('#subject-select-wrapper button').forEach(b => {
                 b.disabled = false;
                 b.style.opacity = '1';
             });
         });
     }    
-    });    
-
-    
-    
-    
 </script>
+
 {% endblock %}
