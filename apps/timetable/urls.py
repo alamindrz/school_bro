@@ -38,9 +38,11 @@ urlpatterns = [
     # Recommendations
     path('htmx/timetable/<int:pk>/recommendations/', views.RecommendationsView.as_view(), name='htmx_recommendations'),
     path('htmx/timetable/<int:pk>/apply-recommendation/', views.ApplyRecommendationView.as_view(), name='htmx_apply_recommendation'),
+    path('htmx/timetable/<int:pk>/apply-bulk-recommendations/', views.ApplyBulkRecommendationsView.as_view(), name='htmx_apply_bulk_recommendations'),
     
     # Bulk operations
     path('htmx/timetable/<int:pk>/clear-all/', views.ClearAllView.as_view(), name='htmx_clear_all'),
+
     
     # ============================================================
     # JSON API ENDPOINTS

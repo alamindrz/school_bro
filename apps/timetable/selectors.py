@@ -361,7 +361,30 @@ class TimetableSlotSelector:
         return grouped
     
     @staticmethod
+    def get_slots_grouped_by_day_model(timetable_id: int) -> Dict[int, Dict[int, 'TimetableSlot']]:
+        """
+        Get slots as MODEL INSTANCES grouped by day_id then period_id.
+        
+        Use this for templates that render slots via model attribute access
+        (e.g. timetable_grid.html -> slot_cell.html expects slot.teacher,
+        slot.subject.name, slot.teacher.get_full_name, etc). The dict-based
+        get_slots_grouped_by_day() above returns plain dicts (teacher_name,
+        subject_name, ...) which are NOT compatible with slot_cell.html and
+        will silently render as "unassigned" on a fresh page load.
+        """
+        slots = TimetableSlot.objects.filter(
+            timetable_id=timetable_id
+        ).select_related('teacher', 'subject', 'day', 'period', 'period__period_type')
+        
+        grouped = {}
+        for slot in slots:
+            grouped.setdefault(slot.day_id, {})[slot.period_id] = slot
+        
+        return grouped
+    
+    @staticmethod
     def get_by_day_period(
+
         timetable_id: int,
         day_id: int,
         period_id: int
@@ -392,12 +415,19 @@ class TimetableSlotSelector:
     
     @staticmethod
     def get_unassigned_slots(timetable_id: int) -> List[Dict[str, Any]]:
-        """Get all unassigned slots (no teacher, not free period)"""
+        """
+        Get all unassigned slots (no teacher, not free period).
+        Break periods are excluded - they are informational only and
+        should never be recommended/assignable.
+        """
         slots = TimetableSlot.objects.filter(
             timetable_id=timetable_id,
             teacher__isnull=True,
             is_free_period=False
+        ).exclude(
+            period__period_type__is_break=True
         ).select_related('day', 'period')
+
         
         return [
             {

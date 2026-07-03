@@ -1,4 +1,17 @@
 {# timetable/htmx/slot_cell.html #}
+{% if slot.period.period_type.is_break %}
+<div id="slot-{{ slot.timetable_id }}-{{ day.id }}-{{ period.id }}"
+     class="slot-cell break-cell relative rounded-lg cursor-not-allowed select-none
+            bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50"
+     aria-disabled="true">
+    <div class="p-2 sm:p-3 text-center">
+        <i class="fas fa-mug-hot text-orange-400 text-lg sm:text-xl mb-1"></i>
+        <p class="text-xs sm:text-sm text-orange-600 dark:text-orange-300 font-medium">
+            {{ slot.period.period_type.name|default:"Break" }}
+        </p>
+    </div>
+</div>
+{% else %}
 <div id="slot-{{ slot.timetable_id }}-{{ day.id }}-{{ period.id }}"
      class="slot-cell relative group cursor-pointer transition-all duration-150 rounded-lg
             {% if slot.is_free_period %}
@@ -33,3 +46,6 @@
         </div>
     {% endif %}
 </div>
+{% endif %}
+
+

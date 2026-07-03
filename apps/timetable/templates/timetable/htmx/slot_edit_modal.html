@@ -17,16 +17,17 @@
         <!-- Toggle Free Period Status -->
         <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             <span class="text-sm font-medium">Mark as Free Period?</span>
-            <button type="button" 
-                    @click="isFree = !isFree"
+            <button type="button"
+                    data-is-free="{{ slot.is_free_period|yesno:'true,false' }}"
                     hx-post="{% url 'timetable:htmx_slot_update' slot.id %}"
-                    hx-vals='js:{is_free_period: !isFree, teacher_id: "", subject_id: "", timetable_id: "{{ timetable_id }}", day_id: "{{ day.id }}", period_id: "{{ period.id }}"}'
+                    hx-vals='js:{is_free_period: this.dataset.isFree !== "true", teacher_id: "", subject_id: "", timetable_id: "{{ timetable_id }}", day_id: "{{ day.id }}", period_id: "{{ period.id }}"}'
                     hx-target="#slot-{{ timetable_id }}-{{ day.id }}-{{ period.id }}"
                     hx-swap="outerHTML"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-on::after-request="if(event.detail.successful) { $dispatch('close-modal'); }"
+                    hx-on::after-request="if(event.detail.successful) { isFree = !isFree; window.dispatchEvent(new CustomEvent('close-modal')); }"
                     :class="isFree ? 'bg-primary-600' : 'bg-gray-200'"
                     class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 border-2 border-transparent">
+
                 <span :class="isFree ? 'translate-x-5' : 'translate-x-0'" 
                       class="inline-block h-5 w-5 transform rounded-full bg-white transition duration-200 shadow"></span>
             </button>
@@ -72,7 +73,7 @@
                 hx-target="#slot-{{ timetable_id }}-{{ day.id }}-{{ period.id }}"
                 hx-swap="outerHTML"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-on::after-request="if(event.detail.successful) { $dispatch('close-modal'); }"
+                hx-on::after-request="if(event.detail.successful) { window.dispatchEvent(new CustomEvent('close-modal')); }"
                 class="text-red-600 text-sm font-medium hover:underline">
             <i class="fas fa-trash-alt mr-1"></i> Clear Slot
         </button>

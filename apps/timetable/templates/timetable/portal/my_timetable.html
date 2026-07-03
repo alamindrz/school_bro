@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load timetable_tags %}
 
 {% block title %}My Timetable | School Bro{% endblock %}
 
@@ -56,7 +57,7 @@
             </div>
         </div>
         
-        <!-- Mobile View -->
+        <!-- Mobile View: Days as headers, Periods as rows (horizontal layout) -->
         <div class="lg:hidden overflow-x-auto">
             <div class="min-w-max p-3">
                 <div class="flex border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
@@ -75,6 +76,13 @@
                         <p class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }}</p>
                     </div>
                     
+                    {% if period.period_type.is_break %}
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="w-full py-2 text-center text-xs text-orange-600 dark:text-orange-300 italic bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50 rounded-lg">
+                            <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
+                        </div>
+                    </div>
+                    {% else %}
                     {% for day in item.days %}
                     <div class="w-28 flex-shrink-0 px-1">
                         {% with key=day.id|stringformat:"s"|add:","|add:period.id|stringformat:"s" %}
@@ -99,35 +107,43 @@
                         {% endwith %}
                     </div>
                     {% endfor %}
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
         </div>
         
-        <!-- Desktop View -->
+        <!-- Desktop View: Periods as columns across the top, Days as rows down the side -->
         <div class="hidden lg:block overflow-x-auto">
             <table class="min-w-full border-collapse">
                 <thead>
                     <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                        <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-32">
-                            Time / Day
+                        <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-24">
+                            Day
                         </th>
-                        {% for day in item.days %}
-                        <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[140px]">
-                            {{ day.name }}
+                        {% for period in item.periods %}
+                        <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[140px]
+                                   {% if period.period_type.is_break %}bg-orange-50/60 dark:bg-orange-900/10{% endif %}">
+                            {{ period.display_name }}<br>
+                            <span class="text-xs font-normal text-gray-500">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
                         </th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for period in item.periods %}
+                    {% for day in item.days %}
                     <tr class="border-b border-gray-100 dark:border-gray-700">
-                        <td class="p-3 font-medium text-gray-900 dark:text-white">
-                            {{ period.display_name }}<br>
-                            <span class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
+                        <td class="p-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                            {{ day.name }}
                         </td>
-                        {% for day in item.days %}
-                        <td class="p-3 text-center border-l border-gray-100 dark:border-gray-700">
+                        {% for period in item.periods %}
+                        <td class="p-3 text-center border-l border-gray-100 dark:border-gray-700
+                                   {% if period.period_type.is_break %}bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
+                            {% if period.period_type.is_break %}
+                            <div class="text-sm text-orange-500 dark:text-orange-300 italic">
+                                <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
+                            </div>
+                            {% else %}
                             {% with key=day.id|stringformat:"s"|add:","|add:period.id|stringformat:"s" %}
                             {% with slot=item.slots_by_day_period|get_item:key %}
                             {% if slot %}
@@ -148,6 +164,7 @@
                             {% endif %}
                             {% endwith %}
                             {% endwith %}
+                            {% endif %}
                         </td>
                         {% endfor %}
                     </tr>
@@ -168,6 +185,10 @@
             <div class="flex items-center gap-2">
                 <div class="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/30 rounded"></div>
                 <span>Free Period</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50 rounded"></div>
+                <span>Break</span>
             </div>
         </div>
     </div>

@@ -538,6 +538,64 @@ class ApplyRecommendationView(LoginRequiredMixin, PermissionRequiredMixin, View)
 
 
 @method_decorator(require_http_methods(["POST"]), name='dispatch')
+class ApplyBulkRecommendationsView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    POST: Apply the FULL bulk recommendation plan (all currently unassigned
+    slots at once, generated as a single clash-free batch) and return the
+    refreshed grid.
+    """
+    permission_required = 'timetable.change_timetable'
+    
+    def post(self, request, pk):
+        logger.info(f"Applying bulk recommendation plan for timetable {pk}, user={request.user}")
+        
+        result = TimetableRecommendationService.apply_bulk_plan(
+            timetable_id=pk,
+            assigned_by_id=request.user.id
+        )
+        
+        SystemLogService.log_action(
+            user=request.user,
+            action=SystemLog.ActionType.UPDATE,
+            app_label='timetable',
+            model_name='Timetable',
+            object_id=str(pk),
+            object_repr=f"Timetable {pk}",
+            changes={
+                'action': 'bulk_recommendations_applied',
+                'assigned_count': result['assigned_count'],
+                'total_planned': result['total_planned'],
+                'errors': result['errors'],
+            },
+            request=request
+        )
+        
+        timetable = TimetableSelector.get_by_id_model(pk)
+        days = SchoolDaySelector.get_active_days_model()
+        periods = TimetablePeriodSelector.get_all_periods_model()
+        slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day_model(pk)
+        
+        context = {
+            'timetable': timetable,
+            'days': days,
+            'periods': periods,
+            'slots_by_day_period': slots_by_day_period,
+        }
+        
+        response = render(request, 'timetable/htmx/timetable_grid.html', context)
+        
+        msg = f"✓ Applied {result['assigned_count']}/{result['total_planned']} bulk assignments"
+        toast_type = 'success' if not result['errors'] else 'warning'
+        response['HX-Trigger'] = json.dumps({
+            'slotUpdated': {'timetableId': pk},
+            'showToast': {'message': msg, 'type': toast_type},
+        })
+        
+        logger.info(f"Bulk plan applied: {result}")
+        return response
+
+
+@method_decorator(require_http_methods(["POST"]), name='dispatch')
 class ClearAllView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """POST: Clear all assignments, return updated grid."""
     permission_required = 'timetable.change_timetable'
@@ -554,7 +612,7 @@ class ClearAllView(LoginRequiredMixin, PermissionRequiredMixin, View):
         timetable = TimetableSelector.get_by_id_model(pk)
         days = SchoolDaySelector.get_active_days_model()
         periods = TimetablePeriodSelector.get_all_periods_model()
-        slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day(pk)
+        slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day_model(pk)
         
         context = {
             'timetable': timetable,
