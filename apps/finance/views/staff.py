@@ -552,6 +552,8 @@ class ExportTransactionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'finance.view_report'
     
     def get(self, request, *args, **kwargs):
+        from apps.shared.csv_export import build_csv_response
+
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         
@@ -561,21 +563,15 @@ class ExportTransactionsView(LoginRequiredMixin, PermissionRequiredMixin, View):
         
         data = ReportService.export_transactions(start_date, end_date)
         
-        # Create CSV response
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="transactions_{start_date}_to_{end_date}.csv"'
-        
-        writer = csv.writer(response)
-        
-        # Write headers
-        if data:
-            writer.writerow(data[0].keys())
-            
-            # Write rows
-            for row in data:
-                writer.writerow(row.values())
-        
-        return response
+        headers = list(data[0].keys()) if data else []
+        rows = [list(row.values()) for row in data] if data else []
+
+        return build_csv_response(
+            filename=f"transactions_{start_date}_to_{end_date}",
+            headers=headers,
+            rows=rows,
+            date_suffix=False,
+        )
 
 
 class StudentFinancialView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):

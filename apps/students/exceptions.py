@@ -4,6 +4,11 @@ ALL student exceptions must inherit from CorecodeError hierarchy
 """
 
 from apps.corecode.exceptions import CorecodeError, ValidationError
+from apps.shared.exceptions import (
+    InvalidStatusTransitionError as _SharedStatusTransition,
+    BulkOperationError as _SharedBulkOp,
+    NotEligibleError as _SharedNotEligible,
+)
 
 
 class StudentError(CorecodeError):
@@ -24,20 +29,13 @@ class DuplicateStudentError(StudentError):
     code = 'duplicate_student'
 
 
-class InvalidStatusTransitionError(StudentError):
+class InvalidStatusTransitionError(StudentError, _SharedStatusTransition):
     """Invalid student status transition"""
     default_message = "Cannot transition student to this status"
     code = 'invalid_status_transition'
-    
-    def __init__(self, from_status=None, to_status=None, message=None):
-        self.from_status = from_status
-        self.to_status = to_status
-        if from_status and to_status and not message:
-            message = f"Cannot transition from '{from_status}' to '{to_status}'"
-        super().__init__(message=message, code=self.code)
 
 
-class StudentNotEligibleError(StudentError):
+class StudentNotEligibleError(StudentError, _SharedNotEligible):
     """Student not eligible for requested operation"""
     default_message = "Student is not eligible for this operation"
     code = 'not_eligible'
@@ -121,17 +119,10 @@ class InvalidClassProgressionError(StudentError):
     code = 'progression_error'
 
 
-class BulkOperationError(StudentError):
+class BulkOperationError(StudentError, _SharedBulkOp):
     """Bulk operation errors"""
     default_message = "Bulk operation failed"
     code = 'bulk_operation_error'
-    
-    def __init__(self, message=None, successful=None, failed=None):
-        self.successful = successful or []
-        self.failed = failed or []
-        summary = f"{len(self.successful)} succeeded, {len(self.failed)} failed"
-        message = message or f"Bulk operation completed with errors: {summary}"
-        super().__init__(message=message, code=self.code)
 
 
 class StudentValidationError(StudentError, ValidationError):

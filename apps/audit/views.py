@@ -4,11 +4,6 @@ Audit Views
 
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, View
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.utils import timezone
-import csv
-import json
 
 from .models import AuditLog
 from .selectors import AuditLogSelector, AuditStatsSelector
@@ -113,33 +108,28 @@ class ExportAuditView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Export audit logs to CSV"""
     permission_required = 'audit.export_audit'
     
+    _HEADERS = [
+        'Timestamp', 'User', 'Action', 'Category', 'Status',
+        'App', 'Model', 'Object ID', 'Object Representation',
+        'IP Address', 'Request Method', 'Request Path',
+    ]
+
     def get(self, request):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="audit_logs_{timezone.now().date()}.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow([
-            'Timestamp', 'User', 'Action', 'Category', 'Status',
-            'App', 'Model', 'Object ID', 'Object Representation',
-            'IP Address', 'Request Method', 'Request Path'
-        ])
-        
+        from apps.shared.csv_export import build_csv_response
+
         logs = AuditLog.objects.all().order_by('-timestamp')[:10000]
-        
-        for log in logs:
-            writer.writerow([
-                log.timestamp,
-                log.username,
-                log.get_action_display(),
-                log.get_category_display(),
-                log.get_status_display(),
-                log.app_label,
-                log.model_name,
-                log.object_id,
-                log.object_repr,
-                log.ip_address,
-                log.request_method,
-                log.request_path,
-            ])
-        
-        return response
+
+        return build_csv_response(
+            filename="audit_logs",
+            headers=self._HEADERS,
+            rows=[
+                [
+                    log.timestamp, log.username,
+                    log.get_action_display(), log.get_category_display(),
+                    log.get_status_display(), log.app_label,
+                    log.model_name, log.object_id, log.object_repr,
+                    log.ip_address, log.request_method, log.request_path,
+                ]
+                for log in logs
+            ],
+        )

@@ -1124,47 +1124,30 @@ class ExportStaffView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     permission_required = 'staffs.export_staff'
 
+    _HEADERS = [
+        'Staff ID', 'Name', 'Email', 'Phone', 'Department',
+        'Staff Type', 'Category', 'Employment Status', 'Date Employed',
+        'Gender', 'Date of Birth', 'State of Origin', 'LGA',
+        'Emergency Contact', 'Emergency Phone',
+    ]
+    _KEYS = [
+        'staff_id', 'full_name', 'email', 'phone', 'department',
+        'staff_type_display', 'staff_category_display',
+        'employment_status_display', 'date_employed',
+        'gender_display', 'state_of_origin', 'lga',
+        'emergency_contact_name', 'emergency_contact_phone',
+    ]
+
     def get(self, request):
-        import csv
-        from django.http import HttpResponse
+        from apps.shared.csv_export import build_csv_response_from_dicts
 
-        # Get all staff from selector
         staff_list = StaffSelector.list_staff(limit=10000)
-
-        # Create HttpResponse with CSV header
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="staff_{date.today().isoformat()}.csv"'
-
-        writer = csv.writer(response)
-        
-        # Write headers
-        writer.writerow([
-            'Staff ID', 'Name', 'Email', 'Phone', 'Department',
-            'Staff Type', 'Category', 'Employment Status', 'Date Employed',
-            'Gender', 'Date of Birth', 'State of Origin', 'LGA',
-            'Emergency Contact', 'Emergency Phone'
-        ])
-
-        # Write data from selector results
-        for staff in staff_list:
-            writer.writerow([
-                staff.get('staff_id', ''),
-                staff.get('full_name', ''),
-                staff.get('email', ''),
-                staff.get('phone', ''),
-                staff.get('department', ''),
-                staff.get('staff_type_display', ''),
-                staff.get('staff_category_display', ''),
-                staff.get('employment_status_display', ''),
-                staff.get('date_employed', ''),
-                staff.get('gender_display', ''),
-                staff.get('state_of_origin', ''),
-                staff.get('lga', ''),
-                staff.get('emergency_contact_name', ''),
-                staff.get('emergency_contact_phone', ''),
-            ])
-
-        return response
+        return build_csv_response_from_dicts(
+            filename="staff",
+            headers=self._HEADERS,
+            key_order=self._KEYS,
+            rows=staff_list,
+        )
         
 
 class StaffAttendanceReportView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):

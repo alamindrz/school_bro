@@ -4,6 +4,7 @@ Inherit from corecode exceptions
 """
 
 from apps.corecode.exceptions import CorecodeError
+from apps.shared.exceptions import BulkOperationError as _SharedBulkOp
 
 
 class AttendanceError(CorecodeError):
@@ -42,7 +43,7 @@ class ClassNotFoundError(AttendanceError):
     code = 'class_not_found'
 
 
-class BulkOperationError(AttendanceError):
+class BulkOperationError(AttendanceError, _SharedBulkOp):
     """Bulk attendance operation failed"""
     default_message = "Bulk operation failed"
     code = 'bulk_operation_error'
