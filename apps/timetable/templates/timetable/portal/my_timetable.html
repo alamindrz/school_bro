@@ -9,76 +9,74 @@
 
 {% block page_actions %}
 <div class="flex gap-2">
-    <a href="{% url 'timetable:my_timetable_print' %}" 
-       class="inline-flex items-center px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-        <i class="fas fa-print mr-1"></i>Print
+    <a href="{% url 'timetable:my_timetable_print' %}"
+       class="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+        <i class="fas fa-print mr-2"></i>Print
     </a>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-    
     {% if not has_timetables %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-        <i class="fas fa-calendar-alt text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Timetable Assigned</h3>
-        <p class="text-gray-500 dark:text-gray-400">{{ message|default:"You are not currently assigned to any timetable." }}</p>
+    <div class="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <i class="fas fa-calendar-alt text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">No Timetable Assigned</h3>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ message|default:"You are not currently assigned to any timetable." }}</p>
     </div>
     {% endif %}
-    
+
     {% for item in timetables %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        
-        <!-- Timetable Header -->
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="border-b border-slate-200 bg-gradient-to-r from-primary-50 to-slate-50 px-6 py-5 dark:border-slate-700 dark:from-primary-900/20 dark:to-slate-900/40">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h3 class="font-medium text-gray-900 dark:text-white">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
                         {{ item.timetable.student_class.display_name }}
                     </h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
                         {{ item.timetable.academic_session.name }}
                         {% if item.timetable.academic_term %}
                         • {{ item.timetable.academic_term.get_term_display }}
                         {% endif %}
                     </p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                         {{ item.total_periods }} periods/week
                     </span>
                     {% if item.subjects_taught %}
-                    <span class="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                         {{ item.subjects_taught|length }} subject{{ item.subjects_taught|length|pluralize }}
                     </span>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Mobile View: Days as headers, Periods as rows (horizontal layout) -->
+
         <div class="lg:hidden overflow-x-auto">
             <div class="min-w-max p-3">
-                <div class="flex border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
+                <div class="mb-3 flex border-b border-slate-200 pb-2 dark:border-slate-700">
                     <div class="w-20 flex-shrink-0"></div>
                     {% for day in item.days %}
                     <div class="w-28 flex-shrink-0 text-center">
-                        <p class="font-medium text-sm">{{ day.name }}</p>
+                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">{{ day.name }}</p>
                     </div>
                     {% endfor %}
                 </div>
-                
+
                 {% for period in item.periods %}
-                <div class="flex py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div class="flex border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
                     <div class="w-20 flex-shrink-0 pr-2">
-                        <p class="font-medium text-sm">{{ period.display_name }}</p>
-                        <p class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }}</p>
+                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">{{ period.display_name }}</p>
+                        <p class="text-xs text-slate-500">{{ period.start_time|time:"H:i" }}</p>
                     </div>
-                    
+
                     {% if period.period_type.is_break %}
                     <div class="flex-1 flex items-center justify-center">
-                        <div class="w-full py-2 text-center text-xs text-orange-600 dark:text-orange-300 italic bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50 rounded-lg">
+                        <div class="w-full rounded-2xl border border-dashed border-orange-200 bg-orange-50 py-2 text-center text-xs font-medium text-orange-700 dark:border-orange-800/60 dark:bg-orange-900/10 dark:text-orange-300">
                             <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
                         </div>
                     </div>
@@ -88,20 +86,20 @@
                         {% with key=day.id|stringformat:"s"|add:","|add:period.id|stringformat:"s" %}
                         {% with slot=item.slots_by_day_period|get_item:key %}
                         {% if slot %}
-                        <div class="p-2 rounded-lg {% if slot.is_free_period %}bg-yellow-50 dark:bg-yellow-900/20{% elif slot.subject_name %}bg-green-50 dark:bg-green-900/20{% else %}bg-gray-50 dark:bg-gray-700/50{% endif %}">
+                        <div class="rounded-2xl p-2 {% if slot.is_free_period %}bg-amber-50 dark:bg-amber-900/20{% elif slot.subject_name %}bg-emerald-50 dark:bg-emerald-900/20{% else %}bg-slate-50 dark:bg-slate-800/70{% endif %}">
                             {% if slot.is_free_period %}
-                            <p class="text-xs text-center text-gray-500">Free</p>
+                            <p class="text-center text-xs text-slate-500">Free</p>
                             {% elif slot.subject_name %}
-                            <p class="font-medium text-sm truncate">{{ slot.subject_name }}</p>
+                            <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ slot.subject_name }}</p>
                             {% if slot.room %}
-                            <p class="text-xs text-gray-500 truncate">{{ slot.room }}</p>
+                            <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ slot.room }}</p>
                             {% endif %}
                             {% else %}
-                            <p class="text-xs text-center text-gray-400">—</p>
+                            <p class="text-center text-xs text-slate-400">—</p>
                             {% endif %}
                         </div>
                         {% else %}
-                        <div class="p-2 text-center text-gray-300">—</div>
+                        <div class="p-2 text-center text-slate-300">—</div>
                         {% endif %}
                         {% endwith %}
                         {% endwith %}
@@ -112,35 +110,28 @@
                 {% endfor %}
             </div>
         </div>
-        
-        <!-- Desktop View: Periods as columns across the top, Days as rows down the side -->
+
         <div class="hidden lg:block overflow-x-auto">
             <table class="min-w-full border-collapse">
                 <thead>
-                    <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                        <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-24">
-                            Day
-                        </th>
+                    <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
+                        <th class="w-24 p-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Day</th>
                         {% for period in item.periods %}
-                        <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[140px]
-                                   {% if period.period_type.is_break %}bg-orange-50/60 dark:bg-orange-900/10{% endif %}">
+                        <th class="min-w-[140px] p-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300 {% if period.period_type.is_break %}bg-orange-50/70 dark:bg-orange-900/10{% endif %}">
                             {{ period.display_name }}<br>
-                            <span class="text-xs font-normal text-gray-500">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
+                            <span class="text-xs font-normal text-slate-500">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
                         </th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for day in item.days %}
-                    <tr class="border-b border-gray-100 dark:border-gray-700">
-                        <td class="p-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                            {{ day.name }}
-                        </td>
+                    <tr class="border-b border-slate-100 dark:border-slate-800">
+                        <td class="whitespace-nowrap p-3 font-medium text-slate-900 dark:text-white">{{ day.name }}</td>
                         {% for period in item.periods %}
-                        <td class="p-3 text-center border-l border-gray-100 dark:border-gray-700
-                                   {% if period.period_type.is_break %}bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
+                        <td class="border-l border-slate-100 p-3 text-center dark:border-slate-800 {% if period.period_type.is_break %}bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
                             {% if period.period_type.is_break %}
-                            <div class="text-sm text-orange-500 dark:text-orange-300 italic">
+                            <div class="text-sm italic text-orange-600 dark:text-orange-300">
                                 <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
                             </div>
                             {% else %}
@@ -148,19 +139,19 @@
                             {% with slot=item.slots_by_day_period|get_item:key %}
                             {% if slot %}
                                 {% if slot.is_free_period %}
-                                <div class="text-sm text-gray-400 italic">Free Period</div>
+                                <div class="text-sm italic text-slate-400">Free Period</div>
                                 {% elif slot.subject_name %}
                                 <div>
-                                    <div class="font-semibold text-gray-900 dark:text-white">{{ slot.subject_name }}</div>
+                                    <div class="font-semibold text-slate-900 dark:text-white">{{ slot.subject_name }}</div>
                                     {% if slot.room %}
-                                    <div class="text-xs text-gray-500">{{ slot.room }}</div>
+                                    <div class="text-xs text-slate-500">{{ slot.room }}</div>
                                     {% endif %}
                                 </div>
                                 {% else %}
-                                <div class="text-gray-300">—</div>
+                                <div class="text-slate-300">—</div>
                                 {% endif %}
                             {% else %}
-                            <div class="text-gray-300">—</div>
+                            <div class="text-slate-300">—</div>
                             {% endif %}
                             {% endwith %}
                             {% endwith %}
@@ -174,21 +165,20 @@
         </div>
     </div>
     {% endfor %}
-    
-    <!-- Legend -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+
+    <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex flex-wrap gap-4 text-xs">
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-green-100 dark:bg-green-900/30 rounded"></div>
-                <span>Your Classes</span>
+                <div class="h-4 w-4 rounded bg-emerald-100 dark:bg-emerald-900/30"></div>
+                <span class="text-slate-600 dark:text-slate-400">Your classes</span>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-yellow-100 dark:bg-yellow-900/30 rounded"></div>
-                <span>Free Period</span>
+                <div class="h-4 w-4 rounded bg-amber-100 dark:bg-amber-900/30"></div>
+                <span class="text-slate-600 dark:text-slate-400">Free period</span>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50 rounded"></div>
-                <span>Break</span>
+                <div class="h-4 w-4 rounded border border-dashed border-orange-200 bg-orange-50 dark:border-orange-800/60 dark:bg-orange-900/10"></div>
+                <span class="text-slate-600 dark:text-slate-400">Break</span>
             </div>
         </div>
     </div>

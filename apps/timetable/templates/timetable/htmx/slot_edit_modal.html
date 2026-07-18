@@ -1,22 +1,20 @@
 {# timetable/templates/timetable/htmx/slot_edit_modal.html #}
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden" 
+<div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
      @click.outside="$dispatch('close-modal')"
      x-data="{ isFree: {{ slot.is_free_period|yesno:'true,false' }} }">
-    
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <h3 class="text-lg font-bold">
+    <div class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-primary-50 to-slate-50 px-6 py-4 dark:border-slate-700 dark:from-primary-900/20 dark:to-slate-900/40">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
             <span x-show="!isFree">{% if slot.teacher %}Edit Assignment{% else %}New Assignment{% endif %}</span>
             <span x-show="isFree">Free Period</span>
         </h3>
-        <button @click="$dispatch('close-modal')" class="text-gray-400 hover:text-gray-600">
+        <button @click="$dispatch('close-modal')" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
             <i class="fas fa-times"></i>
         </button>
     </div>
 
-    <div class="p-6 space-y-4">
-        <!-- Toggle Free Period Status -->
-        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-            <span class="text-sm font-medium">Mark as Free Period?</span>
+    <div class="space-y-4 p-6">
+        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/70">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Mark as Free Period?</span>
             <button type="button"
                     data-is-free="{{ slot.is_free_period|yesno:'true,false' }}"
                     hx-post="{% url 'timetable:htmx_slot_update' slot.id %}"
@@ -25,29 +23,20 @@
                     hx-swap="outerHTML"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-on::after-request="if(event.detail.successful) { isFree = !isFree; window.dispatchEvent(new CustomEvent('close-modal')); }"
-                    :class="isFree ? 'bg-primary-600' : 'bg-gray-200'"
-                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 border-2 border-transparent">
-
-                <span :class="isFree ? 'translate-x-5' : 'translate-x-0'" 
-                      class="inline-block h-5 w-5 transform rounded-full bg-white transition duration-200 shadow"></span>
+                    :class="isFree ? 'bg-primary-600' : 'bg-slate-300 dark:bg-slate-600'"
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200">
+                <span :class="isFree ? 'translate-x-5' : 'translate-x-0'" class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200"></span>
             </button>
         </div>
 
-        <!-- Teacher Selection Dropdown Menu -->
         <div x-show="!isFree" x-transition>
-            <label class="block text-sm font-medium mb-2">Assign Teacher</label>
-            <select name="teacher_id" 
-                    class="w-full rounded-lg border-gray-300 dark:bg-gray-700 dark:border-gray-600"
+            <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Assign Teacher</label>
+            <select name="teacher_id"
+                    class="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                     hx-get="{% url 'timetable:htmx_teacher_subjects' %}"
                     hx-trigger="change"
                     hx-target="#subject-selection-area"
-                    hx-vals='js:{
-                        teacher_id: event.target.value,
-                        timetable_id: "{{ timetable_id }}", 
-                        day_id: "{{ day.id }}", 
-                        period_id: "{{ period.id }}", 
-                        slot_id: "{{ slot_id }}"
-                    }'>
+                    hx-vals='js:{teacher_id: event.target.value, timetable_id: "{{ timetable_id }}", day_id: "{{ day.id }}", period_id: "{{ period.id }}", slot_id: "{{ slot_id }}"}'>
                 <option value="">Select a teacher...</option>
                 {% for teacher in teachers %}
                     <option value="{{ teacher.id }}" {% if slot.teacher_id == teacher.id %}selected{% endif %}>
@@ -57,7 +46,6 @@
             </select>
         </div>
 
-        <!-- Dynamic Subject Qualification Selection Area -->
         <div id="subject-selection-area" class="mt-4" x-show="!isFree">
             {% if slot.teacher %}
                 <div hx-get="{% url 'timetable:htmx_teacher_subjects' %}?teacher_id={{ slot.teacher_id }}&timetable_id={{ timetable_id }}&day_id={{ day.id }}&period_id={{ period.id }}&slot_id={{ slot_id }}" hx-trigger="load"></div>
@@ -65,8 +53,7 @@
         </div>
     </div>
 
-    <!-- Modal Actions Footer Layout -->
-    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 flex justify-between">
+    <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/60">
         {% if slot.teacher or slot.is_free_period %}
         <button hx-post="{% url 'timetable:htmx_slot_clear' slot.id %}"
                 hx-confirm="Clear this slot?"
@@ -74,10 +61,10 @@
                 hx-swap="outerHTML"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-on::after-request="if(event.detail.successful) { window.dispatchEvent(new CustomEvent('close-modal')); }"
-                class="text-red-600 text-sm font-medium hover:underline">
+                class="text-sm font-semibold text-red-600 transition hover:text-red-700">
             <i class="fas fa-trash-alt mr-1"></i> Clear Slot
         </button>
         {% endif %}
-        <button @click="$dispatch('close-modal')" class="text-gray-500 text-sm font-medium hover:text-gray-700">Cancel</button>
+        <button @click="$dispatch('close-modal')" class="text-sm font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Cancel</button>
     </div>
 </div>

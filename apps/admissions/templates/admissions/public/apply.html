@@ -4,11 +4,10 @@
 
 
 {% block content %}
-<div class="min-h-screen bg-light-bg dark:bg-dark-bg py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
+<div class="min-h-screen bg-light-bg px-4 py-12 sm:px-6 lg:px-8 dark:bg-dark-bg">
+    <div class="mx-auto max-w-5xl">
         
-        <!-- Header -->
-        <div class="text-center mb-8">
+        <div class="mb-8 rounded-3xl border border-slate-200 bg-white/80 p-8 text-center shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
             <h1 class="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
                 Application for Admission
             </h1>
@@ -26,7 +25,7 @@
         </div>
         
         <!-- Progress Steps -->
-        <div class="mb-8">
+        <div class="mb-8 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
             <div class="flex items-center justify-center space-x-4">
                 <div class="flex items-center text-primary-600 dark:text-primary-400">
                     <span class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center font-bold">1</span>
@@ -47,7 +46,7 @@
         
         <!-- Display Form Errors -->
         {% if form.errors %}
-        <div class="mb-6 rounded-md bg-red-50 dark:bg-red-900/50 p-4 border border-red-200 dark:border-red-800">
+        <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/50">
             <div class="flex">
                 <div class="flex-shrink-0">
                     <i class="fas fa-exclamation-circle text-red-400"></i>
@@ -74,13 +73,13 @@
         {% endif %}
         
         <!-- Application Form -->
-        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
             <form method="post" class="space-y-8 p-6" id="application-form">
                 {% csrf_token %}
                 
                 <!-- Personal Information -->
-                <div>
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Student Personal Information</h2>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/70">
+                    <h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Student Personal Information</h2>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
@@ -186,8 +185,8 @@
                 </div>
                 
                 <!-- Academic Information -->
-                <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Academic Information</h2>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/70">
+                    <h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Academic Information</h2>
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Applying for Class *</label>
@@ -230,8 +229,8 @@
                 </div>
                 
                 <!-- Guardian Information -->
-                <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/70">
+                    <h2 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
                         Guardian Information 
                         <span class="text-sm font-normal text-red-500">* Required - Primary Contact</span>
                     </h2>
@@ -296,8 +295,8 @@
                 </div>
                 
                 <!-- Document Upload -->
-                <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Supporting Documents (Optional)</h2>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/70">
+                    <h2 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Supporting Documents (Optional)</h2>
                     <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center" id="dropzone">
                         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -313,8 +312,8 @@
                 </div>
                 
                 <!-- Terms and Submit -->
-                <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <div class="flex items-start mb-6">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800/70">
+                    <div class="mb-6 flex items-start">
                         <input type="checkbox" id="terms" name="terms_agreed" required
                                class="mt-1 mr-2 rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500">
                         <label for="terms" class="text-sm text-gray-600 dark:text-gray-400">

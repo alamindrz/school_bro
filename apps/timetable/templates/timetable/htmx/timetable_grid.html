@@ -2,26 +2,23 @@
 
 {% load timetable_tags %}
 
-
 {% if not days %}
-    <div class="p-8 text-center text-gray-500">No school days configured.</div>
+    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">No school days configured.</div>
 {% else %}
-
-    <!-- Mobile View (< 1024px): Day cards, each showing periods across as a horizontal strip -->
     <div class="lg:hidden overflow-x-auto">
         <div class="min-w-max p-3">
             {% for day in days %}
-            <div class="mb-4 last:mb-0">
-                <p class="font-semibold text-sm text-gray-900 dark:text-white mb-1">{{ day.name }}</p>
+            <div class="mb-4 rounded-2xl border border-slate-200 bg-white/70 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/60 last:mb-0">
+                <p class="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{{ day.name }}</p>
                 <div class="flex gap-1">
                     {% for period in periods %}
                     <div class="w-28 flex-shrink-0">
-                        <p class="text-[10px] text-gray-400 dark:text-gray-500 text-center mb-0.5">
+                        <p class="mb-0.5 text-center text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
                             {{ period.display_name }}
                         </p>
                         {% if period.period_type.is_break %}
-                            <div class="p-2 text-center bg-orange-50 dark:bg-orange-900/10 border border-dashed border-orange-200 dark:border-orange-800/50 rounded-lg">
-                                <p class="text-xs text-orange-600 dark:text-orange-300 italic">
+                            <div class="rounded-2xl border border-dashed border-orange-200 bg-orange-50 p-2 text-center dark:border-orange-800/50 dark:bg-orange-900/10">
+                                <p class="text-xs font-medium italic text-orange-600 dark:text-orange-300">
                                     <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
                                 </p>
                             </div>
@@ -30,12 +27,12 @@
                             {% if slot_id %}
                                 {% include "timetable/htmx/slot_cell.html" with slot=slot_id day=day period=period %}
                             {% else %}
-                                <div class="slot-cell p-2 text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                                <div class="slot-cell rounded-2xl border border-slate-200 bg-slate-50 p-2 text-center dark:border-slate-700 dark:bg-slate-800/60"
                                      hx-get="{% url 'timetable:slot_edit_modal' %}?day_id={{ day.id }}&period_id={{ period.id }}&timetable_id={{ timetable.id }}"
                                      hx-target="#slot-edit-modal-container"
                                      hx-swap="innerHTML">
-                                    <i class="fas fa-plus-circle text-gray-400 text-lg mb-1"></i>
-                                    <p class="text-xs text-gray-400">—</p>
+                                    <i class="mb-1 text-lg text-slate-400"></i>
+                                    <p class="text-xs text-slate-400">—</p>
                                 </div>
                             {% endif %}
                             {% endwith %}
@@ -48,19 +45,15 @@
         </div>
     </div>
 
-    <!-- Desktop View (≥ 1024px): Days as rows, Periods as columns (classic school-calendar layout) -->
-    <div class="hidden lg:block overflow-x-auto">
+    <div class="hidden overflow-x-auto lg:block">
         <table class="min-w-full border-collapse">
             <thead>
-                <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                    <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-24">
-                        Day
-                    </th>
+                <tr class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/60">
+                    <th class="w-24 p-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Day</th>
                     {% for period in periods %}
-                    <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[140px]
-                               {% if period.period_type.is_break %}bg-orange-50/60 dark:bg-orange-900/10{% endif %}">
+                    <th class="min-w-[140px] p-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300{% if period.period_type.is_break %} bg-orange-50/70 dark:bg-orange-900/10{% endif %}">
                         {{ period.display_name }}<br>
-                        <span class="text-xs font-normal text-gray-500 dark:text-gray-400">
+                        <span class="text-xs font-normal text-slate-500 dark:text-slate-400">
                             {{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}
                         </span>
                     </th>
@@ -69,15 +62,12 @@
             </thead>
             <tbody>
                 {% for day in days %}
-                <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td class="p-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                        {{ day.name }}
-                    </td>
+                <tr class="border-b border-slate-100 hover:bg-slate-50/70 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                    <td class="whitespace-nowrap p-3 font-medium text-slate-900 dark:text-white">{{ day.name }}</td>
                     {% for period in periods %}
-                    <td class="p-2 text-center border-l border-gray-100 dark:border-gray-700
-                               {% if period.period_type.is_break %}bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
+                    <td class="border-l border-slate-100 p-2 text-center dark:border-slate-700{% if period.period_type.is_break %} bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
                         {% if period.period_type.is_break %}
-                            <div class="text-sm text-orange-500 dark:text-orange-300 italic">
+                            <div class="text-sm italic text-orange-500 dark:text-orange-300">
                                 <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
                             </div>
                         {% else %}
@@ -85,12 +75,12 @@
                             {% if slot_id %}
                                 {% include "timetable/htmx/slot_cell.html" with slot=slot_id day=day period=period %}
                             {% else %}
-                                <div class="slot-cell p-3 text-center text-gray-400"
+                                <div class="slot-cell rounded-2xl border border-slate-200 bg-slate-50 p-3 text-center text-slate-400 dark:border-slate-700 dark:bg-slate-800/60"
                                      hx-get="{% url 'timetable:slot_edit_modal' %}?day_id={{ day.id }}&period_id={{ period.id }}&timetable_id={{ timetable.id }}"
                                      hx-target="#slot-edit-modal-container"
                                      hx-swap="innerHTML">
-                                    <i class="fas fa-plus-circle text-gray-400 text-lg mb-1"></i>
-                                    <p class="text-xs text-gray-400">—</p>
+                                    <i class="mb-1 text-lg text-slate-400"></i>
+                                    <p class="text-xs text-slate-400">—</p>
                                 </div>
                             {% endif %}
                             {% endwith %}

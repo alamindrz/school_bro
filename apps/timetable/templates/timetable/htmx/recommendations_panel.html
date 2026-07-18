@@ -1,37 +1,30 @@
 {# timetable/htmx/recommendations_panel.html #}
-
-<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
-    <div class="flex items-center justify-between mb-3">
-        <h3 class="font-medium text-blue-900 dark:text-blue-200">
+<div class="rounded-3xl border border-blue-200 bg-blue-50/80 p-4 dark:border-blue-800 dark:bg-blue-900/20 sm:p-5">
+    <div class="mb-3 flex items-center justify-between">
+        <h3 class="font-semibold text-blue-900 dark:text-blue-200">
             <i class="fas fa-lightbulb mr-2"></i>Bulk Assignment Plan
         </h3>
-        <span class="text-xs text-blue-600 dark:text-blue-400">
-            {{ recommendations.total_unassigned }} unassigned slots
-        </span>
+        <span class="text-xs text-blue-600 dark:text-blue-400">{{ recommendations.total_unassigned }} unassigned slots</span>
     </div>
 
     {% if recommendations.recommendations %}
-        <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">
-            The plan below is a single clash-free batch covering
-            {{ recommendations.recommendations|length }} of {{ recommendations.total_unassigned }}
-            unassigned slot(s). Apply it all at once, or discard and adjust manually.
+        <p class="mb-3 text-xs text-slate-600 dark:text-slate-400">
+            The plan below is a single clash-free batch covering {{ recommendations.recommendations|length }} of {{ recommendations.total_unassigned }} unassigned slot(s). Apply it all at once, or discard and adjust manually.
         </p>
 
-        <div class="space-y-2 max-h-72 overflow-y-auto mb-3">
+        <div class="mb-3 max-h-72 space-y-2 overflow-y-auto">
             {% for rec in recommendations.recommendations|slice:":25" %}
                 {% with best=rec.recommendations.0 %}
-                <div class="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {{ rec.day_name }} - {{ rec.period_name }}
-                        </p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-900/70">
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ rec.day_name }} - {{ rec.period_name }}</p>
+                        <p class="truncate text-xs text-slate-500 dark:text-slate-400">
                             {{ best.teacher_name }} • {{ best.subject_name }}
-                            {% if best.is_primary %}<span class="text-yellow-500 ml-1">★</span>{% endif %}
+                            {% if best.is_primary %}<span class="ml-1 text-amber-500">★</span>{% endif %}
                         </p>
                     </div>
-                    <span class="ml-2 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                        <i class="fas fa-check-circle text-green-400 mr-1"></i>Planned
+                    <span class="ml-2 whitespace-nowrap text-xs text-emerald-600 dark:text-emerald-400">
+                        <i class="fas fa-check-circle mr-1"></i>Planned
                     </span>
                 </div>
                 {% endwith %}
@@ -39,9 +32,7 @@
         </div>
 
         {% if recommendations.recommendations|length > 25 %}
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 text-center">
-                +{{ recommendations.recommendations|length|add:"-25" }} more in this batch
-            </p>
+            <p class="mb-3 text-center text-xs text-slate-500 dark:text-slate-400">+{{ recommendations.recommendations|length|add:"-25" }} more in this batch</p>
         {% endif %}
 
         <form hx-post="{% url 'timetable:htmx_apply_bulk_recommendations' timetable_id %}"
@@ -49,13 +40,12 @@
               hx-swap="innerHTML"
               hx-confirm="Apply this entire bulk assignment plan ({{ recommendations.recommendations|length }} slots)? This cannot be undone automatically.">
             {% csrf_token %}
-            <button type="submit"
-                    class="w-full px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button type="submit" class="w-full rounded-2xl bg-primary-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700">
                 <i class="fas fa-layer-group mr-2"></i>Apply Full Batch ({{ recommendations.recommendations|length }})
             </button>
         </form>
     {% else %}
-        <p class="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+        <p class="py-4 text-center text-sm text-slate-600 dark:text-slate-400">
             {% if recommendations.total_unassigned == 0 %}
                 🎉 All slots are assigned! Great job!
             {% else %}
@@ -64,17 +54,16 @@
         </p>
     {% endif %}
 
-    <!-- Workload Summary -->
     {% if balance.suggest_rebalancing %}
-    <div class="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
-        <p class="text-xs font-medium text-blue-900 dark:text-blue-200 mb-2">
+    <div class="mt-4 border-t border-blue-200 pt-4 dark:border-blue-800">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-900 dark:text-blue-200">
             <i class="fas fa-balance-scale mr-1"></i>Load Balancing
         </p>
 
         {% if balance.overloaded_teachers %}
-        <p class="text-xs text-orange-600 dark:text-orange-400 mb-1">Overloaded:</p>
+        <p class="mb-1 text-xs text-orange-600 dark:text-orange-400">Overloaded:</p>
         {% for t in balance.overloaded_teachers|slice:":3" %}
-        <div class="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
+        <div class="flex justify-between text-xs text-slate-600 dark:text-slate-400">
             <span>{{ t.teacher_name }}</span>
             <span>{{ t.current_load }} periods</span>
         </div>
@@ -82,9 +71,9 @@
         {% endif %}
 
         {% if balance.underloaded_teachers %}
-        <p class="text-xs text-green-600 dark:text-green-400 mt-2 mb-1">Available capacity:</p>
+        <p class="mt-2 mb-1 text-xs text-emerald-600 dark:text-emerald-400">Available capacity:</p>
         {% for t in balance.underloaded_teachers|slice:":3" %}
-        <div class="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
+        <div class="flex justify-between text-xs text-slate-600 dark:text-slate-400">
             <span>{{ t.teacher_name }}</span>
             <span>{{ t.current_load }} periods</span>
         </div>

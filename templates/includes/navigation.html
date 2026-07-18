@@ -82,6 +82,8 @@
                            {% if child.active %}data-active="true"{% endif %}
                            hx-boost="true"
                            hx-target="#main-content"
+                           hx-select="#main-content"
+                           hx-swap="outerHTML"
                            hx-indicator="#global-loading"
                            hx-push-url="true">
                             <i class="{{ child.icon }} w-4 h-4 mr-3 {% if child.active %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}"></i>
@@ -100,6 +102,8 @@
                        {% if item.active %}data-active="true"{% endif %}
                        hx-boost="true"
                        hx-target="#main-content"
+                       hx-select="#main-content"
+                       hx-swap="outerHTML"
                        hx-indicator="#global-loading"
                        hx-push-url="true">
                         <div class="flex items-center space-x-3">
@@ -124,6 +128,8 @@
                    class="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150"
                    hx-boost="true"
                    hx-target="#main-content"
+                   hx-select="#main-content"
+                   hx-swap="outerHTML"
                    hx-indicator="#global-loading"
                    hx-push-url="true">
                     <i class="{{ item.icon }} w-5 h-5 mr-3 text-gray-400 dark:text-gray-500"></i>
@@ -160,6 +166,8 @@
                        class="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                        hx-boost="true"
                        hx-target="#main-content"
+                       hx-select="#main-content"
+                       hx-swap="outerHTML"
                        hx-indicator="#global-loading"
                        hx-push-url="true">
                         <i class="{{ item.icon }} w-5 h-5 mr-3 text-gray-400 dark:text-gray-500"></i>

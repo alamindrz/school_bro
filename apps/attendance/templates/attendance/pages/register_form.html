@@ -5,12 +5,11 @@
 {% block title %}{% if object %}Edit{% else %}Create{% endif %} Attendance Register{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"
      x-data="registerForm()"
      x-init="init()">
     
-    <!-- Page Header -->
-    <div class="mb-8">
+    <div class="mb-8 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -26,14 +25,14 @@
                 </p>
             </div>
             <a href="{% url 'attendance:register_list' %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+               class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Registers
             </a>
         </div>
     </div>
 
     <!-- Form Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
         <form method="post" id="registerForm">
             {% csrf_token %}
             
@@ -208,7 +207,7 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-900/80">
                 <button type="button" 
                         onclick="window.location.href='{% url 'attendance:register_list' %}'"
                         class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
@@ -225,7 +224,7 @@
     </div>
 
     <!-- Quick Info Card -->
-    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+    <div class="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-900/20">
         <div class="flex">
             <div class="flex-shrink-0">
                 <i class="fas fa-info-circle text-blue-600 dark:text-blue-400"></i>
