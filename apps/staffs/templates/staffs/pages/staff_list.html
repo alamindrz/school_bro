@@ -1,27 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Staff List - DETs Toolkit{% endblock %}
+{% block title %}Staff List - School Bro{% endblock %}
+
+{% block page_title %}Staff Members{% endblock %}
+{% block page_subtitle %}Total: {{ staff_list|length }} staff members{% endblock %}
+{% block page_actions %}
+    <a href="{% url 'staffs:create' %}" 
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+        <i class="fas fa-plus mr-2"></i>Add Staff
+    </a>
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <!-- Page header -->
-    <div class="mb-8 sm:flex sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Staff Members</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Total: <span class="font-medium">{{ staff_list|length }}</span> staff members
-            </p>
-        </div>
-        <div class="mt-4 sm:mt-0">
-            <a href="{% url 'staffs:create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                + Add Staff
-            </a>
-        </div>
-    </div>
-
     <!-- Filters -->
-    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <!-- Search -->
             <div class="sm:col-span-2">
@@ -29,12 +21,12 @@
                        name="search" 
                        value="{{ search_query }}"
                        placeholder="Search by name, ID, email, phone..." 
-                       class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                       class="block w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
             </div>
             
             <!-- Staff Type Filter -->
             <div>
-                <select name="staff_type" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                <select name="staff_type" class="block w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                     <option value="">All Types</option>
                     {% for value, label in staff_types %}
                     <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
@@ -44,7 +36,7 @@
             
             <!-- Category Filter -->
             <div>
-                <select name="category" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                <select name="category" class="block w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                     <option value="">All Categories</option>
                     {% for value, label in categories %}
                     <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
@@ -54,7 +46,7 @@
             
             <!-- Status Filter -->
             <div>
-                <select name="status" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                <select name="status" class="block w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                     <option value="">All Status</option>
                     {% for value, label in employment_statuses %}
                     <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
@@ -64,7 +56,7 @@
             
             <!-- Department Filter -->
             <div>
-                <select name="department" class="block w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                <select name="department" class="block w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                     <option value="">All Departments</option>
                     {% for dept in departments %}
                     <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>{{ dept }}</option>
@@ -75,35 +67,47 @@
             <!-- Filter Actions -->
             <div class="sm:col-span-2 lg:col-span-4 flex justify-end space-x-3">
                 <button type="button" onclick="clearFilters()" 
-                        class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Clear
                 </button>
                 <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Apply Filters
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- Staff Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <!-- Staff Grid/Table Toggle -->
+    <div class="mb-4 flex justify-end space-x-2">
+        <button onclick="setView('grid')" id="grid-view-btn" 
+                class="p-2 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
+            <i class="fas fa-th-large block h-5 w-5"></i>
+        </button>
+        <button onclick="setView('table')" id="table-view-btn" 
+                class="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <i class="fas fa-list block h-5 w-5"></i>
+        </button>
+    </div>
+
+    <!-- Grid View -->
+    <div id="grid-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for staff in staff_list %}
-        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden hover:shadow-md transition-shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
             <!-- Card Header with Photo/Initials -->
-            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 text-center">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-center">
                 {% if staff.passport_url %}
                 <img src="{{ staff.passport_url }}" alt="{{ staff.full_name }}" 
                      class="h-20 w-20 rounded-full mx-auto border-4 border-white dark:border-gray-800 shadow-lg">
                 {% else %}
                 <div class="h-20 w-20 rounded-full bg-white dark:bg-gray-800 mx-auto border-4 border-white dark:border-gray-800 shadow-lg flex items-center justify-center">
-                    <span class="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {{ staff.first_name|first|upper }}{{ staff.last_name|first|upper }}
                     </span>
                 </div>
                 {% endif %}
                 <h3 class="mt-3 text-lg font-semibold text-white">{{ staff.full_name }}</h3>
-                <p class="text-primary-100 text-sm">{{ staff.staff_type_display }}</p>
+                <p class="text-blue-100 text-sm">{{ staff.staff_type_display }}</p>
             </div>
             
             <!-- Staff Details -->
@@ -138,14 +142,14 @@
             </div>
             
             <!-- Card Footer -->
-            <div class="px-4 py-3 border-t border-light-border dark:border-dark-border bg-gray-50 dark:bg-gray-800 flex justify-between">
+            <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-between">
                 <a href="{% url 'staffs:detail' staff.id %}" 
-                   class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                   class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                     View Profile
                 </a>
                 {% if perms.staffs.change_staff %}
                 <a href="{% url 'staffs:edit' staff.id %}" 
-                   class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                   class="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
                     Edit
                 </a>
                 {% endif %}
@@ -153,7 +157,7 @@
         </div>
         {% empty %}
         <div class="col-span-full text-center py-12">
-            <div class="text-6xl mb-4">👥</div>
+            <i class="fas fa-users text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No staff members found</h3>
             <p class="text-gray-500 dark:text-gray-400 mb-6">
                 {% if request.GET %}
@@ -164,12 +168,70 @@
             </p>
             {% if perms.staffs.add_staff %}
             <a href="{% url 'staffs:create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                + Add Your First Staff
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Add Your First Staff
             </a>
             {% endif %}
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Table View (hidden by default) -->
+    <div id="table-view" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Staff ID</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for staff in staff_list %}
+                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ staff.staff_id }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            <a href="{% url 'staffs:detail' staff.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">
+                                {{ staff.full_name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ staff.staff_type_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ staff.department|default:"No Department" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if staff.employment_status == 'active' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif staff.employment_status == 'on_leave' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                                {% endif %}">
+                                {{ staff.employment_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            <div>{{ staff.email }}</div>
+                            <div>{{ staff.phone }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{% url 'staffs:detail' staff.id %}" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-3">View</a>
+                            {% if perms.staffs.change_staff %}
+                            <a href="{% url 'staffs:edit' staff.id %}" class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Edit</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Pagination -->
@@ -178,7 +240,7 @@
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="sr-only">Previous</span>
                 <i class="fas fa-chevron-left"></i>
             </a>
@@ -186,12 +248,12 @@
             
             {% for num in page_obj.paginator.page_range %}
                 {% if num == page_obj.number %}
-                <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 dark:bg-primary-900/50 text-sm font-medium text-primary-600 dark:text-primary-400">
+                <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 dark:bg-blue-900/50 text-sm font-medium text-blue-600 dark:text-blue-400">
                     {{ num }}
                 </span>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                 <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                     {{ num }}
                 </a>
                 {% endif %}
@@ -199,7 +261,7 @@
             
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="sr-only">Next</span>
                 <i class="fas fa-chevron-right"></i>
             </a>
@@ -207,9 +269,40 @@
         </nav>
     </div>
     {% endif %}
-</div>
 
 <script>
+    // View toggle functionality
+    function setView(view) {
+        const gridView = document.getElementById('grid-view');
+        const tableView = document.getElementById('table-view');
+        const gridBtn = document.getElementById('grid-view-btn');
+        const tableBtn = document.getElementById('table-view-btn');
+
+        if (view === 'grid') {
+            gridView.classList.remove('hidden');
+            tableView.classList.add('hidden');
+            gridBtn.classList.add('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            gridBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            tableBtn.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            tableBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            localStorage.setItem('staffView', 'grid');
+        } else {
+            gridView.classList.add('hidden');
+            tableView.classList.remove('hidden');
+            tableBtn.classList.add('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            tableBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            gridBtn.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            gridBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            localStorage.setItem('staffView', 'table');
+        }
+    }
+
+    // Load saved view preference
+    const savedView = localStorage.getItem('staffView');
+    if (savedView) {
+        setView(savedView);
+    }
+
     function clearFilters() {
         window.location.href = window.location.pathname;
     }

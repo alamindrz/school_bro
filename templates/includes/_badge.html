@@ -1,0 +1,23 @@
+{% comment %}
+Usage: {% include 'includes/_badge.html' with color=item.badge_color text=item.badge extra_class="ml-2" %}
+Renders literal Tailwind classes per color so a real Tailwind build (not just the
+Play CDN) can find and keep them. Add more branches here if you introduce new
+badge colors — do not go back to bg-{{ color }}-100 style interpolation.
+{% endcomment %}
+{% if color == 'green' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 rounded-full">{{ text }}</span>
+{% elif color == 'red' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 rounded-full">{{ text }}</span>
+{% elif color == 'yellow' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 rounded-full">{{ text }}</span>
+{% elif color == 'purple' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 rounded-full">{{ text }}</span>
+{% elif color == 'indigo' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 rounded-full">{{ text }}</span>
+{% elif color == 'pink' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-300 rounded-full">{{ text }}</span>
+{% elif color == 'blue' %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded-full">{{ text }}</span>
+{% else %}
+<span class="{{ extra_class }} px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-300 rounded-full">{{ text }}</span>
+{% endif %}

@@ -81,8 +81,8 @@ class SlotEditFormView(LoginRequiredMixin, PermissionRequiredMixin, View):
         ).order_by('first_name', 'last_name')
         logger.debug(f"Found {teachers.count()} active academic staff")
         
-        # If editing an existing slot with a teacher, get their qualified subjects
-        subjects = [{'id': q['subject_id'], 'name': q['subject_name']} for q in qualifications]
+        qualifications = []
+        subjects = []
         if slot and slot.teacher:
             from apps.staffs.selectors import TeacherQualificationSelector
             qualifications = TeacherQualificationSelector.get_for_teacher(int(slot.teacher_id))
@@ -142,21 +142,8 @@ class TeacherSubjectsSelectView(LoginRequiredMixin, View):
             'period_id': period_id,
         }
         
-        response = render(request, 'timetable/htmx/subject_select.html', context)
-        
-        # Debug script
-        debug_script = '''
-        <script>
-            console.log("Subject buttons loaded");
-            document.querySelectorAll('button[hx-post]').forEach(btn => {
-                console.log("Found HTMX button:", btn.textContent.trim());
-            });
-            console.log("HTMX available:", typeof htmx !== 'undefined');
-        </script>
-        '''
-        response.content = response.content + debug_script.encode()
-        return response    
-        
+        return render(request, 'timetable/htmx/subject_select.html', context)
+
             
 
 @method_decorator(require_http_methods(["POST"]), name='dispatch')

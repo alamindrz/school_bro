@@ -1,32 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} - Staff Management{% endblock %}
+{% block title %}{{ title }} - School Bro{% endblock %}
+
+{% block page_title %}
+    <i class="fas fa-user-plus text-blue-500 mr-3"></i>{{ title }}
+{% endblock %}
+{% block page_subtitle %}
+    {% if object %}
+        Update staff information. An invitation will NOT be resent automatically.
+    {% else %}
+        Create a new staff member. An invitation email will be sent automatically.
+    {% endif %}
+{% endblock %}
+{% block page_actions %}
+    <a href="{% url 'staffs:list' %}" 
+       class="inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+        <i class="fas fa-arrow-left mr-2"></i>Back to List
+    </a>
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
-    
-    <!-- Page header -->
-    <div class="mb-8">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    <i class="fas fa-user-plus text-primary-500 mr-3"></i>
-                    {{ title }}
-                </h1>
-                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    {% if object %}
-                        Update staff information. An invitation will NOT be resent automatically.
-                    {% else %}
-                        Create a new staff member. An invitation email will be sent automatically.
-                    {% endif %}
-                </p>
-            </div>
-            <a href="{% url 'staffs:list' %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-arrow-left mr-2"></i> Back to List
-            </a>
-        </div>
-    </div>
+<div class="mx-auto max-w-4xl">
 
     <!-- Info Banner for New Staff -->
     {% if not object %}
@@ -62,7 +56,7 @@
             <!-- Personal Information -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-user text-primary-500 mr-2"></i>
+                    <i class="fas fa-user text-blue-500 mr-2"></i>
                     Personal Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -134,7 +128,7 @@
             <!-- Contact Information -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-phone text-primary-500 mr-2"></i>
+                    <i class="fas fa-phone text-blue-500 mr-2"></i>
                     Contact Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -205,7 +199,7 @@
             <!-- Employment Information -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-briefcase text-primary-500 mr-2"></i>
+                    <i class="fas fa-briefcase text-blue-500 mr-2"></i>
                     Employment Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -263,7 +257,7 @@
             <!-- Qualifications -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-graduation-cap text-primary-500 mr-2"></i>
+                    <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
                     Qualifications
                 </h2>
                 <div class="grid grid-cols-1 gap-6">
@@ -286,7 +280,7 @@
             <!-- Bank Details -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-university text-primary-500 mr-2"></i>
+                    <i class="fas fa-university text-blue-500 mr-2"></i>
                     Bank Details
                 </h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -330,7 +324,7 @@
             <!-- Emergency Contact -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-ambulance text-primary-500 mr-2"></i>
+                    <i class="fas fa-ambulance text-blue-500 mr-2"></i>
                     Emergency Contact
                 </h2>
                 <div class="grid grid-cols-1 gap-6">
@@ -360,7 +354,7 @@
             <!-- Medical Information -->
             <div>
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <i class="fas fa-heartbeat text-primary-500 mr-2"></i>
+                    <i class="fas fa-heartbeat text-blue-500 mr-2"></i>
                     Medical Information
                 </h2>
                 <div class="grid grid-cols-1 gap-6">
@@ -399,11 +393,11 @@
             <!-- Form Actions -->
             <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <a href="{% url 'staffs:list' %}" 
-                   class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700">
+                   class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                     Cancel
                 </a>
                 <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <i class="fas fa-save mr-2"></i>
                     {{ submit_text }}
                 </button>
@@ -415,22 +409,22 @@
     // Add Tailwind classes to form fields
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('input:not([type="checkbox"]):not([type="file"]), select, textarea').forEach(function(field) {
-            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'dark:border-gray-600',
-                               'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500',
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-200', 'dark:border-gray-700',
+                               'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500',
                                'sm:text-sm', 'bg-white', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
         });
         
         // Special handling for checkboxes
         document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-            cb.classList.add('rounded', 'border-gray-300', 'dark:border-gray-600', 'text-primary-600', 'shadow-sm', 'focus:ring-primary-500');
+            cb.classList.add('rounded', 'border-gray-200', 'dark:border-gray-700', 'text-blue-600', 'shadow-sm', 'focus:ring-blue-500');
         });
         
         // Special handling for file inputs
         document.querySelectorAll('input[type="file"]').forEach(function(file) {
             file.classList.add('block', 'w-full', 'text-sm', 'text-gray-500', 'dark:text-gray-400',
                               'file:mr-4', 'file:py-2', 'file:px-4', 'file:rounded-md', 'file:border-0',
-                              'file:text-sm', 'file:font-medium', 'file:bg-primary-50', 'file:text-primary-700',
-                              'hover:file:bg-primary-100', 'dark:file:bg-primary-900', 'dark:file:text-primary-300');
+                              'file:text-sm', 'file:font-medium', 'file:bg-blue-50', 'file:text-blue-700',
+                              'hover:file:bg-blue-100', 'dark:file:bg-blue-900', 'dark:file:text-blue-300');
         });
     });
 </script>

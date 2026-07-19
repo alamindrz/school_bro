@@ -5,9 +5,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>{% block title %}DETs Toolkit - School Management System{% endblock %}</title>
-    
+
+    <!-- Theme resolution — must run before any CSS paints to avoid a flash of
+         the wrong theme. Reads localStorage first (client preference wins),
+         falls back to the cookie, falls back to the server-rendered default
+         already set on <html> above. -->
+    <script>
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                if (!stored) {
+                    var match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+                    stored = match ? decodeURIComponent(match[1]) : null;
+                }
+                if (stored) {
+                    document.documentElement.setAttribute('data-theme', stored);
+                }
+            } catch (e) { /* localStorage/cookies unavailable — keep server default */ }
+        })();
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Without this, Tailwind's `dark:` utilities default to following the
+        // OS/browser prefers-color-scheme setting, completely independent of
+        // our own light/dark toggle below. That's what causes the mismatch
+        // where some elements (styled with dark: classes) follow the phone's
+        // system theme while others (styled via our --bg-primary CSS vars,
+        // driven by data-theme) follow the in-app toggle — the two can end
+        // up disagreeing. Keying dark: off the same [data-theme="dark"]
+        // attribute makes every element follow one single source of truth.
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+        };
+    </script>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
@@ -16,11 +48,11 @@
     <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         [x-cloak] { display: none !important; }
-        
+
         /* Theme CSS Variables */
         :root {
             --bg-primary: 249 250 251;
@@ -32,7 +64,7 @@
             --nav-hover: 243 244 246;
             --nav-active: 59 130 246;
         }
-        
+
         [data-theme="dark"] {
             --bg-primary: 17 24 39;
             --bg-secondary: 31 41 55;
@@ -43,31 +75,31 @@
             --nav-hover: 55 65 81;
             --nav-active: 59 130 246;
         }
-        
+
         body {
             background-color: rgb(var(--bg-primary));
             color: rgb(var(--text-primary));
             transition: background-color 0.2s ease, color 0.2s ease;
         }
-        
+
         .card {
             background-color: rgb(var(--bg-secondary));
             border-color: rgb(var(--border-color));
         }
-        
+
         .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
         .htmx-request .htmx-indicator { opacity: 1; }
-        
+
         .scrollbar-thin { scrollbar-width: thin; }
         .scrollbar-thin::-webkit-scrollbar { width: 5px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--border-color)); border-radius: 20px; }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="h-full antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    
+
     <div id="global-loading" class="fixed top-0 left-0 w-full h-1 bg-primary-600 transform -translate-x-full transition-transform duration-300 z-[100] htmx-indicator">
         <div class="absolute inset-0 bg-gradient-to-r from-primary-600 to-purple-600 animate-pulse"></div>
     </div>
@@ -75,8 +107,8 @@
     <div class="min-h-full">
         {% include 'includes/navigation.html' %}
 
-        <main class="lg:pl-72 xl:pl-80 transition-all duration-300" id="main-content">
-            
+        <main class="lg:pl-64 xl:pl-72 2xl:pl-80 transition-all duration-300" id="main-content">
+
             <!-- Mobile Top Bar -->
             <div class="sticky top-0 z-40 flex items-center justify-between gap-x-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-4 py-3 shadow-sm sm:px-6 lg:hidden">
                 <button id="mobile-menu-button" class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -95,46 +127,53 @@
                 </button>
             </div>
 
-            <!-- Breadcrumbs -->
-            {% if breadcrumbs %}
-            <nav class="flex items-center space-x-2 text-sm px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700" aria-label="Breadcrumb">
-                <ol class="flex items-center space-x-2 flex-wrap gap-y-2">
-                    {% for crumb in breadcrumbs %}
-                    <li class="flex items-center">
-                        {% if not forloop.first %}
-                        <svg class="h-4 w-4 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                        {% endif %}
-                        {% if crumb.active %}
-                        <span class="text-gray-700 dark:text-gray-300 font-medium">{{ crumb.title }}</span>
-                        {% else %}
-                        <a href="{{ crumb.url }}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                            {{ crumb.title }}
-                        </a>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ol>
-            </nav>
-            {% endif %}
+            <!-- Width-constrained content wrapper: keeps lines/cards readable on
+                 large and ultrawide monitors instead of stretching edge-to-edge -->
+            <div class="max-w-screen-2xl mx-auto w-full">
 
-            <!-- Page Header -->
-            <div class="px-4 sm:px-6 lg:px-8 py-6">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{% block page_title %}Dashboard{% endblock %}</h1>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{% block page_subtitle %}Welcome back, {{ request.user.get_full_name|default:request.user.username }}{% endblock %}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        {% block page_actions %}{% endblock %}
+                <!-- Breadcrumbs -->
+                {% block breadcrumbs %}
+                {% if breadcrumbs %}
+                <nav class="flex items-center space-x-2 text-sm px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-2 flex-wrap gap-y-2">
+                        {% for crumb in breadcrumbs %}
+                        <li class="flex items-center">
+                            {% if not forloop.first %}
+                            <svg class="h-4 w-4 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            {% endif %}
+                            {% if crumb.active %}
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">{{ crumb.title }}</span>
+                            {% else %}
+                            <a href="{{ crumb.url }}" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                                {{ crumb.title }}
+                            </a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </nav>
+                {% endif %}
+                {% endblock %}
+
+                <!-- Page Header -->
+                <div class="px-4 sm:px-6 lg:px-8 py-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{% block page_title %}Dashboard{% endblock %}</h1>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{% block page_subtitle %}Welcome back, {{ request.user.get_full_name|default:request.user.username }}{% endblock %}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            {% block page_actions %}{% endblock %}
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Main Content -->
-            <div class="px-4 sm:px-6 lg:px-8 pb-8">
-                {% block content %}{% endblock %}
+
+                <!-- Main Content -->
+                <div class="px-4 sm:px-6 lg:px-8 pb-8">
+                    {% block content %}{% endblock %}
+                </div>
             </div>
         </main>
     </div>
@@ -148,53 +187,48 @@
             localStorage.setItem('theme', theme);
             document.cookie = `theme=${theme}; path=/; max-age=31536000`;
         }
-        
+
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
             setTheme(current === 'light' ? 'dark' : 'light');
         }
-        
-        // Initialize theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        }
-        
-        // Theme toggle buttons
+
+        // Theme toggle buttons (theme itself is already resolved in <head>
+        // before paint — see the inline script there)
         document.addEventListener('DOMContentLoaded', function() {
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
-            
+
             const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
             if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
         });
-        
+
         // Mobile menu
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuBtn = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');
             const mobileOverlay = document.getElementById('mobile-menu-overlay');
-            
+
             function openMenu() {
                 mobileMenu?.classList.remove('-translate-x-full');
                 mobileOverlay?.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
             }
-            
+
             function closeMenu() {
                 mobileMenu?.classList.add('-translate-x-full');
                 mobileOverlay?.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
             }
-            
+
             mobileMenuBtn?.addEventListener('click', openMenu);
             mobileOverlay?.addEventListener('click', closeMenu);
-            
+
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') closeMenu();
             });
         });
-        
+
         // Toast notification
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -214,12 +248,11 @@
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
         }
-        
+
         window.showToast = showToast;
-        
-        
+
     </script>
-    
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

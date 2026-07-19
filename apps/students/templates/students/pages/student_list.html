@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Students - DETs Toolkit{% endblock %}
+{% block title %}Students - School Bro{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <!-- Page header -->
     <div class="mb-8 sm:flex sm:items-center sm:justify-between">
         <div>
@@ -15,21 +14,21 @@
         <div class="mt-4 sm:mt-0 flex space-x-3">
             {% if perms.students.add_student %}
             <a href="{% url 'students:create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                + Add Student
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Add Student
             </a>
             {% endif %}
             {% if perms.students.bulk_import_students %}
             <a href="{% url 'students:bulk_import' %}" 
-               class="inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
-                📥 Bulk Import
+               class="inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fas fa-download mr-2"></i>Bulk Import
             </a>
             {% endif %}
         </div>
     </div>
 
     <!-- Search and Filters -->
-    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
+    <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <form method="get" class="space-y-4">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Search -->
@@ -37,7 +36,7 @@
                     <label for="{{ search_form.q.id_for_label }}" class="sr-only">Search</label>
                     <div class="relative rounded-md shadow-sm">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-400 dark:text-gray-500 sm:text-sm">🔍</span>
+                            <i class="fas fa-search text-gray-400 dark:text-gray-500 sm:text-sm"></i>
                         </div>
                         {{ search_form.q }}
                     </div>
@@ -70,13 +69,13 @@
             
             <!-- Advanced Filters Toggle (mobile) -->
             <div class="lg:hidden">
-                <button type="button" onclick="toggleAdvancedFilters()" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                    + More filters
+                <button type="button" onclick="toggleAdvancedFilters()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    <i class="fas fa-sliders-h mr-2"></i>More filters
                 </button>
             </div>
             
             <!-- Advanced Filters (hidden on mobile, shown when toggled) -->
-            <div id="advanced-filters" class="hidden lg:grid lg:grid-cols-2 gap-4 pt-2">
+            <div id="advanced-filters" class="hidden grid-cols-2 gap-4 pt-2">
                 <div>
                     <label for="{{ search_form.gender.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
                     {{ search_form.gender }}
@@ -90,11 +89,11 @@
             <!-- Filter Actions -->
             <div class="flex justify-end space-x-3 pt-2">
                 <button type="button" onclick="clearFilters()" 
-                        class="px-4 py-2 border border-light-border dark:border-dark-border rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                        class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Clear
                 </button>
                 <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Apply Filters
                 </button>
             </div>
@@ -104,24 +103,24 @@
     <!-- Students Grid/Table Toggle -->
     <div class="mb-4 flex justify-end space-x-2">
         <button onclick="setView('grid')" id="grid-view-btn" 
-                class="p-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400">
-            <span class="block h-5 w-5">📱</span>
+                class="p-2 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
+            <i class="fas fa-th-large block h-5 w-5"></i>
         </button>
         <button onclick="setView('table')" id="table-view-btn" 
-                class="p-2 rounded-md bg-light-hover dark:bg-dark-hover text-gray-600 dark:text-gray-400">
-            <span class="block h-5 w-5">📋</span>
+                class="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <i class="fas fa-list block h-5 w-5"></i>
         </button>
     </div>
 
     <!-- Grid View -->
     <div id="grid-view" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for student in students %}
-        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden hover:shadow-md transition-shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
             <div class="p-5">
                 <!-- Student Avatar/Initials -->
                 <div class="flex items-center justify-between mb-4">
-                    <div class="h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                        <span class="text-lg font-semibold text-primary-700 dark:text-primary-300">
+                    <div class="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <span class="text-lg font-semibold text-blue-700 dark:text-blue-300">
                             {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
                         </span>
                     </div>
@@ -141,7 +140,7 @@
                 
                 <!-- Student Info -->
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
-                    <a href="{% url 'students:detail' student.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                    <a href="{% url 'students:detail' student.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">
                         {{ student.get_full_name }}
                     </a>
                 </h3>
@@ -152,16 +151,16 @@
                 <!-- Class & Other Details -->
                 <div class="space-y-2 text-sm">
                     <div class="flex items-center text-gray-600 dark:text-gray-400">
-                        <span class="mr-2">📚</span>
+                        <i class="fas fa-book mr-2"></i>
                         {{ student.current_class.display_name }}
                     </div>
                     <div class="flex items-center text-gray-600 dark:text-gray-400">
-                        <span class="mr-2">📅</span>
+                        <i class="fas fa-calendar mr-2"></i>
                         Enrolled: {{ student.enrollment_date|date:"M Y" }}
                     </div>
                     {% if student.email %}
                     <div class="flex items-center text-gray-600 dark:text-gray-400">
-                        <span class="mr-2">📧</span>
+                        <i class="fas fa-envelope mr-2"></i>
                         <span class="truncate">{{ student.email }}</span>
                     </div>
                     {% endif %}
@@ -169,14 +168,14 @@
             </div>
             
             <!-- Card Footer -->
-            <div class="border-t border-light-border dark:border-dark-border px-5 py-3 bg-gray-50 dark:bg-gray-800 flex justify-between">
+            <div class="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800 flex justify-between">
                 <a href="{% url 'students:detail' student.id %}" 
-                   class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                   class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                     View Profile →
                 </a>
                 {% if perms.students.change_student %}
                 <a href="{% url 'students:edit' student.id %}" 
-                   class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+                   class="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
                     Edit
                 </a>
                 {% endif %}
@@ -184,7 +183,7 @@
         </div>
         {% empty %}
         <div class="col-span-full text-center py-12">
-            <div class="text-6xl mb-4">👤</div>
+            <i class="fas fa-user-slash text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No students found</h3>
             <p class="text-gray-500 dark:text-gray-400 mb-6">
                 {% if request.GET %}
@@ -195,8 +194,8 @@
             </p>
             {% if perms.students.add_student %}
             <a href="{% url 'students:create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                + Add Your First Student
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Add Your First Student
             </a>
             {% endif %}
         </div>
@@ -204,9 +203,9 @@
     </div>
 
     <!-- Table View (hidden by default) -->
-    <div id="table-view" class="hidden bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
+    <div id="table-view" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-light-border dark:divide-dark-border">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-800">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admission #</th>
@@ -218,14 +217,14 @@
                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {% for student in students %}
-                    <tr class="hover:bg-light-hover dark:hover:bg-dark-hover transition-colors">
+                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                             {{ student.admission_number }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            <a href="{% url 'students:detail' student.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                            <a href="{% url 'students:detail' student.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">
                                 {{ student.get_full_name }}
                             </a>
                         </td>
@@ -253,9 +252,9 @@
                             {{ student.enrollment_date|date:"M Y" }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{% url 'students:detail' student.id %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 mr-3">View</a>
+                            <a href="{% url 'students:detail' student.id %}" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-3">View</a>
                             {% if perms.students.change_student %}
-                            <a href="{% url 'students:edit' student.id %}" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">Edit</a>
+                            <a href="{% url 'students:edit' student.id %}" class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Edit</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -271,13 +270,13 @@
         <div class="flex-1 flex justify-between sm:hidden">
             {% if page_obj.has_previous %}
                 <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Previous
                 </a>
             {% endif %}
             {% if page_obj.has_next %}
                 <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-light-card dark:bg-dark-card hover:bg-light-hover dark:hover:bg-dark-hover">
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
                     Next
                 </a>
             {% endif %}
@@ -294,7 +293,7 @@
                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <span class="sr-only">Previous</span>
                             <span aria-hidden="true">&larr;</span>
                         </a>
@@ -302,12 +301,12 @@
                     
                     {% for num in paginator.page_range %}
                         {% if num == page_obj.number %}
-                            <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 dark:bg-primary-900/50 text-sm font-medium text-primary-600 dark:text-primary-400">
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 dark:bg-blue-900/50 text-sm font-medium text-blue-600 dark:text-blue-400">
                                 {{ num }}
                             </span>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                             <a href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                               class="relative inline-flex items-center px-4 py-2 border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 {{ num }}
                             </a>
                         {% endif %}
@@ -315,7 +314,7 @@
                     
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover">
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <span class="sr-only">Next</span>
                             <span aria-hidden="true">&rarr;</span>
                         </a>
@@ -325,7 +324,6 @@
         </div>
     </div>
     {% endif %}
-</div>
 
 <script>
     // View toggle functionality
@@ -338,18 +336,18 @@
         if (view === 'grid') {
             gridView.classList.remove('hidden');
             tableView.classList.add('hidden');
-            gridBtn.classList.add('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
-            gridBtn.classList.remove('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
-            tableBtn.classList.remove('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
-            tableBtn.classList.add('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            gridBtn.classList.add('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            gridBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            tableBtn.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            tableBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
             localStorage.setItem('studentView', 'grid');
         } else {
             gridView.classList.add('hidden');
             tableView.classList.remove('hidden');
-            tableBtn.classList.add('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
-            tableBtn.classList.remove('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
-            gridBtn.classList.remove('bg-primary-100', 'dark:bg-primary-900', 'text-primary-600', 'dark:text-primary-400');
-            gridBtn.classList.add('bg-light-hover', 'dark:bg-dark-hover', 'text-gray-600', 'dark:text-gray-400');
+            tableBtn.classList.add('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            tableBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+            gridBtn.classList.remove('bg-blue-100', 'dark:bg-blue-900', 'text-blue-600', 'dark:text-blue-400');
+            gridBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
             localStorage.setItem('studentView', 'table');
         }
     }

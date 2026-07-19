@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Dashboard - DETs Toolkit{% endblock %}
+{% block title %}Dashboard - School Bro{% endblock %}
+{% block mobile_title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block page_subtitle %}Overview of your school management system{% endblock %}
 
@@ -78,9 +79,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-calendar-alt text-primary-500 mr-2"></i>Current Period
+                        <i class="fas fa-calendar-alt text-blue-500 dark:text-blue-400 mr-2"></i>Current Period
                     </h2>
-                    <a href="{% url 'corecode:term_manage' %}" class="text-sm text-primary-600 hover:underline">Manage</a>
+                    <a href="{% url 'corecode:term_manage' %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Manage</a>
                 </div>
                 <div class="p-6" hx-get="{% url 'corecode:ajax_session_status' %}" hx-trigger="load" hx-target="this">
                     <div class="animate-pulse flex space-x-4">
@@ -93,30 +94,30 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-door-open text-primary-500 mr-2"></i>Recent Applications
+                        <i class="fas fa-door-open text-blue-500 dark:text-blue-400 mr-2"></i>Recent Applications
                     </h2>
-                    <a href="{% url 'admissions:list' %}" class="text-sm text-primary-600 hover:underline">View all</a>
+                    <a href="{% url 'admissions:list' %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">View all</a>
                 </div>
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for app in recent_applications|slice:":5" %}
                     <a href="{% url 'admissions:detail' app.id %}" class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         <div>
                             <p class="font-medium text-gray-900 dark:text-white">{{ app.full_name }}</p>
-                            <p class="text-sm text-gray-500">{{ app.application_number }} • {{ app.applying_for_class }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ app.application_number }} • {{ app.applying_for_class }}</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="px-2 py-1 text-xs rounded-full 
-                                {% if app.status == 'submitted' %}bg-yellow-100 text-yellow-700
-                                {% elif app.status == 'approved' %}bg-green-100 text-green-700
-                                {% elif app.status == 'rejected' %}bg-red-100 text-red-700
-                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {% if app.status == 'submitted' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
+                                {% elif app.status == 'approved' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+                                {% elif app.status == 'rejected' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400
+                                {% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
                                 {{ app.status_display }}
                             </span>
                             <i class="fas fa-chevron-right text-gray-400"></i>
                         </div>
                     </a>
                     {% empty %}
-                    <div class="p-6 text-center text-gray-500">No recent applications</div>
+                    <div class="p-6 text-center text-gray-500 dark:text-gray-400">No recent applications</div>
                     {% endfor %}
                 </div>
             </div>
@@ -132,16 +133,16 @@
                     {% for person in upcoming_birthdays|slice:":5" %}
                     <div class="flex items-center gap-3 p-4">
                         <div class="h-10 w-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                            <i class="fas fa-user text-pink-600"></i>
+                            <i class="fas fa-user text-pink-600 dark:text-pink-400"></i>
                         </div>
                         <div>
                             <p class="font-medium text-gray-900 dark:text-white">{{ person.name }}</p>
-                            <p class="text-sm text-gray-500">{{ person.role }} • {{ person.date }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ person.role }} • {{ person.date }}</p>
                         </div>
                         <div class="ml-auto text-sm text-gray-400">{{ person.days_until }} days</div>
                     </div>
                     {% empty %}
-                    <div class="p-6 text-center text-gray-500">No upcoming birthdays</div>
+                    <div class="p-6 text-center text-gray-500 dark:text-gray-400">No upcoming birthdays</div>
                     {% endfor %}
                 </div>
             </div>
@@ -154,14 +155,14 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-bolt text-primary-500 mr-2"></i>Quick Actions
+                        <i class="fas fa-bolt text-blue-500 dark:text-blue-400 mr-2"></i>Quick Actions
                     </h2>
                 </div>
                 <div class="p-4 grid grid-cols-2 gap-3">
                     {% if perms.students.add_student or request.user.is_superuser %}
                     <a href="{% url 'students:create' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-user-plus text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-user-plus text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">Add Student</span>
                     </a>
@@ -169,8 +170,8 @@
                     
                     {% if perms.staffs.add_staff or request.user.is_superuser %}
                     <a href="{% url 'staffs:create' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-chalkboard-user text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-chalkboard-user text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">Add Staff</span>
                     </a>
@@ -178,8 +179,8 @@
                     
                     {% if perms.finance.add_invoice or request.user.is_superuser %}
                     <a href="{% url 'finance:invoice_create' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-file-invoice text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-file-invoice text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">New Invoice</span>
                     </a>
@@ -187,8 +188,8 @@
                     
                     {% if perms.finance.add_payment or request.user.is_superuser %}
                     <a href="{% url 'finance:record_payment' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-money-bill-wave text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-money-bill-wave text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">Record Payment</span>
                     </a>
@@ -196,8 +197,8 @@
                     
                     {% if perms.admissions.add_application or request.user.is_superuser %}
                     <a href="{% url 'admissions:create' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-file-alt text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-file-alt text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">New Application</span>
                     </a>
@@ -205,8 +206,8 @@
                     
                     {% if perms.timetable.add_timetable or request.user.is_superuser %}
                     <a href="{% url 'timetable:timetable_create' %}" class="flex flex-col items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition group">
-                        <div class="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition">
-                            <i class="fas fa-calendar-plus text-primary-600 dark:text-primary-400"></i>
+                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition">
+                            <i class="fas fa-calendar-plus text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <span class="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2">Create Timetable</span>
                     </a>
@@ -218,23 +219,23 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-school text-primary-500 mr-2"></i>Class Capacity
+                        <i class="fas fa-school text-blue-500 dark:text-blue-400 mr-2"></i>Class Capacity
                     </h2>
-                    <a href="{% url 'corecode:class_list' %}" class="text-sm text-primary-600 hover:underline">View all</a>
+                    <a href="{% url 'corecode:class_list' %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">View all</a>
                 </div>
                 <div class="p-4 space-y-4">
                     {% for class in classes|slice:":5" %}
                     <a href="{% url 'students:list' %}?class_id={{ class.id }}" class="block group">
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-gray-700 dark:text-gray-300 group-hover:text-primary-600">{{ class.display_name }}</span>
-                            <span class="text-gray-500">{{ class.current_count }}/{{ class.max_students }}</span>
+                            <span class="text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">{{ class.display_name }}</span>
+                            <span class="text-gray-500 dark:text-gray-400">{{ class.current_count }}/{{ class.max_students }}</span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-primary-500 h-2 rounded-full transition-all" style="width: {{ class.percentage }}%"></div>
+                            <div class="bg-blue-500 h-2 rounded-full transition-all" style="width: {{ class.percentage }}%"></div>
                         </div>
                     </a>
                     {% empty %}
-                    <div class="text-center text-gray-500 py-4">No classes data</div>
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-4">No classes data</div>
                     {% endfor %}
                 </div>
             </div>
@@ -243,14 +244,14 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-history text-primary-500 mr-2"></i>Recent Activity
+                        <i class="fas fa-history text-blue-500 dark:text-blue-400 mr-2"></i>Recent Activity
                     </h2>
                 </div>
                 <div class="divide-y divide-gray-200 dark:divide-gray-700" 
                      hx-get="{% url 'corecode:ajax_recent_logs' %}?limit=5" 
                      hx-trigger="load" 
                      hx-target="this">
-                    <div class="p-6 text-center text-gray-500">
+                    <div class="p-6 text-center text-gray-500 dark:text-gray-400">
                         <i class="fas fa-spinner fa-spin mr-2"></i>Loading...
                     </div>
                 </div>
