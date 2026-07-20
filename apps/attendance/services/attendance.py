@@ -378,7 +378,6 @@ class AttendanceService:
         return record
     
 
-
     @staticmethod
     def _check_attendance_alert(student_id: int):
         """
@@ -409,27 +408,31 @@ class AttendanceService:
         summary.refresh_from_db()
 
         # Check if alert needed
+        # Check if alert needed
         if summary.attendance_alert:
             # Get parent(s) for this student
             from apps.parents.selectors import ChildLinkSelector
             parents = ChildLinkSelector.get_for_student(student_id)
 
             for parent in parents:
-                # Send notification
-                NotificationService.send_notification(
-                    parent_id=parent['parent_id'],
-                    notification_type=NotificationType.ATTENDANCE_ALERT,
-                    title="Attendance Alert",
-                    message=f"Your child's attendance has dropped to {summary.present_percentage:.1f}%. "
-                            f"Please contact the school.",
-                    data={
-                        'student_id': student_id,
-                        'student_name': summary.student_name,
-                        'attendance': summary.present_percentage,
-                    },
-                    related_student_ids=[student_id],
-                    priority='high'
-                )
+                try:
+                    # Calling create_notification directly safely triggers the database creation logic 
+                    NotificationService.create_notification(
+                        notification_type=NotificationType.ATTENDANCE_ALERT,
+                        title="Attendance Alert",
+                        message=f"Your child's attendance has dropped to {summary.present_percentage:.1f}%. Please contact the school.",
+                        recipient_type="parent",
+                        recipient_id=parent['parent_id'],
+                        data={
+                            'student_id': student_id,
+                            'student_name': summary.student_name,
+                            'attendance': summary.present_percentage,
+                        },
+                        priority='high'
+                    )
+                except Exception as notify_err:
+                    logger.error(f"Failed to deliver attendance alert notification: {notify_err}")
+
 
     @staticmethod
     def _update_student_summary(

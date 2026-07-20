@@ -7,9 +7,12 @@ import random
 from typing import List, Dict, Any, Optional, Tuple, Set
 from collections import defaultdict
 from datetime import time
+from django.db import transaction
+from django.utils import timezone
 import logging
 
 from ..models import Timetable
+
 from ..selectors import (
     TimetableSelector,
     TimetableSlotSelector,
@@ -119,6 +122,14 @@ class TimetableRecommendationService:
                 # Update workload for the recommended teacher (optimistic)
                 best = slot_recommendations['recommendations'][0]
                 workload[best['teacher_id']]['current_load'] += 1
+                
+                # CRITICAL: Mark this day/period as occupied for the chosen teacher
+                # so that subsequent slots in this same batch don't also recommend
+                # this teacher for an overlapping day/period (would be a hidden clash).
+                teacher_schedules.setdefault(best['teacher_id'], set()).add(
+                    (slot['day_id'], slot['period_id'])
+                )
+
         
         # Sort recommendations by score (best first)
         recommendations.sort(
@@ -246,7 +257,8 @@ class TimetableRecommendationService:
                 if score > best_subject_score:
                     best_subject_score = score
                     best_subject_id = subject_id
-                    best_subject_name = subject.get('subject_name', subject.get('name', 'Unknown'))
+                    # FIX: Safely read 'subject_name' if 'name' doesn't exist
+                    best_subject_name = subject.get('name', subject.get('subject_name', 'Unknown Subject'))
             
             if best_subject_id:
                 candidates.append({
@@ -475,6 +487,81 @@ class TimetableRecommendationService:
                     })
         
         return suggestions[:10]
+    
+    @classmethod
+    def apply_bulk_plan(
+        cls,
+        timetable_id: int,
+        assigned_by_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate a full bulk recommendation plan (via generate_recommendations,
+        which is internally clash-free across the batch) and commit ALL of it
+        in a single transaction. Each item is re-validated against the live
+        database immediately before saving (in case slots changed between
+        plan generation and apply), so no clashes are introduced.
+        """
+        from ..models import TimetableSlot
+        from apps.staffs.models import Staff
+        from apps.corecode.models import Subject
+        
+        plan = cls.generate_recommendations(timetable_id, limit=10_000)
+        recommendations = plan.get('recommendations', [])
+        
+        if not recommendations:
+            return {
+                'assigned_count': 0,
+                'total_planned': 0,
+                'errors': [],
+                'message': plan.get('message', 'No recommendations to apply.'),
+            }
+        
+        assigned_count = 0
+        errors = []
+        
+        with transaction.atomic():
+            for rec in recommendations:
+                if not rec.get('recommendations'):
+                    continue
+                
+                best = rec['recommendations'][0]
+                slot_id = rec['slot_id']
+                
+                try:
+                    slot = TimetableSlot.objects.select_for_update().get(id=slot_id)
+                    
+                    # Re-validate against live DB right before committing
+                    has_clash, clash_details = ClashDetectionService.check_teacher_clash(
+                        timetable_id=timetable_id,
+                        teacher_id=best['teacher_id'],
+                        day_id=rec['day_id'],
+                        period_id=rec['period_id'],
+                        exclude_slot_id=slot_id
+                    )
+                    
+                    if has_clash:
+                        errors.append(
+                            f"Skipped {rec['day_name']} {rec['period_name']}: "
+                            f"{best['teacher_name']} clashes with {clash_details.get('class_name')}"
+                        )
+                        continue
+                    
+                    slot.teacher = Staff.objects.get(id=best['teacher_id'])
+                    slot.subject = Subject.objects.get(id=best['subject_id'])
+                    slot.is_free_period = False
+                    slot.updated_at = timezone.now()
+                    slot.save()
+                    
+                    assigned_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"Failed to assign slot {slot_id}: {str(e)}")
+        
+        return {
+            'assigned_count': assigned_count,
+            'total_planned': len(recommendations),
+            'errors': errors,
+        }
     
     @classmethod
     def auto_assign_recommendations(

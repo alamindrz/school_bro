@@ -1,1 +1,76 @@
-Application is currently closed
+{% extends "base_public.html" %}
+
+{% block title %}Check Application Status - DETs Toolkit{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl space-y-8">
+    <div class="rounded-3xl border border-slate-200 bg-light-card p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div class="mb-8 text-center">
+            <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+                <i class="fas fa-search text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-semibold text-slate-900 dark:text-white">Track your application</h1>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Use your application number or email to review the latest status.</p>
+        </div>
+
+        <form method="get" action="." class="grid gap-4 md:grid-cols-[1fr_auto]">
+            <div>
+                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300" for="email-search">Application number or email</label>
+                <input id="email-search" type="text" name="email" value="{{ request.GET.email|default:'' }}" placeholder="e.g. APP-2025-001 or student@example.com" class="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 md:w-auto">
+                    <i class="fas fa-arrow-right mr-2"></i> Check Status
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if application %}
+    <div class="rounded-3xl border border-slate-200 bg-light-card p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-primary-600">Found application</p>
+                <h2 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ application.application_number }}</h2>
+            </div>
+            <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                {{ application.status|default:"Pending review" }}
+            </span>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/70">
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Applicant</p>
+                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ application.full_name|default:"Applicant" }}</p>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ application.email|default:"No email provided" }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/70">
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Current status</p>
+                <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{{ application.status|default:"Pending review" }}</p>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Payment: {% if application.payment_completed %}Completed{% else %}Pending{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+            {% if application.payment_completed %}
+            <a href="{% url 'admissions:public_success' application.application_number %}" class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <i class="fas fa-check-circle mr-2"></i> View success page
+            </a>
+            {% else %}
+            <a href="{% url 'admissions:public_payment' application.application_number %}" class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+                <i class="fas fa-credit-card mr-2"></i> Complete payment
+            </a>
+            {% endif %}
+            <a href="{% url 'admissions:public_apply' %}" class="inline-flex items-center rounded-2xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700">
+                <i class="fas fa-plus mr-2"></i> Start new application
+            </a>
+        </div>
+    </div>
+    {% elif request.GET.email %}
+    <div class="rounded-3xl border border-dashed border-slate-300 bg-light-card p-8 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <p class="text-lg font-semibold text-slate-900 dark:text-white">No matching application found</p>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Double-check the application number or email and try again.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

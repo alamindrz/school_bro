@@ -85,10 +85,11 @@ class MyTimetableView(LoginRequiredMixin, TemplateView):
                 if slot['timetable_id'] == timetable_id
             ]
             
-            # Build slots lookup by (day_id, period_id)
+            # Build slots lookup keyed as "day_id,period_id" string, matching
+            # the template's string-key lookup (my_timetable.html).
             slots_by_day_period = {}
             for slot in timetable_slots:
-                key = (slot['day_id'], slot['period_id'])
+                key = f"{slot['day_id']},{slot['period_id']}"
                 slots_by_day_period[key] = slot
             
             # Get stats
@@ -153,9 +154,11 @@ class MyTimetablePrintView(LoginRequiredMixin, TemplateView):
                 if slot['timetable_id'] == timetable_id
             ]
             
+            # Build slots lookup keyed as "day_id,period_id" string, matching
+            # the template's string-key lookup.
             slots_by_day_period = {}
             for slot in timetable_slots:
-                key = (slot['day_id'], slot['period_id'])
+                key = f"{slot['day_id']},{slot['period_id']}"
                 slots_by_day_period[key] = slot
             
             timetable_data.append({
@@ -214,7 +217,9 @@ class ClassTimetableView(LoginRequiredMixin, TemplateView):
         context['days'] = days
         context['periods'] = periods
         
-        # Get all slots
+        # Get all slots. class_timetable.html expects dict-lookup via
+        # get_item:day.id|get_item:period.id (nested dict-of-dicts), so use
+        # the grouped-by-day helper rather than the flat (day,period) map.
         slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day(timetable.id)
         context['slots_by_day_period'] = slots_by_day_period
         

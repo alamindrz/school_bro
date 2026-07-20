@@ -34,8 +34,10 @@ from .htmx import (
     ClashListView,
     RecommendationsView,
     ApplyRecommendationView,
+    ApplyBulkRecommendationsView,
     ClearAllView,
 )
+
 
 # JSON API views (return JSON)
 from .api import (
@@ -70,9 +72,11 @@ __all__ = [
     'ClashListView',
     'RecommendationsView',
     'ApplyRecommendationView',
+    'ApplyBulkRecommendationsView',
     'ClearAllView',
     
     # JSON API views
+
     'ClashCheckView',
     'TeacherAvailabilityView',
 ]

@@ -185,7 +185,7 @@ class TimetableEditView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
         context['days'] = days
         context['periods'] = periods
         
-        slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day(timetable_id)
+        slots_by_day_period = TimetableSlotSelector.get_slots_grouped_by_day_model(timetable_id)
         context['slots_by_day_period'] = slots_by_day_period
         
         # Get all active academic staff via selector

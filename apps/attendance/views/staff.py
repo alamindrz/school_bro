@@ -1,7 +1,6 @@
 """
 Staff views for attendance management
 """
-
 from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, View, FormView
 from django.urls import reverse_lazy, reverse
@@ -208,6 +207,14 @@ class MarkAttendanceView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return redirect('attendance:register_detail', pk=register_id)
 
         except Exception as e:
+            # ---> TEMPORARY DIAGNOSTIC PRINT TO CONSOLE <---
+            import traceback
+            print("\n" + "="*50)
+            print("  ATTENDANCE SERVICE BREAKDOWN DETECTED:")
+            traceback.print_exc()
+            print("="*50 + "\n")
+            # -----------------------------------------------
+
             if request.headers.get('HX-Request'):
                 return HttpResponse(
                     f'<span class="text-xs text-red-600">Error: {str(e)[:50]}</span>',

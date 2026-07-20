@@ -6,187 +6,167 @@
 {% block page_title %}{{ timetable.name }}{% endblock %}
 {% block page_subtitle %}
     {{ timetable.academic_session.name }} • {{ timetable.student_class.display_name }}
-    <span class="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">v{{ timetable.version }}</span>
+    <span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">v{{ timetable.version }}</span>
 {% endblock %}
 
 {% block page_actions %}
-<div class="flex flex-wrap gap-1 sm:gap-2">
+<div class="flex flex-wrap gap-2">
     {% if perms.timetable.change_timetable %}
-    <a href="{% url 'timetable:timetable_edit' timetable.id %}" 
-       class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 touch-manipulation">
-        <i class="fas fa-edit mr-1"></i><span class="hidden xs:inline">Edit</span>
+    <a href="{% url 'timetable:timetable_edit' timetable.id %}" class="inline-flex items-center rounded-2xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
+        <i class="fas fa-edit mr-2"></i>Edit
     </a>
     {% endif %}
-    <button onclick="window.print()" 
-            class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation">
-        <i class="fas fa-print mr-1"></i><span class="hidden xs:inline">Print</span>
+    <button onclick="window.print()" class="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+        <i class="fas fa-print mr-2"></i>Print
     </button>
-    <a href="{% url 'timetable:timetable_list' %}" 
-       class="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 touch-manipulation">
-        <i class="fas fa-arrow-left mr-1"></i><span class="hidden sm:inline">Back</span>
+    <a href="{% url 'timetable:timetable_list' %}" class="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+        <i class="fas fa-arrow-left mr-2"></i>Back
     </a>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="space-y-3 sm:space-y-4 lg:space-y-6">
-    
-    <!-- Status Banner -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <div class="flex items-center gap-2 sm:gap-3">
-                <div class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <i class="fas fa-calendar-alt text-primary-600 dark:text-primary-400 text-sm sm:text-base"></i>
+<div class="space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">
+                    <i class="fas fa-calendar-alt"></i>
                 </div>
                 <div>
-                    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Version {{ timetable.version }}</p>
-                    <p class="text-xs text-gray-400">Updated: {{ timetable.updated_at|date:"M d, Y H:i" }}</p>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Version {{ timetable.version }}</p>
+                    <p class="text-xs text-slate-400">Updated: {{ timetable.updated_at|date:"M d, Y H:i" }}</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <div class="flex flex-wrap items-center gap-2">
                 {% if timetable.is_current %}
-                <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                    <i class="fas fa-check-circle mr-1"></i> Active Timetable
+                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    <i class="fas fa-check-circle mr-1"></i>Active Timetable
                 </span>
                 {% endif %}
                 {% if timetable.approved_by %}
-                <span class="text-xs text-gray-500">
-                    Approved by {{ timetable.approved_by }} on {{ timetable.approved_at|date:"M d, Y" }}
-                </span>
+                <span class="text-sm text-slate-500 dark:text-slate-400">Approved by {{ timetable.approved_by }} on {{ timetable.approved_at|date:"M d, Y" }}</span>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Stats Cards - Mobile: horizontal scroll, Tablet+: grid -->
-    <div class="overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4 sm:overflow-visible sm:pb-0">
-        <div class="flex gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3 lg:gap-4 min-w-max sm:min-w-0">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3 sm:p-4 w-36 sm:w-auto">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500">Total Slots</p>
-                        <p class="text-xl sm:text-2xl font-bold">{{ total_slots }}</p>
-                    </div>
-                    <i class="fas fa-table text-blue-500 text-xl sm:text-2xl"></i>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Total Slots</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{{ total_slots }}</p>
                 </div>
+                <i class="fas fa-table text-2xl text-blue-500"></i>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3 sm:p-4 w-36 sm:w-auto">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500">Teachers</p>
-                        <p class="text-xl sm:text-2xl font-bold text-green-600">{{ assigned_teachers }}</p>
-                    </div>
-                    <i class="fas fa-chalkboard-user text-green-500 text-xl sm:text-2xl"></i>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Teachers</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-600">{{ assigned_teachers }}</p>
                 </div>
+                <i class="fas fa-chalkboard-user text-2xl text-emerald-500"></i>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3 sm:p-4 w-36 sm:w-auto">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500">Subjects</p>
-                        <p class="text-xl sm:text-2xl font-bold text-purple-600">{{ subjects_covered }}</p>
-                    </div>
-                    <i class="fas fa-book text-purple-500 text-xl sm:text-2xl"></i>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Subjects</p>
+                    <p class="mt-2 text-2xl font-bold text-violet-600">{{ subjects_covered }}</p>
                 </div>
+                <i class="fas fa-book text-2xl text-violet-500"></i>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-3 sm:p-4 w-36 sm:w-auto">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-500">Free Periods</p>
-                        <p class="text-xl sm:text-2xl font-bold text-yellow-600">{{ free_periods }}</p>
-                    </div>
-                    <i class="fas fa-coffee text-yellow-500 text-xl sm:text-2xl"></i>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Free Periods</p>
+                    <p class="mt-2 text-2xl font-bold text-amber-600">{{ free_periods }}</p>
                 </div>
+                <i class="fas fa-coffee text-2xl text-amber-500"></i>
             </div>
         </div>
     </div>
 
-    <!-- Timetable Grid - Mobile: horizontal scroll cards, Desktop: table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        
-        <!-- Mobile View (< 1024px) -->
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
         <div class="lg:hidden overflow-x-auto">
             <div class="min-w-max p-3">
-                <div class="flex border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
-                    <div class="w-20 flex-shrink-0"></div>
-                    {% for day in days %}
-                    <div class="w-32 flex-shrink-0 text-center">
-                        <p class="font-medium text-sm">{{ day.name }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                {% for period in periods %}
-                <div class="flex py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <div class="w-20 flex-shrink-0 pr-2">
-                        <p class="font-medium text-sm">{{ period.display_name }}</p>
-                        <p class="text-xs text-gray-500">{{ period.start_time|time:"H:i" }}-{{ period.end_time|time:"H:i" }}</p>
-                    </div>
-                    
-                    {% for day in days %}
-                    <div class="w-32 flex-shrink-0 px-1">
-                        {% with slot=slots_by_day|get_item:day.id|get_item:period.id %}
-                        <div class="p-2 rounded-lg {% if slot.is_free_period %}bg-yellow-50 dark:bg-yellow-900/20{% elif slot.teacher_name %}bg-green-50 dark:bg-green-900/20{% else %}bg-gray-50 dark:bg-gray-700/50{% endif %}">
-                            {% if slot.is_free_period %}
-                            <p class="text-xs text-center text-gray-500 italic">Free Period</p>
-                            {% elif slot.teacher_name %}
-                            <p class="font-medium text-sm truncate">{{ slot.subject_name }}</p>
-                            <p class="text-xs text-gray-600 truncate">{{ slot.teacher_name }}</p>
-                            {% if slot.room %}
-                            <p class="text-xs text-gray-500 mt-0.5"><i class="fas fa-door-open mr-1"></i>{{ slot.room }}</p>
-                            {% endif %}
+                {% for day in days %}
+                <div class="mb-4 last:mb-0">
+                    <p class="mb-1 text-sm font-semibold text-slate-900 dark:text-white">{{ day.name }}</p>
+                    <div class="flex gap-1">
+                        {% for period in periods %}
+                        <div class="w-28 flex-shrink-0">
+                            <p class="mb-0.5 text-center text-[10px] text-slate-400 dark:text-slate-500">{{ period.display_name }}</p>
+                            {% with slot=slots_by_day|get_item:day.id|get_item:period.id %}
+                            {% if period.period_type.is_break %}
+                            <div class="rounded-2xl border border-dashed border-orange-200 bg-orange-50 p-2 dark:border-orange-800/50 dark:bg-orange-900/10">
+                                <p class="text-center text-xs font-medium text-orange-700 dark:text-orange-300">{{ period.period_type.name|default:"Break" }}</p>
+                            </div>
                             {% else %}
-                            <p class="text-xs text-center text-gray-400">—</p>
+                            <div class="rounded-2xl p-2 {% if slot.is_free_period %}bg-amber-50 dark:bg-amber-900/20{% elif slot.teacher_name %}bg-emerald-50 dark:bg-emerald-900/20{% else %}bg-slate-50 dark:bg-slate-800/70{% endif %}">
+                                {% if slot.is_free_period %}
+                                <p class="text-center text-xs italic text-slate-500">Free Period</p>
+                                {% elif slot.teacher_name %}
+                                <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ slot.subject_name }}</p>
+                                <p class="truncate text-xs text-slate-600 dark:text-slate-400">{{ slot.teacher_name }}</p>
+                                {% if slot.room %}
+                                <p class="mt-0.5 text-xs text-slate-500"><i class="fas fa-door-open mr-1"></i>{{ slot.room }}</p>
+                                {% endif %}
+                                {% else %}
+                                <p class="text-center text-xs text-slate-400">—</p>
+                                {% endif %}
+                            </div>
                             {% endif %}
+                            {% endwith %}
                         </div>
-                        {% endwith %}
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
                 {% endfor %}
             </div>
         </div>
-        
-        <!-- Desktop View (>= 1024px) -->
+
         <div class="hidden lg:block overflow-x-auto">
             <table class="min-w-full border-collapse">
                 <thead>
-                    <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                        <th class="p-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-32">
-                            Time / Day
-                        </th>
-                        {% for day in days %}
-                        <th class="p-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-[160px]">
-                            {{ day.name }}
+                    <tr class="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
+                        <th class="w-24 p-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Day</th>
+                        {% for period in periods %}
+                        <th class="min-w-[140px] p-3 text-center text-sm font-semibold text-slate-700 dark:text-slate-300 {% if period.period_type.is_break %}bg-orange-50/70 dark:bg-orange-900/10{% endif %}">
+                            {{ period.display_name }}<br>
+                            <span class="text-xs font-normal text-slate-500 dark:text-slate-400">{{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}</span>
                         </th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for period in periods %}
-                    <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                        <td class="p-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                            {{ period.display_name }}<br>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ period.start_time|time:"H:i" }} - {{ period.end_time|time:"H:i" }}
-                            </span>
-                        </td>
-                        {% for day in days %}
+                    {% for day in days %}
+                    <tr class="border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                        <td class="whitespace-nowrap p-3 font-medium text-slate-900 dark:text-white">{{ day.name }}</td>
+                        {% for period in periods %}
                         {% with slot=slots_by_day|get_item:day.id|get_item:period.id %}
-                        <td class="p-3 text-center border-l border-gray-100 dark:border-gray-700">
-                            {% if slot.is_free_period %}
-                            <div class="text-sm text-gray-400 dark:text-gray-500 italic">
+                        <td class="border-l border-slate-100 p-3 text-center dark:border-slate-800 {% if period.period_type.is_break %}bg-orange-50/40 dark:bg-orange-900/5{% endif %}">
+                            {% if period.period_type.is_break %}
+                            <div class="text-sm italic text-orange-600 dark:text-orange-300">
+                                <i class="fas fa-mug-hot mr-1"></i>{{ period.period_type.name|default:"Break" }}
+                            </div>
+                            {% elif slot.is_free_period %}
+                            <div class="text-sm italic text-slate-400 dark:text-slate-500">
                                 <i class="fas fa-coffee mr-1"></i>Free Period
                             </div>
                             {% elif slot.teacher_name %}
                             <div class="space-y-1">
-                                <div class="font-semibold text-gray-900 dark:text-white">{{ slot.subject_name }}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ slot.teacher_name }}</div>
+                                <div class="font-semibold text-slate-900 dark:text-white">{{ slot.subject_name }}</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400">{{ slot.teacher_name }}</div>
                                 {% if slot.room %}
-                                <div class="text-xs text-gray-400"><i class="fas fa-door-open mr-1"></i>{{ slot.room }}</div>
+                                <div class="text-xs text-slate-400"><i class="fas fa-door-open mr-1"></i>{{ slot.room }}</div>
                                 {% endif %}
                             </div>
                             {% else %}
-                            <div class="text-sm text-gray-300 dark:text-gray-600">—</div>
+                            <div class="text-sm text-slate-300 dark:text-slate-600">—</div>
                             {% endif %}
                         </td>
                         {% endwith %}
@@ -198,21 +178,24 @@
         </div>
     </div>
 
-    <!-- Legend -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-        <h3 class="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">Legend</h3>
-        <div class="flex flex-wrap gap-3 sm:gap-4 text-xs">
-            <div class="flex items-center gap-1 sm:gap-2">
-                <div class="w-3 h-3 sm:w-4 sm:h-4 bg-green-100 dark:bg-green-900/30 rounded"></div>
-                <span class="text-gray-600 dark:text-gray-400">Assigned</span>
+    <div class="rounded-3xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-4">
+        <h3 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">Legend</h3>
+        <div class="flex flex-wrap gap-3 text-xs sm:gap-4">
+            <div class="flex items-center gap-2">
+                <div class="h-4 w-4 rounded bg-emerald-100 dark:bg-emerald-900/30"></div>
+                <span class="text-slate-600 dark:text-slate-400">Assigned</span>
             </div>
-            <div class="flex items-center gap-1 sm:gap-2">
-                <div class="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-100 dark:bg-yellow-900/30 rounded"></div>
-                <span class="text-gray-600 dark:text-gray-400">Free Period</span>
+            <div class="flex items-center gap-2">
+                <div class="h-4 w-4 rounded bg-amber-100 dark:bg-amber-900/30"></div>
+                <span class="text-slate-600 dark:text-slate-400">Free Period</span>
             </div>
-            <div class="flex items-center gap-1 sm:gap-2">
-                <div class="w-3 h-3 sm:w-4 sm:h-4 bg-gray-100 dark:bg-gray-700 rounded"></div>
-                <span class="text-gray-600 dark:text-gray-400">Unassigned</span>
+            <div class="flex items-center gap-2">
+                <div class="h-4 w-4 rounded border border-dashed border-orange-300 bg-orange-100 dark:border-orange-700 dark:bg-orange-900/30"></div>
+                <span class="text-slate-600 dark:text-slate-400">Break</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="h-4 w-4 rounded bg-slate-100 dark:bg-slate-700"></div>
+                <span class="text-slate-600 dark:text-slate-400">Unassigned</span>
             </div>
         </div>
     </div>
@@ -230,9 +213,6 @@
         table, th, td {
             border: 1px solid #ddd !important;
             color: black !important;
-        }
-        .slot-cell {
-            background: transparent !important;
         }
     }
 </style>

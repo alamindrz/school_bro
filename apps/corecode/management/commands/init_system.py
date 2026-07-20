@@ -371,131 +371,135 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS(f'  ✅ Created {created_count} staff members'))
     
+
     def create_students_and_parents(self, parent_password):
-        from apps.students.models import Student, Guardian
-        from apps.parents.models import ParentProfile, ChildLink
-        from apps.corecode.models import StudentClass, AcademicSession
-        from apps.students.services.admission_number import AdmissionNumberService
-        from apps.students.constants import GuardianRelationship
-        
-        self.stdout.write('\nCreating students and parents...')
-        
-        current_session = AcademicSession.objects.filter(is_current=True).first()
-        classes = list(StudentClass.objects.filter(is_active=True))
-        
-        if not classes:
-            self.stdout.write('  ⚠️ No classes found, skipping student creation')
-            return
-        
-        first_names_male = ['Chinedu', 'Olufemi', 'Adebayo', 'Emeka', 'Ibrahim', 'Musa', 'Tunde', 'Segun', 'Femi', 'Kayode']
-        first_names_female = ['Funke', 'Adaeze', 'Ngozi', 'Aisha', 'Fatima', 'Bisi', 'Folake', 'Titilayo', 'Chiamaka', 'Zainab']
-        last_names = ['Okafor', 'Bello', 'Adeyemi', 'Eze', 'Nwosu', 'Mohammed', 'Yusuf', 'Ibrahim', 'Olawale', 'Okoro']
-        
-        # Create 30 students
-        for i in range(30):
-            gender = random.choice(['M', 'F'])
-            first_name = random.choice(first_names_male if gender == 'M' else first_names_female)
-            last_name = random.choice(last_names)
-            student_class = random.choice(classes)
+            from apps.students.models import Student, Guardian
+            from apps.parents.models import ParentProfile, ChildLink
+            from apps.corecode.models import StudentClass, AcademicSession
+            from apps.students.services.admission_number import AdmissionNumberService
+            from apps.students.constants import GuardianRelationship
             
-            # Calculate age based on class level
-            from apps.corecode.constants import EducationLevel
-            age_map = {
-                EducationLevel.NURSERY: random.randint(3, 5),
-                EducationLevel.PRIMARY: random.randint(6, 11),
-                EducationLevel.JSS: random.randint(12, 14),
-                EducationLevel.SSS: random.randint(15, 17),
-            }
-            age = age_map.get(student_class.education_level, 10)
-            dob = date.today() - timedelta(days=age*365 + random.randint(0, 365))
+            self.stdout.write('\nCreating students and parents...')
             
-            # Generate admission number
-            try:
-                session_code = current_session.code if current_session else str(date.today().year)
-                admission_number = AdmissionNumberService.generate_admission_number(
-                    class_name=student_class.name,
-                    session_code=session_code
-                )
-            except:
-                admission_number = f"{date.today().year}/{student_class.name}/{i+1:03d}"
+            current_session = AcademicSession.objects.filter(is_current=True).first()
+            classes = list(StudentClass.objects.filter(is_active=True))
             
-            # Create student
-            student = Student.objects.create(
-                admission_number=admission_number,
-                first_name=first_name,
-                last_name=last_name,
-                gender=gender,
-                date_of_birth=dob,
-                email=f"{first_name.lower()}.{last_name.lower()}@student.com",
-                phone=f"080{random.randint(10000000, 99999999)}",
-                address=f"{random.randint(1, 50)} School Road",
-                city='Lagos',
-                state_of_origin=random.choice(['Lagos', 'Oyo', 'Kano', 'Rivers', 'Abuja']),
-                current_class=student_class,
-                enrollment_date=date.today() - timedelta(days=random.randint(30, 365)),
-                enrollment_session=current_session,
-                status='active'
-            )
+            if not classes:
+                self.stdout.write('  ⚠️ No classes found, skipping student creation')
+                return
             
-            # Create guardian (parent)
-            guardian_gender = random.choice(['M', 'F'])
-            guardian_first = random.choice(first_names_male if guardian_gender == 'M' else first_names_female)
-            guardian_last = last_name  # Same last name as student
-            guardian_rel = GuardianRelationship.FATHER if guardian_gender == 'M' else GuardianRelationship.MOTHER
-            guardian_email = f"{guardian_first.lower()}.{guardian_last.lower()}@parent.com"
+            first_names_male = ['Chinedu', 'Olufemi', 'Adebayo', 'Emeka', 'Ibrahim', 'Musa', 'Tunde', 'Segun', 'Femi', 'Kayode']
+            first_names_female = ['Funke', 'Adaeze', 'Ngozi', 'Aisha', 'Fatima', 'Bisi', 'Folake', 'Titilayo', 'Chiamaka', 'Zainab']
+            last_names = ['Okafor', 'Bello', 'Adeyemi', 'Eze', 'Nwosu', 'Mohammed', 'Yusuf', 'Ibrahim', 'Olawale', 'Okoro']
             
-            guardian = Guardian.objects.create(
-                student=student,
-                first_name=guardian_first,
-                last_name=guardian_last,
-                relationship=guardian_rel,
-                email=guardian_email,
-                phone=f"080{random.randint(10000000, 99999999)}",
-                is_primary=True,
-                is_emergency_contact=True
-            )
-            
-            # Create parent profile for portal access
-            parent, created = ParentProfile.objects.get_or_create(
-                email=guardian_email,
-                defaults={
-                    'first_name': guardian_first,
-                    'last_name': guardian_last,
-                    'phone': guardian.phone,
-                    'guardian_id': guardian.id,
-                    'access_status': 'active'
+            # Create 30 students
+            for i in range(30):
+                gender = random.choice(['M', 'F'])
+                first_name = random.choice(first_names_male if gender == 'M' else first_names_female)
+                last_name = random.choice(last_names)
+                student_class = random.choice(classes)
+                
+                # Calculate age based on class level
+                from apps.corecode.constants import EducationLevel
+                age_map = {
+                    EducationLevel.NURSERY: random.randint(3, 5),
+                    EducationLevel.PRIMARY: random.randint(6, 11),
+                    EducationLevel.JSS: random.randint(12, 14),
+                    EducationLevel.SSS: random.randint(15, 17),
                 }
-            )
-            
-            # Create child link
-            if created:
-                ChildLink.objects.create(
-                    parent=parent,
-                    student_id=student.id,
-                    student_name=student.get_full_name,
-                    student_class=student_class.display_name,
-                    relationship=guardian_rel,
-                    is_primary=True
+                age = age_map.get(student_class.education_level, 10)
+                dob = date.today() - timedelta(days=age*365 + random.randint(0, 365))
+                
+                # Generate admission number
+                try:
+                    session_code = current_session.code if current_session else str(date.today().year)
+                    admission_number = AdmissionNumberService.generate_admission_number(
+                        class_name=student_class.name,
+                        session_code=session_code
+                    )
+                except:
+                    admission_number = f"{date.today().year}/{student_class.name}/{i+1:03d}"
+                
+                # Create student
+                student = Student.objects.create(
+                    admission_number=admission_number,
+                    first_name=first_name,
+                    last_name=last_name,
+                    gender=gender,
+                    date_of_birth=dob,
+                    email=f"{first_name.lower()}.{last_name.lower()}@student.com",
+                    phone=f"080{random.randint(10000000, 99999999)}",
+                    address=f"{random.randint(1, 50)} School Road",
+                    city='Lagos',
+                    state_of_origin=random.choice(['Lagos', 'Oyo', 'Kano', 'Rivers', 'Abuja']),
+                    current_class=student_class,
+                    enrollment_date=date.today() - timedelta(days=random.randint(30, 365)),
+                    enrollment_session=current_session,
+                    status='active'
                 )
                 
-                # Create user account for parent
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                username = f"parent_{guardian_first.lower()}"
-                if not User.objects.filter(username=username).exists():
-                    User.objects.create_user(
-                        username=username,
-                        email=guardian_email,
-                        password=parent_password,
-                        first_name=guardian_first,
-                        last_name=guardian_last
+                # Create guardian (parent)
+                guardian_gender = random.choice(['M', 'F'])
+                guardian_first = random.choice(first_names_male if guardian_gender == 'M' else first_names_female)
+                guardian_last = last_name  # Same last name as student
+                guardian_rel = GuardianRelationship.FATHER if guardian_gender == 'M' else GuardianRelationship.MOTHER
+                guardian_email = f"{guardian_first.lower()}.{guardian_last.lower()}@parent.com"
+                
+                guardian = Guardian.objects.create(
+                    student=student,
+                    first_name=guardian_first,
+                    last_name=guardian_last,
+                    relationship=guardian_rel,
+                    email=guardian_email,
+                    phone=f"080{random.randint(10000000, 99999999)}",
+                    is_primary=True,
+                    is_emergency_contact=True
+                )
+                
+                # Create parent profile for portal access
+                # FIXED: explicitly providing a unique access_key default using the iteration index `i`
+                parent, created = ParentProfile.objects.get_or_create(
+                    email=guardian_email,
+                    defaults={
+                        'first_name': guardian_first,
+                        'last_name': guardian_last,
+                        'phone': guardian.phone,
+                        'guardian_id': guardian.id,
+                        'access_status': 'active',
+                        'access_key': f"KEY-{i}-{random.randint(1000, 9999)}"
+                    }
+                )
+                
+                # Create child link
+                if created:
+                    ChildLink.objects.create(
+                        parent=parent,
+                        student_id=student.id,
+                        student_name=student.get_full_name,
+                        student_class=student_class.display_name,
+                        relationship=guardian_rel,
+                        is_primary=True
                     )
+                    
+                    # Create user account for parent
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    username = f"parent_{guardian_first.lower()}_{i}"  # Appended _i to prevent duplicate parent usernames
+                    if not User.objects.filter(username=username).exists():
+                        User.objects.create_user(
+                            username=username,
+                            email=guardian_email,
+                            password=parent_password,
+                            first_name=guardian_first,
+                            last_name=guardian_last
+                        )
+                
+                if (i + 1) % 10 == 0:
+                    self.stdout.write(f'  ✅ Created {i + 1} students...')
             
-            if (i + 1) % 10 == 0:
-                self.stdout.write(f'  ✅ Created {i + 1} students...')
-        
-        self.stdout.write(self.style.SUCCESS(f'  ✅ Created {Student.objects.count()} students and {Guardian.objects.count()} guardians'))
-    
+            self.stdout.write(self.style.SUCCESS(f'  ✅ Created {Student.objects.count()} students and {Guardian.objects.count()} guardians'))
+
+
     def create_admissions_period(self):
         from apps.admissions.models import AdmissionsPeriod
         from apps.corecode.models import AcademicSession
