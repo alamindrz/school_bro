@@ -22,6 +22,7 @@ urlpatterns = [
     # Bulk operations
     path('promotion/', staff.StudentPromotionView.as_view(), name='promotion'),
     path('bulk-import/', staff.StudentBulkImportView.as_view(), name='bulk_import'),
+    path('bulk-import/template/', staff.DownloadBulkTemplateView.as_view(), name='download_template'),
     path('export/', ajax.export_students, name='export'),
     
     # ========== AJAX ENDPOINTS ==========
@@ -47,3 +48,4 @@ urlpatterns = [
     # Bulk actions
     path('ajax/bulk-action/', ajax.bulk_action, name='ajax_bulk_action'),
 ]
+

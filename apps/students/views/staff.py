@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, permission_required
-
+from django.views import View
 
 from django.views.generic.edit import DeleteView
 from django.db import models  
@@ -331,35 +331,27 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
     form_class = BulkStudentImportForm
     permission_required = 'students.bulk_import_students'
     success_url = reverse_lazy('students:list')
-    
+
     def form_valid(self, form):
-        from apps.corecode.selectors import AcademicSessionSelector
-        session = AcademicSessionSelector.get_current_session()
-        if session:
-            form.instance.enrollment_session_id = session.id
-        if not form.instance.admission_number:
-            from apps.students.services.admission_number import AdmissionNumberService
-            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         import csv
         import io
         from datetime import datetime
         
         csv_file = form.cleaned_data['csv_file']
-        create_users = form.cleaned_data['create_user_accounts']
-        send_emails = form.cleaned_data['send_welcome_emails']
+        create_users = form.cleaned_data.get('create_user_accounts', False)
+        send_emails = form.cleaned_data.get('send_welcome_emails', False)
         
         success_count = 0
         error_rows = []
         
         try:
-            decoded_file = csv_file.read().decode('utf-8')
+            decoded_file = csv_file.read().decode('utf-8-sig')
             io_string = io.StringIO(decoded_file)
             reader = csv.DictReader(io_string)
             
             for row_num, row in enumerate(reader, start=2):
                 try:
                     with transaction.atomic():
-                        # Create student using service
                         student_data = {
                             'first_name': row['first_name'],
                             'last_name': row['last_name'],
@@ -376,43 +368,51 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
                         student = StudentService.create_from_admission(student_data)
                         success_count += 1
                         
-                        # Create user account if requested
                         if create_users and student.email:
                             StudentUserService.create_user_for_student(
                                 student=student,
                                 send_welcome_email=send_emails,
                                 created_by_id=self.request.user.id
                             )
-                            
                 except Exception as e:
-                    error_rows.append({
-                        'row': row_num,
-                        'data': row,
-                        'error': str(e)
-                    })
+                    error_rows.append({'row': row_num, 'data': row, 'error': str(e)})
             
             if error_rows:
-                messages.warning(
-                    self.request,
-                    f'Imported {success_count} students with {len(error_rows)} errors.'
-                )
-                # Store errors in session for display
+                messages.warning(self.request, f'Imported {success_count} students with {len(error_rows)} errors.')
                 self.request.session['bulk_import_errors'] = error_rows[:50]
             else:
                 messages.success(self.request, f'Successfully imported {success_count} students.')
-                
         except Exception as e:
             messages.error(self.request, f'Bulk import failed: {str(e)}')
         
-        return super().form_valid(form)
+        return redirect(self.success_url)
+
+    
     
     def _get_class_id(self, class_name):
-        """Helper to get class ID by name"""
-        from apps.corecode.models import StudentClass
-        try:
-            return StudentClass.objects.get(name=class_name).id
-        except StudentClass.DoesNotExist:
-            raise ValidationError(f"Class '{class_name}' not found")
+          from apps.corecode.models import StudentClass
+          class_name = class_name.strip()
+          
+          # Try exact match first
+          try:
+              return StudentClass.objects.get(display_name__iexact=class_name).id
+          except StudentClass.DoesNotExist:
+              pass
+          
+          # Try by name + stream (e.g., "JSS 1 A" -> name="JSS1", stream="A")
+          parts = class_name.rsplit(' ', 1)
+          if len(parts) == 2:
+              try:
+                  return StudentClass.objects.get(name__iexact=parts[0], stream__iexact=parts[1]).id
+              except StudentClass.DoesNotExist:
+                  pass
+          
+          # Try just by name
+          try:
+              return StudentClass.objects.get(name__iexact=class_name).id
+          except StudentClass.DoesNotExist:
+              raise ValidationError(f"Class '{class_name}' not found")
+
 
 
 @method_decorator(require_POST, name='dispatch')
@@ -513,6 +513,7 @@ class StudentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView)
         
         messages.success(request, f'Student {self.object.get_full_name} has been withdrawn.')
         return redirect(self.success_url)
+
 
 
 class GuardianUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -662,3 +663,19 @@ class StudentAjaxView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
             return JsonResponse({'candidates': candidates})
         
         return JsonResponse({'error': 'Invalid action'}, status=400)
+        
+
+class DownloadBulkTemplateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Download CSV template for bulk student import"""
+    permission_required = 'students.bulk_import_students'
+    
+    def get(self, request):
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="student_import_template.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['first_name', 'last_name', 'gender', 'date_of_birth', 'current_class', 'admission_number'])
+        writer.writerow(['John', 'Doe', 'M', '2010-05-15', 'JSS1', ''])
+        return response

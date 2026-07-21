@@ -148,7 +148,11 @@ class AcademicSessionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Cre
         # Create terms automatically
         AcademicTermService.create_terms_for_session(self.object)
         
-        # Log action
+        # Log action - convert dates to strings for JSON serialization
+        log_changes = {}
+        for k, v in form.cleaned_data.items():
+            log_changes[k] = v.isoformat() if hasattr(v, 'isoformat') else v
+        
         SystemLogService.log_action(
             user=self.request.user,
             action=SystemLog.ActionType.CREATE,
@@ -156,7 +160,7 @@ class AcademicSessionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Cre
             model_name='AcademicSession',
             object_id=str(self.object.id),
             object_repr=str(self.object),
-            changes=form.cleaned_data,
+            changes=log_changes,
             request=self.request
         )
         
@@ -222,7 +226,6 @@ class StudentClassUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Update
             model_name='StudentClass',
             object_id=str(self.object.id),
             object_repr=str(self.object),
-            changes=form.cleaned_data,
             request=self.request
         )
         
