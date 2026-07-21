@@ -88,3 +88,45 @@ class UnauthorizedMessageAccessError(CommunicationError):
     """Unauthorized message access"""
     default_message = "You do not have permission to access this message"
     code = 'unauthorized_message'
+
+
+class AuthenticationError(ParentError):
+    """Authentication errors"""
+    default_message = "Authentication failed"
+    code = 'auth_error'
+
+
+class SessionExpiredError(AuthenticationError):
+    """Session has expired"""
+    default_message = "Your session has expired. Please log in again."
+    code = 'session_expired'
+
+
+class SessionHijackingError(AuthenticationError):
+    """Potential session hijacking detected"""
+    default_message = "Security check failed. Please log in again."
+    code = 'session_hijacking'
+
+
+class RateLimitExceededError(AuthenticationError):
+    """Rate limit exceeded"""
+    default_message = "Too many attempts. Please try again later."
+    code = 'rate_limit_exceeded'
+
+
+class MagicLinkExpiredError(AuthenticationError):
+    """Magic link has expired"""
+    default_message = "This login link has expired. Please request a new one."
+    code = 'magic_link_expired'
+
+
+class MagicLinkAlreadyUsedError(AuthenticationError):
+    """Magic link already used"""
+    default_message = "This login link has already been used."
+    code = 'magic_link_already_used'
+
+
+class InvalidMagicLinkError(AuthenticationError):
+    """Invalid magic link"""
+    default_message = "Invalid login link."
+    code = 'invalid_magic_link'

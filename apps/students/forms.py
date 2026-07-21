@@ -116,6 +116,7 @@ class BulkStudentImportForm(forms.Form):
     ]
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         self.request = kwargs.pop('request', None)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
@@ -460,12 +461,14 @@ class BulkStudentImportForm(forms.Form):
 
 class StudentStatusForm(forms.ModelForm):
     """Form to handle student lifecycle transitions"""
+    reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 2}), required=False)
     
     class Meta:
         model = Student
-        fields = ['status']
+        fields = ['status', 'reason']
 
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.status:
             current_status = self.instance.status
@@ -507,6 +510,7 @@ class StudentBaseForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         
@@ -574,6 +578,7 @@ class StudentCreateForm(StudentBaseForm):
         fields = StudentBaseForm.Meta.fields + ['admission_number']
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         super().__init__(*args, **kwargs)
         
         self.helper = FormHelper()
@@ -637,6 +642,7 @@ class StudentUpdateForm(StudentBaseForm):
         fields = StudentBaseForm.Meta.fields
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         super().__init__(*args, **kwargs)
         
         self.helper = FormHelper()
@@ -711,6 +717,7 @@ class GuardianForm(forms.ModelForm):
         ]
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         self.student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
         
@@ -743,13 +750,13 @@ class GuardianForm(forms.ModelForm):
     
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
-        GuardianValidator.validate_phone(phone)
+        StudentValidator.validate_phone(phone)
         return phone
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if email:
-            GuardianValidator.validate_email(email)
+            StudentValidator.validate_email(email)
         return email
     
     def clean(self):
@@ -964,6 +971,7 @@ class StudentSearchForm(forms.Form):
     )
     
     def __init__(self, *args, **kwargs):
+        kwargs.pop("student", None)
         self.request = kwargs.pop('request', None)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)

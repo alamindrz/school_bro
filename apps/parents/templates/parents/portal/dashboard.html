@@ -6,7 +6,7 @@
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-8 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Welcome back, {{ parent.full_name }}
+            Welcome back, {{ parent.full_name|escape }}
         </h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Here's what's happening with your children
@@ -23,10 +23,10 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            {{ child_data.student.full_name }}
+                            {{ child_data.student.full_name|escape }}
                         </h2>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Class: {{ child_data.student.current_class.display_name }}
+                            Class: {{ child_data.student.current_class.display_name|escape|default:"Not assigned" }}
                         </p>
                     </div>
                     <a href="{% url 'parents:child_detail' child_data.student.id %}" 
@@ -60,10 +60,10 @@
                             </span>
                             <div>
                                 <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Application Status: {{ child_data.application.status_display }}
+                                    Application Status: {{ child_data.application.status_display|escape }}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Ref: {{ child_data.application.application_number }}
+                                    Ref: {{ child_data.application.application_number|escape }}
                                 </p>
                                 {% if child_data.application.submitted_at %}
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -81,7 +81,7 @@
                     <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <p class="text-xs text-gray-500 dark:text-gray-400">Fee Balance</p>
                         <p class="text-lg font-bold {% if child_data.financial.total_balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
-                            ₦{{ child_data.financial.total_balance|floatformat:2 }}
+                            ₦{{ child_data.financial.total_balance|default_if_none:0|floatformat:2 }}
                         </p>
                     </div>
                     <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -127,17 +127,18 @@
         
         <div class="space-y-2">
             {% for notification in notifications %}
-            <div class="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 {% if not notification.is_read %}border-l-4 border-l-primary-500{% endif %}">
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 {% if not notification.is_read %}border-l-4 border-l-primary-500{% endif %}" 
+                 id="notification-{{ notification.id }}">
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {{ notification.title }}
+                            {{ notification.title|escape }}
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            {{ notification.message }}
+                            {{ notification.message|escape }}
                         </p>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            {{ notification.time_ago }}
+                            {{ notification.time_ago|escape }}
                         </p>
                     </div>
                     {% if not notification.is_read %}
@@ -158,20 +159,39 @@
 </div>
 
 <script>
-    // Mark notification as read via AJAX
+    // Mark notification as read via AJAX with CSRF
     document.querySelectorAll('.mark-read-btn').forEach(btn => {
         btn.addEventListener('click', async function() {
             const notificationId = this.dataset.notificationId;
-            const response = await fetch(`/parents/notifications/${notificationId}/read/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
-                    'X-Requested-With': 'XMLHttpRequest'
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                             document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+            
+            try {
+                const response = await fetch(`/parents/notifications/${notificationId}/read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const container = this.closest('.border-l-4');
+                    if (container) {
+                        container.classList.remove('border-l-4', 'border-l-primary-500');
+                    }
+                    this.remove();
+                    
+                    // Update badge count
+                    const badge = document.getElementById('notification-badge');
+                    if (badge) {
+                        const current = parseInt(badge.textContent) || 0;
+                        badge.textContent = Math.max(0, current - 1);
+                    }
                 }
-            });
-            if (response.ok) {
-                this.closest('.border-l-4').classList.remove('border-l-4', 'border-l-primary-500');
-                this.remove();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
             }
         });
     });

@@ -206,7 +206,7 @@ class StaffDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         
         # Get all data from selectors
         context['staff_data'] = staff_data
-        
+        context['staff'] = staff_data  # Template displays fields via `staff.*`; staff_data.id is used for URLs
         
         # Get duty assignments from selector
         context['duty_assignments'] = DutyAssignmentSelector.get_for_staff(staff_id)

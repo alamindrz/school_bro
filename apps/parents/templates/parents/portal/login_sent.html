@@ -1,4 +1,5 @@
 {% extends "parents/base_portal.html" %}
+{% load static %}
 
 {% block title %}Check Your Email - Parent Portal{% endblock %}
 
@@ -21,19 +22,33 @@
                 <i class="fas fa-lightbulb mr-1"></i> What to do next:
             </h3>
             <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-2">
-                <li>• Check your inbox for an email from <strong>{{ company_name }}</strong></li>
-                <li>• Click the login link in the email (it expires in 24 hours)</li>
+                <li>• Check your inbox for an email from <strong>{{ company_name|escape }}</strong></li>
+                <li>• Click the login link in the email (it expires in 15 minutes)</li>
                 <li>• If you don't see it, check your spam folder</li>
                 <li>• Still having trouble? Contact the school office</li>
             </ul>
         </div>
         
         <div class="space-y-3">
-            <button onclick="resendEmail()" 
-                    class="w-full flex justify-center items-center px-4 py-3 border border-primary-600 dark:border-primary-400 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20">
-                <i class="fas fa-redo-alt mr-2"></i>
-                Resend Email
-            </button>
+            <form method="post" action="{% url 'parents:resend_link' %}" id="resend-form">
+                {% csrf_token %}
+                <input type="email" name="email" id="resend-email" 
+                       placeholder="Enter your email" 
+                       class="hidden" 
+                       value="{{ request.GET.email|default:'' }}">
+                <button type="submit" 
+                        id="resend-btn"
+                        class="w-full flex justify-center items-center px-4 py-3 border border-primary-600 dark:border-primary-400 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="resend-text">
+                        <i class="fas fa-redo-alt mr-2"></i>
+                        Resend Email
+                    </span>
+                    <span id="resend-loading" class="hidden">
+                        <span class="loader inline-block mr-2"></span>
+                        Sending...
+                    </span>
+                </button>
+            </form>
             
             <a href="{% url 'parents:login' %}" 
                class="block w-full px-4 py-3 border border-light-border dark:border-dark-border rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
@@ -45,35 +60,27 @@
 </div>
 
 <script>
-    function resendEmail() {
-        // Get email from localStorage or prompt
-        const email = localStorage.getItem('parent_login_email') || prompt('Please enter your email address:');
-        
-        if (email) {
-            fetch('/parents/api/resend-link/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ email: email })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Login link resent! Please check your email.');
-                } else {
-                    alert('Failed to resend. Please try again.');
-                }
-            });
-        }
-    }
-    
-    // Store email for resend functionality
+    // Store email for resend
     const urlParams = new URLSearchParams(window.location.search);
     const email = urlParams.get('email');
     if (email) {
+        document.getElementById('resend-email').value = email;
         localStorage.setItem('parent_login_email', email);
+    } else {
+        const storedEmail = localStorage.getItem('parent_login_email');
+        if (storedEmail) {
+            document.getElementById('resend-email').value = storedEmail;
+        }
     }
+    
+    document.getElementById('resend-form').addEventListener('submit', function(e) {
+        const btn = document.getElementById('resend-btn');
+        const text = document.getElementById('resend-text');
+        const loading = document.getElementById('resend-loading');
+        
+        btn.disabled = true;
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+    });
 </script>
 {% endblock %}

@@ -125,7 +125,19 @@ class StudentCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
         kwargs['request'] = self.request
         return kwargs
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['student'] = self.object
+        return context
+    
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         try:
             response = super().form_valid(form)
             
@@ -170,7 +182,19 @@ class StudentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView)
         kwargs['request'] = self.request
         return kwargs
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['student'] = self.object
+        return context
+    
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         response = super().form_valid(form)
         
         messages.success(self.request, 'Student information updated successfully.')
@@ -208,10 +232,18 @@ class StudentStatusUpdateView(LoginRequiredMixin, PermissionRequiredMixin, FormV
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['student'] = self.student
+        context['student'] = self.object
+        return context
         return context
     
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         try:
             new_status = form.cleaned_data['status']
             reason = form.cleaned_data['reason']
@@ -254,7 +286,19 @@ class GuardianCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         kwargs['student'] = self.student
         return kwargs
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['student'] = self.object
+        return context
+    
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         form.instance.student = self.student
         response = super().form_valid(form)
         
@@ -289,6 +333,13 @@ class StudentBulkImportView(LoginRequiredMixin, PermissionRequiredMixin, FormVie
     success_url = reverse_lazy('students:list')
     
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         import csv
         import io
         from datetime import datetime
@@ -476,10 +527,22 @@ class GuardianUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         kwargs['student'] = self.object.student
         return kwargs
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['student'] = self.object
+        return context
+    
     def get_success_url(self):
         return reverse_lazy('students:detail', kwargs={'pk': self.object.student.pk})
     
     def form_valid(self, form):
+        from apps.corecode.selectors import AcademicSessionSelector
+        session = AcademicSessionSelector.get_current_session()
+        if session:
+            form.instance.enrollment_session_id = session.id
+        if not form.instance.admission_number:
+            from apps.students.services.admission_number import AdmissionNumberService
+            form.instance.admission_number = AdmissionNumberService.generate_admission_number(class_name=form.cleaned_data.get('current_class').name if form.cleaned_data.get('current_class') else '', session_code=session.code if session else None)
         response = super().form_valid(form)
         messages.success(self.request, f'Guardian information updated successfully.')
         return response

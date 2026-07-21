@@ -1,4 +1,5 @@
 {% extends "parents/base_portal.html" %}
+{% load static %}
 
 {% block title %}My Children - Parent Portal{% endblock %}
 
@@ -7,6 +8,9 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">My Children</h1>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+            {{ children|length }} child{{ children|pluralize }}
+        </span>
     </div>
 
     <!-- Children Grid -->
@@ -17,11 +21,11 @@
             <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 text-center">
                 <div class="inline-flex h-20 w-20 rounded-full bg-white dark:bg-gray-800 items-center justify-center shadow-lg mb-2">
                     <span class="text-3xl font-bold text-primary-600 dark:text-primary-400">
-                        {{ child.student_name|slice:":1" }}
+                        {{ child.student_name|slice:":1"|upper }}
                     </span>
                 </div>
-                <h3 class="text-lg font-semibold text-white">{{ child.student_name }}</h3>
-                <p class="text-primary-100 text-sm">{{ child.student_class }}</p>
+                <h3 class="text-lg font-semibold text-white">{{ child.student_name|escape }}</h3>
+                <p class="text-primary-100 text-sm">{{ child.student_class|escape|default:"Class not set" }}</p>
             </div>
             
             <!-- Relationship Badge -->
@@ -42,7 +46,7 @@
                     <div class="text-center">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Balance</p>
                         <p class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                            ₦{{ child.financial.total_balance|default:0|floatformat:0 }}
+                            ₦{{ child.financial.total_balance|default_if_none:0|floatformat:0 }}
                         </p>
                     </div>
                     <div class="text-center">
@@ -89,7 +93,7 @@
                        class="text-center px-3 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
                         View Profile
                     </a>
-                    <a href="{% url 'parents:messages' %}?student={{ child.student_id }}" 
+                    <a href="{% url 'parents:message_thread' child.student_id %}" 
                        class="text-center px-3 py-2 text-sm font-medium rounded-md border border-light-border dark:border-dark-border text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover">
                         Message
                     </a>

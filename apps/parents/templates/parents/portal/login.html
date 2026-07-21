@@ -1,7 +1,7 @@
 {% extends "parents/base_portal.html" %}
 {% load static %}
 
-{% block title %}Parent Portal Login - DETs Toolkit{% endblock %}
+{% block title %}Parent Portal Login - School Bro{% endblock %}
 
 {% block content %}
 <div class="min-h-[80vh] flex items-center justify-center">
@@ -17,11 +17,11 @@
         
         <!-- Login Card -->
         <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-8">
-            <form method="post" class="space-y-6">
+            <form method="post" class="space-y-6" id="login-form">
                 {% csrf_token %}
                 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label for="id_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Email Address
                     </label>
                     <div class="relative">
@@ -30,23 +30,34 @@
                         </div>
                         <input type="email" 
                                name="email" 
-                               id="email" 
+                               id="id_email" 
                                required
+                               autocomplete="email"
                                placeholder="Enter your email address"
                                class="block w-full pl-10 pr-3 py-3 border border-light-border dark:border-dark-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        We'll send a secure login link to your email
                     </div>
                 </div>
                 
                 <button type="submit" 
-                        class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                    <i class="fas fa-paper-plane mr-2"></i>
-                    Send Login Link
+                        id="submit-btn"
+                        class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btn-text">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send Login Link
+                    </span>
+                    <span id="btn-loading" class="hidden">
+                        <span class="loader inline-block mr-2"></span>
+                        Sending...
+                    </span>
                 </button>
             </form>
             
             <div class="mt-6 text-center">
                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                    We'll send a secure login link to your email. No password needed.
+                    Secure login link expires in 15 minutes
                 </p>
             </div>
         </div>
@@ -64,4 +75,16 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        const btn = document.getElementById('submit-btn');
+        const text = document.getElementById('btn-text');
+        const loading = document.getElementById('btn-loading');
+        
+        btn.disabled = true;
+        text.classList.add('hidden');
+        loading.classList.remove('hidden');
+    });
+</script>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends "parents/base_portal.html" %}
+{% load static %}
 
-{% block title %}{{ student.full_name }} - Parent Portal{% endblock %}
+{% block title %}{{ student.full_name|escape }} - Parent Portal{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -21,32 +22,32 @@
                     </span>
                 </div>
                 <div class="ml-6 text-white">
-                    <h1 class="text-3xl font-bold">{{ student.full_name }}</h1>
-                    <p class="text-primary-100">{{ student.current_class.display_name }} • {{ student.admission_number }}</p>
+                    <h1 class="text-3xl font-bold">{{ student.full_name|escape }}</h1>
+                    <p class="text-primary-100">{{ student.current_class.display_name|escape|default:"Class not set" }} • {{ student.admission_number|escape|default:"No admission number" }}</p>
                 </div>
             </div>
         </div>
         
         <!-- Quick Info Tabs -->
         <div class="border-b border-light-border dark:border-dark-border">
-            <nav class="flex -mb-px">
+            <nav class="flex -mb-px overflow-x-auto">
                 <button onclick="showTab('overview')" 
-                        class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
+                        class="tab-button active px-6 py-3 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400 whitespace-nowrap"
                         id="tab-overview-btn">
                     Overview
                 </button>
                 <button onclick="showTab('fees')" 
-                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                         id="tab-fees-btn">
                     Fees
                 </button>
                 <button onclick="showTab('results')" 
-                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                         id="tab-results-btn">
                     Results
                 </button>
                 <button onclick="showTab('attendance')" 
-                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                        class="tab-button px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap"
                         id="tab-attendance-btn">
                     Attendance
                 </button>
@@ -66,7 +67,7 @@
                     <div class="ml-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Enrollment Date</p>
                         <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            {{ student.enrollment_date|date:"M d, Y" }}
+                            {{ student.enrollment_date|date:"M d, Y"|default:"N/A" }}
                         </p>
                     </div>
                 </div>
@@ -79,7 +80,9 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Age</p>
-                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ student.age }} years</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {{ student.age|default_if_none:"N/A" }} years
+                        </p>
                     </div>
                 </div>
             </div>
@@ -91,7 +94,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Gender</p>
-                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ student.gender_display }}</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ student.gender_display|default:"Not specified" }}</p>
                     </div>
                 </div>
             </div>
@@ -106,19 +109,19 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Email</p>
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {% if student.email %}{{ student.email }}{% else %}Not provided{% endif %}
+                        {% if student.email %}{{ student.email|escape }}{% else %}Not provided{% endif %}
                     </p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Phone</p>
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {% if student.phone %}{{ student.phone }}{% else %}Not provided{% endif %}
+                        {% if student.phone %}{{ student.phone|escape }}{% else %}Not provided{% endif %}
                     </p>
                 </div>
                 <div class="md:col-span-2">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Address</p>
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {{ student.address|default:"Not provided" }}
+                        {{ student.address|default:"Not provided"|escape }}
                     </p>
                 </div>
             </div>
@@ -134,13 +137,13 @@
                 {% if student.blood_group %}
                 <div class="mb-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Blood Group</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.blood_group }}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.blood_group|escape }}</p>
                 </div>
                 {% endif %}
                 {% if student.medical_notes %}
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Medical Notes</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.medical_notes }}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ student.medical_notes|escape }}</p>
                 </div>
                 {% endif %}
             </div>
@@ -154,16 +157,16 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Invoiced</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">₦{{ balance.total_invoiced|floatformat:2 }}</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">₦{{ balance.total_invoiced|default_if_none:0|floatformat:2 }}</p>
             </div>
             <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Paid</p>
-                <p class="text-2xl font-bold text-green-600 dark:text-green-400">₦{{ balance.total_paid|floatformat:2 }}</p>
+                <p class="text-2xl font-bold text-green-600 dark:text-green-400">₦{{ balance.total_paid|default_if_none:0|floatformat:2 }}</p>
             </div>
             <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Balance</p>
                 <p class="text-2xl font-bold {% if balance.total_balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
-                    ₦{{ balance.total_balance|floatformat:2 }}
+                    ₦{{ balance.total_balance|default_if_none:0|floatformat:2 }}
                 </p>
             </div>
         </div>
@@ -211,10 +214,10 @@
                         {% for invoice in invoices %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {{ invoice.invoice_number }}
+                                {{ invoice.invoice_number|escape }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ invoice.description }}
+                                {{ invoice.description|escape }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ invoice.due_date|date:"M d, Y" }}
@@ -236,7 +239,7 @@
                                     {% elif invoice.status == 'overdue' %}bg-red-100 text-red-800
                                     {% else %}bg-gray-100 text-gray-800
                                     {% endif %}">
-                                    {{ invoice.status_display }}
+                                    {{ invoice.status_display|escape }}
                                 </span>
                             </td>
                         </tr>
@@ -253,21 +256,23 @@
         </div>
     </div>
 
-    <!-- Tab: Results (Placeholder until Results app is ready) -->
+    <!-- Tab: Results -->
     <div id="tab-results" class="tab-panel hidden">
         <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-12 text-center">
             <i class="fas fa-scroll text-5xl text-gray-400 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Results Coming Soon</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Results</h3>
             <p class="text-gray-500 dark:text-gray-400">Results will be displayed here once published.</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">Check back after the examination period.</p>
         </div>
     </div>
 
-    <!-- Tab: Attendance (Placeholder until Attendance app is ready) -->
+    <!-- Tab: Attendance -->
     <div id="tab-attendance" class="tab-panel hidden">
         <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-12 text-center">
             <i class="fas fa-calendar-check text-5xl text-gray-400 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Attendance Coming Soon</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Attendance</h3>
             <p class="text-gray-500 dark:text-gray-400">Attendance records will be displayed here.</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">Check back regularly for updates.</p>
         </div>
     </div>
 </div>
@@ -280,7 +285,10 @@
         });
         
         // Show selected tab
-        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        const selected = document.getElementById(`tab-${tabName}`);
+        if (selected) {
+            selected.classList.remove('hidden');
+        }
         
         // Update tab buttons
         document.querySelectorAll('.tab-button').forEach(btn => {
@@ -289,8 +297,11 @@
         });
         
         // Activate clicked tab
-        document.getElementById(`tab-${tabName}-btn`).classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
-        document.getElementById(`tab-${tabName}-btn`).classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        const btn = document.getElementById(`tab-${tabName}-btn`);
+        if (btn) {
+            btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            btn.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        }
     }
 </script>
 {% endblock %}

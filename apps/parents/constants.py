@@ -5,6 +5,7 @@ Pure constants - no dependencies
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 class PortalAccessStatus:
@@ -21,6 +22,19 @@ class PortalAccessStatus:
         (SUSPENDED, _('Suspended')),
         (PENDING, _('Pending')),
     ]
+    
+    # State transition rules
+    TRANSITIONS = {
+        PENDING: [ACTIVE, INACTIVE],
+        ACTIVE: [INACTIVE, SUSPENDED],
+        INACTIVE: [ACTIVE],
+        SUSPENDED: [ACTIVE],  # Only admin can unsuspend
+    }
+    
+    @classmethod
+    def can_transition(cls, from_status, to_status):
+        """Check if status transition is valid"""
+        return to_status in cls.TRANSITIONS.get(from_status, [])
 
 
 class NotificationType:
@@ -49,6 +63,34 @@ class NotificationType:
         (DEADLINE_REMINDER, _('Deadline Reminder')),
         (BEHAVIOR_ALERT, _('Behavior Alert')),
     ]
+    
+    # Human-readable labels for UI
+    LABELS = {
+        PAYMENT_RECEIPT: 'Payment Receipts',
+        PAYMENT_REMINDER: 'Payment Reminders',
+        RESULT_PUBLISHED: 'Results Published',
+        ATTENDANCE_ALERT: 'Attendance Alerts',
+        EVENT_REMINDER: 'Event Reminders',
+        GENERAL_ANNOUNCEMENT: 'General Announcements',
+        ACADEMIC_REPORT: 'Academic Reports',
+        FEE_STRUCTURE: 'Fee Structure Updates',
+        DEADLINE_REMINDER: 'Deadline Reminders',
+        BEHAVIOR_ALERT: 'Behavior Alerts',
+    }
+    
+    # Which channels are required for each type
+    REQUIRED_CHANNELS = {
+        PAYMENT_RECEIPT: ['email'],  # Must always send email
+        PAYMENT_REMINDER: ['email', 'sms'],
+        RESULT_PUBLISHED: ['email'],
+        ATTENDANCE_ALERT: ['sms'],
+        EVENT_REMINDER: ['email'],
+        GENERAL_ANNOUNCEMENT: ['email'],
+        ACADEMIC_REPORT: ['email'],
+        FEE_STRUCTURE: ['email'],
+        DEADLINE_REMINDER: ['email', 'sms'],
+        BEHAVIOR_ALERT: ['email', 'sms'],
+    }
 
 
 class NotificationChannel:
@@ -65,6 +107,16 @@ class NotificationChannel:
         (PUSH, _('Push Notification')),
         (IN_APP, _('In-App Notification')),
     ]
+    
+    # Validation
+    @classmethod
+    def validate_channels(cls, channels):
+        """Validate that channels are valid"""
+        valid_channels = [c[0] for c in cls.CHOICES]
+        for channel in channels:
+            if channel not in valid_channels:
+                raise ValidationError(f"Invalid channel: {channel}")
+        return True
 
 
 class NotificationPriority:
@@ -99,21 +151,28 @@ class RelationshipType:
         (GRANDPARENT, _('Grandparent')),
         (OTHER, _('Other')),
     ]
+    
+    DEFAULT = GUARDIAN
 
 
-# Default settings
-DEFAULT_NOTIFICATION_PREFERENCES = {
-    NotificationType.PAYMENT_RECEIPT: [NotificationChannel.EMAIL, NotificationChannel.SMS],
-    NotificationType.PAYMENT_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.SMS],
-    NotificationType.RESULT_PUBLISHED: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
-    NotificationType.ATTENDANCE_ALERT: [NotificationChannel.SMS, NotificationChannel.PUSH],
-    NotificationType.EVENT_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
-    NotificationType.GENERAL_ANNOUNCEMENT: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
-    NotificationType.ACADEMIC_REPORT: [NotificationChannel.EMAIL],
-    NotificationType.FEE_STRUCTURE: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
-    NotificationType.DEADLINE_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.SMS],
-    NotificationType.BEHAVIOR_ALERT: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
-}
+# Default notification preferences - using constants
+def get_default_notification_preferences():
+    """Return default notification preferences with all types"""
+    from .constants import NotificationType, NotificationChannel
+    
+    return {
+        NotificationType.PAYMENT_RECEIPT: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+        NotificationType.PAYMENT_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+        NotificationType.RESULT_PUBLISHED: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+        NotificationType.ATTENDANCE_ALERT: [NotificationChannel.SMS, NotificationChannel.PUSH],
+        NotificationType.EVENT_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+        NotificationType.GENERAL_ANNOUNCEMENT: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+        NotificationType.ACADEMIC_REPORT: [NotificationChannel.EMAIL],
+        NotificationType.FEE_STRUCTURE: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+        NotificationType.DEADLINE_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+        NotificationType.BEHAVIOR_ALERT: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+    }
+
 
 # Portal features by relationship
 PORTAL_FEATURES = {
@@ -123,3 +182,11 @@ PORTAL_FEATURES = {
     RelationshipType.GRANDPARENT: ['view_results', 'view_attendance'],
     RelationshipType.OTHER: ['view_results', 'view_attendance'],
 }
+
+# Session settings (configurable via environment)
+from django.conf import settings
+
+MAGIC_LINK_EXPIRY_MINUTES = getattr(settings, 'PARENT_MAGIC_LINK_EXPIRY_MINUTES', 15)
+SESSION_TIMEOUT_SECONDS = getattr(settings, 'PARENT_SESSION_TIMEOUT_SECONDS', 86400)  # 24 hours
+MAX_LOGIN_ATTEMPTS_PER_HOUR = getattr(settings, 'PARENT_MAX_LOGIN_ATTEMPTS', 5)
+MAX_LOGIN_ATTEMPTS_PER_IP = getattr(settings, 'PARENT_MAX_LOGIN_ATTEMPTS_PER_IP', 10)
