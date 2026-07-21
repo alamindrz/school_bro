@@ -16,6 +16,7 @@ import logging
 import json
 from datetime import date, datetime, timedelta
 from ..services.invite import StaffInviteService
+from ..services.assignment import QualificationService
 from ..selectors import (
     StaffSelector,
     TeacherQualificationSelector,
@@ -698,7 +699,7 @@ class DutyAssignmentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
             end = datetime.strptime(end_time, '%H:%M').time() if end_time else None
             
             # Use service to assign duty
-            duty = AssignmentService.assign_duty(
+            duty = QualificationService.assign_duty(
                 staff_id=staff_id,
                 duty_post=duty_post,
                 session_id=current_session.id,
@@ -1582,6 +1583,7 @@ class PerformanceEvaluationEditView(LoginRequiredMixin, PermissionRequiredMixin,
                 return redirect('staffs:performance_list')
             
             # Update evaluation
+
             from ..services import StaffService
             
             # Collect updated data
@@ -1893,6 +1895,7 @@ class DocumentUploadView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVi
         
         try:
             # USE SERVICE - not direct model access
+
             from ..services import StaffService
             
             document = StaffService.upload_document(
@@ -1936,6 +1939,7 @@ class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
             document_title = document['title']
             
             # USE SERVICE to delete (not direct model access)
+
             from ..services import StaffService
             success = StaffService.delete_document(
                 document_id=document_id,

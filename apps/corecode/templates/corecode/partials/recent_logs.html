@@ -1,52 +1,95 @@
-<div class="divide-y divide-light-border dark:divide-dark-border">
+{% load log_tags %}
+
+<div class="divide-y divide-gray-200 dark:divide-gray-700">
     {% if logs %}
         {% for log in logs %}
-        <div class="p-4 hover:bg-light-hover dark:hover:bg-dark-hover transition-colors">
+        <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
                     {% if log.action == 'CREATE' %}
-                        <span class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-400">➕</span>
+                        <span class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <i class="fas fa-plus-circle text-green-600 dark:text-green-400 text-sm"></i>
+                        </span>
                     {% elif log.action == 'UPDATE' %}
-                        <span class="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400">✏️</span>
+                        <span class="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <i class="fas fa-pen text-blue-600 dark:text-blue-400 text-sm"></i>
+                        </span>
                     {% elif log.action == 'DELETE' %}
-                        <span class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center text-red-600 dark:text-red-400">🗑️</span>
+                        <span class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <i class="fas fa-trash-alt text-red-600 dark:text-red-400 text-sm"></i>
+                        </span>
                     {% elif log.action == 'LOGIN' %}
-                        <span class="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400">🔑</span>
+                        <span class="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <i class="fas fa-sign-in-alt text-purple-600 dark:text-purple-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'LOGOUT' %}
+                        <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
+                            <i class="fas fa-sign-out-alt text-gray-600 dark:text-gray-400 text-sm"></i>
+                        </span>
                     {% elif log.action == 'PAYMENT' %}
-                        <span class="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-yellow-600 dark:text-yellow-400">💰</span>
+                        <span class="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-yellow-600 dark:text-yellow-400 text-sm"></i>
+                        </span>
                     {% elif log.action == 'GRADE_CHANGE' %}
-                        <span class="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-600 dark:text-orange-400">📊</span>
+                        <span class="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <i class="fas fa-chart-line text-orange-600 dark:text-orange-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'PROMOTION' %}
+                        <span class="h-8 w-8 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                            <i class="fas fa-arrow-up text-teal-600 dark:text-teal-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'EXPORT' %}
+                        <span class="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                            <i class="fas fa-download text-indigo-600 dark:text-indigo-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'IMPORT' %}
+                        <span class="h-8 w-8 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                            <i class="fas fa-upload text-cyan-600 dark:text-cyan-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'WAIVER' %}
+                        <span class="h-8 w-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                            <i class="fas fa-hand-holding-heart text-pink-600 dark:text-pink-400 text-sm"></i>
+                        </span>
+                    {% elif log.action == 'VIEW' %}
+                        <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
+                            <i class="fas fa-eye text-gray-600 dark:text-gray-400 text-sm"></i>
+                        </span>
                     {% else %}
-                        <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-600 dark:text-gray-400">📋</span>
+                        <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
+                            <i class="fas fa-clipboard-list text-gray-600 dark:text-gray-400 text-sm"></i>
+                        </span>
                     {% endif %}
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {{ log.get_action_display }}
                         {% if log.object_repr %}
-                            <span class="text-gray-500 dark:text-gray-400">- {{ log.object_repr }}</span>
+                            <span class="text-gray-500 dark:text-gray-400">— {{ log.object_repr }}</span>
                         {% endif %}
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {{ log.username }} • {{ log.timestamp|timesince }} ago
+                        <i class="fas fa-user-circle mr-1"></i>{{ log.username }}
+                        <span class="mx-1">•</span>
+                        <i class="far fa-clock mr-1"></i>{{ log.timestamp|timesince }} ago
                     </p>
                     {% if log.changes %}
-                        <div class="mt-2 text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                            <pre class="text-gray-600 dark:text-gray-400">{{ log.changes|pprint }}</pre>
+                        <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                            {{ log.changes|format_changes }}
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
-        <div class="p-4 text-center">
-            <a href="{% url 'corecode:log_list' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                View all activity →
+        <div class="p-3 text-center bg-gray-50 dark:bg-gray-800/50">
+            <a href="{% url 'corecode:log_list' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                View all activity <i class="fas fa-arrow-right ml-1 text-xs"></i>
             </a>
         </div>
     {% else %}
         <div class="p-8 text-center text-gray-500 dark:text-gray-400">
-            <p>No recent activity</p>
+            <i class="fas fa-clipboard-list text-2xl mb-2 block"></i>
+            <p class="text-sm">No recent activity</p>
         </div>
     {% endif %}
 </div>

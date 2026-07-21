@@ -113,17 +113,21 @@ def check_session_status(request):
     current_session = AcademicSessionSelector.get_current_session()
     current_term = AcademicTermSelector.get_current_term()
     
-    return JsonResponse({
-        'has_session': current_session is not None,
-        'has_term': current_term is not None,
+    has_session = current_session is not None
+    has_term = current_term is not None
+    
+    context = {
+        'has_session': has_session,
+        'has_term': has_term,
         'session_name': current_session.name if current_session else None,
         'term_name': current_term.get_term_display() if current_term else None,
-        'term_dates': {
-            'start': current_term.start_date.isoformat() if current_term else None,
-            'end': current_term.end_date.isoformat() if current_term else None,
-        } if current_term else None
-    })
-
+        'term_id': current_term.id if current_term else None,
+        'term_start': current_term.start_date if current_term else None,
+        'term_end': current_term.end_date if current_term else None,
+        'term_progress': 65,  # You can calculate this if needed
+    }
+    
+    return render(request, 'corecode/partials/session_status.html', context)
 
 @login_required
 @require_http_methods(["GET"])
