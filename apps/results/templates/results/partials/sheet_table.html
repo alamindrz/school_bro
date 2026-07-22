@@ -1,152 +1,133 @@
 {% if sheet %}
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-    
-    <!-- Sheet Header -->
+<div class="card rounded-xl shadow-sm border overflow-hidden">
+
+    <!-- Header -->
     <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ sheet.subject.name }} — {{ sheet.student_class.name }}
+            <h2 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                {{ sheet.subject.name }} <span class="text-gray-400 dark:text-gray-500 font-normal">—</span> {{ sheet.student_class.name }}
             </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                {{ sheet.academic_term.name }} • {{ sheet.filled_count }}/{{ sheet.total_students }} completed
-                {% if sheet.filled_count == sheet.total_students and sheet.total_students > 0 %}
-                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                    <i class="fas fa-check-circle mr-1"></i>All done
-                </span>
-                {% endif %}
-            </p>
+            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ sheet.academic_term.name }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
             {% if sheet.is_editable %}
             <form method="post" action="{% url 'results:submit_sheet' sheet.id %}">
                 {% csrf_token %}
-                <button type="submit" class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
-                    <i class="fas fa-paper-plane mr-1"></i>Submit
+                <button type="submit" class="inline-flex items-center px-3.5 py-2 text-xs sm:text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 shadow-sm transition">
+                    <i class="fas fa-paper-plane mr-1.5 text-[11px]"></i>Submit
                 </button>
             </form>
             {% endif %}
-            <a href="{% url 'results:sheet_detail' sheet.id %}" 
-               class="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <i class="fas fa-eye mr-1"></i>View
+            <a href="{% url 'results:sheet_detail' sheet.id %}" class="inline-flex items-center px-3.5 py-2 text-xs sm:text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <i class="fas fa-eye mr-1.5 text-[11px]"></i>View
             </a>
         </div>
     </div>
 
+    <!-- Live Stats Bar -->
+    <div id="sheet-stats" class="px-4 sm:px-6 py-3 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700">
+        <div class="grid grid-cols-4 gap-3 sm:flex sm:flex-wrap sm:gap-8">
+            <div class="flex flex-col items-center sm:items-start">
+                <span class="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Filled</span>
+                <strong id="stat-filled" class="text-sm sm:text-base font-bold text-gray-900 dark:text-white leading-tight">{{ stats.filled_count|default:sheet.filled_count }}/{{ stats.total|default:sheet.total_students }}</strong>
+            </div>
+            <div class="flex flex-col items-center sm:items-start">
+                <span class="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Average</span>
+                <strong id="stat-avg" class="text-sm sm:text-base font-bold text-primary-600 dark:text-primary-400 leading-tight">{{ stats.average|default:"—" }}</strong>
+            </div>
+            <div class="flex flex-col items-center sm:items-start">
+                <span class="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Highest</span>
+                <strong id="stat-high" class="text-sm sm:text-base font-bold text-green-600 dark:text-green-400 leading-tight">{{ stats.highest|default:"—" }}</strong>
+            </div>
+            <div class="flex flex-col items-center sm:items-start">
+                <span class="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Lowest</span>
+                <strong id="stat-low" class="text-sm sm:text-base font-bold text-amber-600 dark:text-amber-400 leading-tight">{{ stats.lowest|default:"—" }}</strong>
+            </div>
+        </div>
+        {% if sheet.filled_count == sheet.total_students and sheet.total_students > 0 %}
+        <div class="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+            <i class="fas fa-check-circle"></i>All students scored
+        </div>
+        {% endif %}
+    </div>
+
+    {% if sheet.is_editable %}
+    <div class="px-4 sm:px-6 py-2.5 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/40 flex items-start gap-2">
+        <i class="fas fa-circle-info text-blue-500 dark:text-blue-400 mt-0.5 text-xs shrink-0"></i>
+        <p class="text-xs text-blue-700 dark:text-blue-300 leading-snug">
+            Totals and grades are <strong>provisional</strong> until every student has all 4 fields filled in. You can edit any score anytime before this sheet is submitted.
+        </p>
+    </div>
+    {% endif %}
+
     <!-- Desktop Table -->
     <div class="hidden lg:block overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900">
+            <thead class="bg-gray-100 dark:bg-gray-800">
                 <tr>
-                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-8">#</th>
-                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Student</th>
-                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">CA1</th>
-                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">CA2</th>
-                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">CA3</th>
-                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Exam</th>
-                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Total</th>
-                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-12">Grade</th>
-                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-10">Pos</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-8">#</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">CA1<br><span class="font-normal">/10</span></th>
+                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">CA2<br><span class="font-normal">/10</span></th>
+                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">CA3<br><span class="font-normal">/10</span></th>
+                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Exam<br><span class="font-normal">/70</span></th>
+                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Total</th>
+                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-12">Grade</th>
+                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-10">Pos</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for entry in sheet.entries %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition" id="row-{{ entry.id }}">
-                    <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ forloop.counter }}</td>
+                <tr class="score-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td class="px-3 py-2 text-sm text-gray-500">{{ forloop.counter }}</td>
                     <td class="px-3 py-2 text-sm font-medium text-gray-900 dark:text-white">{{ entry.student_name }}</td>
-                    
-                    <!-- CA1 -->
+
                     <td class="px-1 py-2">
                         {% if sheet.is_editable %}
-                        <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                        <input type="hidden" name="field" value="ca1">
-                        <input type="number" min="0" max="100" name="value"
-                               value="{{ entry.ca1|default:'' }}"
+                        <input type="number" min="0" max="10" value="{{ entry.ca1|default:'' }}" placeholder="–"
                                hx-post="{% url 'results:update_score' %}"
-                               hx-trigger="blur"
-                               hx-swap="none"
+                               hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca1", "value": event.target.value}'
+                               hx-trigger="blur" hx-swap="none"
                                hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                               class="w-full text-center px-1 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        {% else %}
-                        <span class="text-sm">{{ entry.ca1|default:'—' }}</span>
-                        {% endif %}
+                               class="w-full text-center px-1 py-2 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                        {% else %}<span class="text-sm">{{ entry.ca1|default:'—' }}</span>{% endif %}
                     </td>
-                    
-                    <!-- CA2 -->
                     <td class="px-1 py-2">
                         {% if sheet.is_editable %}
-                        <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                        <input type="hidden" name="field" value="ca2">
-                        <input type="number" min="0" max="100" name="value"
-                               value="{{ entry.ca2|default:'' }}"
+                        <input type="number" min="0" max="10" value="{{ entry.ca2|default:'' }}" placeholder="–"
                                hx-post="{% url 'results:update_score' %}"
-                               hx-trigger="blur"
-                               hx-swap="none"
+                               hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca2", "value": event.target.value}'
+                               hx-trigger="blur" hx-swap="none"
                                hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                               class="w-full text-center px-1 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        {% else %}
-                        <span class="text-sm">{{ entry.ca2|default:'—' }}</span>
-                        {% endif %}
+                               class="w-full text-center px-1 py-2 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                        {% else %}<span class="text-sm">{{ entry.ca2|default:'—' }}</span>{% endif %}
                     </td>
-                    
-                    <!-- CA3 -->
                     <td class="px-1 py-2">
                         {% if sheet.is_editable %}
-                        <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                        <input type="hidden" name="field" value="ca3">
-                        <input type="number" min="0" max="100" name="value"
-                               value="{{ entry.ca3|default:'' }}"
+                        <input type="number" min="0" max="10" value="{{ entry.ca3|default:'' }}" placeholder="–"
                                hx-post="{% url 'results:update_score' %}"
-                               hx-trigger="blur"
-                               hx-swap="none"
+                               hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca3", "value": event.target.value}'
+                               hx-trigger="blur" hx-swap="none"
                                hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                               class="w-full text-center px-1 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        {% else %}
-                        <span class="text-sm">{{ entry.ca3|default:'—' }}</span>
-                        {% endif %}
+                               class="w-full text-center px-1 py-2 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                        {% else %}<span class="text-sm">{{ entry.ca3|default:'—' }}</span>{% endif %}
                     </td>
-                    
-                    <!-- Exam -->
                     <td class="px-1 py-2">
                         {% if sheet.is_editable %}
-                        <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                        <input type="hidden" name="field" value="exam">
-                        <input type="number" min="0" max="100" name="value"
-                               value="{{ entry.exam|default:'' }}"
+                        <input type="number" min="0" max="70" value="{{ entry.exam|default:'' }}" placeholder="–"
                                hx-post="{% url 'results:update_score' %}"
-                               hx-trigger="blur"
-                               hx-swap="none"
+                               hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "exam", "value": event.target.value}'
+                               hx-trigger="blur" hx-swap="none"
                                hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                               class="w-full text-center px-1 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        {% else %}
-                        <span class="text-sm">{{ entry.exam|default:'—' }}</span>
-                        {% endif %}
+                               class="w-full text-center px-1 py-2 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                        {% else %}<span class="text-sm">{{ entry.exam|default:'—' }}</span>{% endif %}
                     </td>
-                    
-                    <!-- Total -->
+
+                    <td class="px-3 py-2 text-center"><span id="total-d-{{ entry.id }}" class="text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ entry.total_score|default:'—' }}</span></td>
                     <td class="px-3 py-2 text-center">
-                        <span id="total-{{ entry.id }}" class="text-sm font-bold text-gray-900 dark:text-white">
-                            {{ entry.total_score|default:'—' }}
-                        </span>
+                        <span id="grade-d-{{ entry.id }}" class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold {% if entry.grade == 'A1' or entry.grade == 'B2' or entry.grade == 'B3' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif entry.grade == 'C4' or entry.grade == 'C5' or entry.grade == 'C6' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% elif entry.grade == 'D7' or entry.grade == 'E8' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300{% elif entry.grade == 'F9' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ entry.grade|default:'—' }}</span>
                     </td>
-                    
-                    <!-- Grade -->
-                    <td class="px-3 py-2 text-center">
-                        <span id="grade-{{ entry.id }}" class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold
-                            {% if entry.grade == 'A1' or entry.grade == 'B2' or entry.grade == 'B3' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                            {% elif entry.grade == 'C4' or entry.grade == 'C5' or entry.grade == 'C6' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
-                            {% elif entry.grade == 'D7' or entry.grade == 'E8' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                            {% elif entry.grade == 'F9' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                            {% else %}bg-gray-100 text-gray-500{% endif %}">
-                            {{ entry.grade|default:'—' }}
-                        </span>
-                    </td>
-                    
-                    <!-- Position -->
-                    <td class="px-3 py-2 text-center">
-                        <span id="pos-{{ entry.id }}" class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            {{ entry.position|default:'—' }}
-                        </span>
-                    </td>
+                    <td class="px-3 py-2 text-center"><span id="pos-d-{{ entry.id }}" class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ entry.position|default:'—' }}</span></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -156,83 +137,88 @@
     <!-- Mobile Cards -->
     <div class="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for entry in sheet.entries %}
-        <div class="p-4 space-y-3" id="m-row-{{ entry.id }}">
+        <div class="score-row p-4 space-y-3 {% if entry.all_filled %}border-l-4 border-l-green-400 dark:border-l-green-500{% else %}border-l-4 border-l-transparent{% endif %}">
             <div class="flex justify-between items-center">
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ entry.student_name }}</span>
-                <div class="flex items-center gap-2">
-                    <span id="grade-{{ entry.id }}" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
-                        {% if entry.grade == 'A1' or entry.grade == 'B2' or entry.grade == 'B3' %}bg-green-100 text-green-800
-                        {% elif entry.grade == 'C4' or entry.grade == 'C5' or entry.grade == 'C6' %}bg-blue-100 text-blue-800
-                        {% elif entry.grade == 'D7' or entry.grade == 'E8' %}bg-yellow-100 text-yellow-800
-                        {% elif entry.grade == 'F9' %}bg-red-100 text-red-800
-                        {% else %}bg-gray-100 text-gray-500{% endif %}">
-                        {{ entry.grade|default:'—' }}
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-[11px] font-semibold text-gray-500 dark:text-gray-400 shrink-0">
+                        {{ forloop.counter }}
                     </span>
-                    <span id="pos-{{ entry.id }}" class="text-xs text-gray-500">#{{ entry.position|default:'—' }}</span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ entry.student_name }}</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    {% if entry.grade %}
+                    <span id="grade-m-{{ entry.id }}" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold {% if entry.grade == 'A1' or entry.grade == 'B2' or entry.grade == 'B3' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300{% elif entry.grade == 'C4' or entry.grade == 'C5' or entry.grade == 'C6' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% elif entry.grade == 'D7' or entry.grade == 'E8' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% endif %}">{{ entry.grade }}</span>
+                    {% else %}
+                    <span id="grade-m-{{ entry.id }}" class="text-xs text-gray-300 dark:text-gray-600">—</span>
+                    {% endif %}
+                    {% if entry.position %}
+                    <span id="pos-m-{{ entry.id }}" class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">#{{ entry.position }}</span>
+                    {% else %}
+                    <span id="pos-m-{{ entry.id }}" class="text-xs text-gray-300 dark:text-gray-600">—</span>
+                    {% endif %}
                 </div>
             </div>
-            
             <div class="grid grid-cols-4 gap-2">
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">CA1</label>
+                    <label class="block text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">CA1 <span class="font-normal normal-case">/10</span></label>
                     {% if sheet.is_editable %}
-                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                    <input type="hidden" name="field" value="ca1">
-                    <input type="number" min="0" max="100" name="value" value="{{ entry.ca1|default:'' }}"
+                    <input type="number" min="0" max="10" value="{{ entry.ca1|default:'' }}" placeholder="–"
                            hx-post="{% url 'results:update_score' %}"
+                           hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca1", "value": event.target.value}'
                            hx-trigger="blur" hx-swap="none"
                            hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                           class="w-full text-center px-1 py-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600">
-                    {% else %}
-                    <span class="block text-center text-sm">{{ entry.ca1|default:'—' }}</span>
+                           class="w-full text-center px-1 py-2.5 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                    {% if entry.ca1|default_if_none:"" == "" %}
+                    <button type="button" tabindex="-1" class="quick-max-btn block w-full text-[9px] text-gray-400 dark:text-gray-500 hover:text-primary-500 mt-0.5 truncate">Full mark</button>
                     {% endif %}
+                    {% else %}<span class="block text-center text-sm">{{ entry.ca1|default:'—' }}</span>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">CA2</label>
+                    <label class="block text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">CA2 <span class="font-normal normal-case">/10</span></label>
                     {% if sheet.is_editable %}
-                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                    <input type="hidden" name="field" value="ca2">
-                    <input type="number" min="0" max="100" name="value" value="{{ entry.ca2|default:'' }}"
+                    <input type="number" min="0" max="10" value="{{ entry.ca2|default:'' }}" placeholder="–"
                            hx-post="{% url 'results:update_score' %}"
+                           hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca2", "value": event.target.value}'
                            hx-trigger="blur" hx-swap="none"
                            hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                           class="w-full text-center px-1 py-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600">
-                    {% else %}
-                    <span class="block text-center text-sm">{{ entry.ca2|default:'—' }}</span>
+                           class="w-full text-center px-1 py-2.5 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                    {% if entry.ca2|default_if_none:"" == "" %}
+                    <button type="button" tabindex="-1" class="quick-max-btn block w-full text-[9px] text-gray-400 dark:text-gray-500 hover:text-primary-500 mt-0.5 truncate">Full mark</button>
                     {% endif %}
+                    {% else %}<span class="block text-center text-sm">{{ entry.ca2|default:'—' }}</span>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">CA3</label>
+                    <label class="block text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">CA3 <span class="font-normal normal-case">/10</span></label>
                     {% if sheet.is_editable %}
-                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                    <input type="hidden" name="field" value="ca3">
-                    <input type="number" min="0" max="100" name="value" value="{{ entry.ca3|default:'' }}"
+                    <input type="number" min="0" max="10" value="{{ entry.ca3|default:'' }}" placeholder="–"
                            hx-post="{% url 'results:update_score' %}"
+                           hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "ca3", "value": event.target.value}'
                            hx-trigger="blur" hx-swap="none"
                            hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                           class="w-full text-center px-1 py-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600">
-                    {% else %}
-                    <span class="block text-center text-sm">{{ entry.ca3|default:'—' }}</span>
+                           class="w-full text-center px-1 py-2.5 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                    {% if entry.ca3|default_if_none:"" == "" %}
+                    <button type="button" tabindex="-1" class="quick-max-btn block w-full text-[9px] text-gray-400 dark:text-gray-500 hover:text-primary-500 mt-0.5 truncate">Full mark</button>
                     {% endif %}
+                    {% else %}<span class="block text-center text-sm">{{ entry.ca3|default:'—' }}</span>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Exam</label>
+                    <label class="block text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Exam <span class="font-normal normal-case">/70</span></label>
                     {% if sheet.is_editable %}
-                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
-                    <input type="hidden" name="field" value="exam">
-                    <input type="number" min="0" max="100" name="value" value="{{ entry.exam|default:'' }}"
+                    <input type="number" min="0" max="70" value="{{ entry.exam|default:'' }}" placeholder="–"
                            hx-post="{% url 'results:update_score' %}"
+                           hx-vals='js:{"entry_id": "{{ entry.id }}", "field": "exam", "value": event.target.value}'
                            hx-trigger="blur" hx-swap="none"
                            hx-on::after-request="handleUpdate(event, {{ entry.id }})"
-                           class="w-full text-center px-1 py-1.5 text-sm border rounded dark:bg-gray-700 dark:border-gray-600">
-                    {% else %}
-                    <span class="block text-center text-sm">{{ entry.exam|default:'—' }}</span>
+                           class="w-full text-center px-1 py-2.5 text-sm font-medium tabular-nums bg-gray-50 dark:bg-gray-900/60 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                    {% if entry.exam|default_if_none:"" == "" %}
+                    <button type="button" tabindex="-1" class="quick-max-btn block w-full text-[9px] text-gray-400 dark:text-gray-500 hover:text-primary-500 mt-0.5 truncate">Full mark</button>
                     {% endif %}
+                    {% else %}<span class="block text-center text-sm">{{ entry.exam|default:'—' }}</span>{% endif %}
                 </div>
             </div>
-            
-            <div class="flex justify-between text-xs">
-                <span>Total: <strong id="total-{{ entry.id }}" class="text-gray-900 dark:text-white">{{ entry.total_score|default:'—' }}</strong></span>
+            <div class="flex justify-between items-center text-xs pt-0.5">
+                <span class="text-gray-500 dark:text-gray-400">Total</span>
+                <strong id="total-m-{{ entry.id }}" class="text-sm text-gray-900 dark:text-white tabular-nums">{{ entry.total_score|default:'—' }}</strong>
             </div>
         </div>
         {% endfor %}

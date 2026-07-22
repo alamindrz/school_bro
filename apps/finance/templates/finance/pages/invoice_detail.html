@@ -208,7 +208,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-light-card dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
-                            {% for payment in invoice.payments %}
+                            {% for payment in invoice.payments.all %}
                             <tr class="hover:bg-light-hover dark:hover:bg-dark-hover">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ payment.payment_date|date:"M d, Y H:i" }}
@@ -246,7 +246,7 @@
                     <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Waiver History</h2>
                 </div>
                 <div class="divide-y divide-light-border dark:divide-dark-border">
-                    {% for waiver in invoice.waivers %}
+                    {% for waiver in invoice.waivers.all %}
                     <div class="p-4">
                         <div class="flex justify-between items-start">
                             <div>

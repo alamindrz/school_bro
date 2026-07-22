@@ -306,7 +306,7 @@
             return;
         }
         
-        fetch(`/students/ajax/?action=class_students&class_id=${classId}`)
+        fetch(`/students/ajax/class-students/?class_id=${classId}`)
             .then(response => response.json())
             .then(data => {
                 const preview = document.getElementById('student-preview');

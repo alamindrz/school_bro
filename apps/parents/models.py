@@ -402,7 +402,7 @@ class PortalSession(models.Model):
 
 
 class ParentAccessLog(models.Model):
-    parent = models.ForeignKey(ParentProfile, on_delete=models.CASCADE, related_name='access_logs')
+    parent = models.ForeignKey(ParentProfile, on_delete=models.CASCADE, null=True, blank=True, related_name="access_logs")
     action = models.CharField(max_length=50, db_index=True, choices=[
         ('LOGIN', 'Login'),
         ('LOGIN_FAILED', 'Login Failed'),

@@ -23,6 +23,33 @@ from apps.students.selectors import StudentSelector
 logger = logging.getLogger(__name__)
 
 
+def compute_sheet_stats(sheet):
+    """
+    Shared stats calculation so the initial page render and the
+    HTMX update response never disagree with each other.
+    `sheet` is the dict returned by ScoreSheetSelector.get_by_id/get_or_create_sheet.
+    """
+    if not sheet:
+        return {}
+    filled = [e for e in sheet['entries'] if e['all_filled']]
+    if not filled:
+        return {
+            'filled_count': 0,
+            'total': sheet['total_students'],
+            'average': None,
+            'highest': None,
+            'lowest': None,
+        }
+    scores = [e['total_score'] for e in filled]
+    return {
+        'filled_count': len(filled),
+        'total': sheet['total_students'],
+        'average': round(sum(scores) / len(scores), 2),
+        'highest': max(scores),
+        'lowest': min(scores),
+    }
+
+
 class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Results dashboard"""
     template_name = 'results/pages/dashboard.html'
@@ -79,6 +106,7 @@ class SheetEntryView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
                 term_id=int(term_id)
             )
             context['sheet'] = sheet
+            context['stats'] = compute_sheet_stats(sheet)
 
         context['classes'] = StudentClassSelector.get_all_classes(active_only=True)
         
@@ -127,13 +155,13 @@ class SheetDetailView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
 class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     HTMX endpoint: Update a single score field on blur.
-    Returns updated row data as JSON.
+    Returns updated row data as JSON with live sheet statistics.
     """
     permission_required = 'results.change_result'
 
+    FIELD_MAX = {'ca1': 10, 'ca2': 10, 'ca3': 10, 'exam': 70}
+
     def post(self, request, *args, **kwargs):
-        print(f"RAW POST: {request.POST}")
-        print(f"BODY: {request.body}")
         try:
             entry_id = request.POST.get('entry_id')
             field = request.POST.get('field')
@@ -142,13 +170,22 @@ class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             if not entry_id or not field:
                 return JsonResponse({'success': False, 'error': 'Missing entry_id or field'}, status=400)
 
-            try:
-                value = int(value) if value and value.strip() else None
-            except (ValueError, TypeError):
-                return JsonResponse({'success': False, 'error': 'Invalid score value'}, status=400)
+            # Clean value — treat "undefined", "", None as clear
+            if value in ('undefined', '', None):
+                value = None
+            else:
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid score'}, status=400)
 
-            if value is not None and (value < 0 or value > 100):
-                return JsonResponse({'success': False, 'error': 'Score must be between 0 and 100'}, status=400)
+            # Validate max based on field type
+            max_score = self.FIELD_MAX.get(field, 100)
+            if value is not None and (value < 0 or value > max_score):
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{field.upper()} must be between 0 and {max_score}'
+                }, status=400)
 
             result = ScoreSheetService.update_score(
                 entry_id=int(entry_id),
@@ -157,18 +194,35 @@ class ScoreUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 user_id=request.user.id
             )
 
+            sheet_stats = self._get_sheet_stats(int(entry_id))
+
             return JsonResponse({
                 'success': True,
                 'total_score': result['total_score'],
                 'grade': result['grade'],
                 'position': result['position'],
                 'all_filled': result['all_filled'],
+                'stats': sheet_stats,
             })
 
         except Exception as e:
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    def _get_sheet_stats(self, entry_id):
+        from ..models import ScoreEntry
+        from ..selectors import ScoreSheetSelector
+        try:
+            sheet_id = ScoreEntry.objects.get(id=entry_id).score_sheet_id
+            sheet = ScoreSheetSelector.get_by_id(sheet_id)
+            return compute_sheet_stats(sheet)
+        except Exception:
+            logger.exception('Failed computing sheet stats for entry_id=%s', entry_id)
+            return {}
+
+
+
 
 class SubmitSheetView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Submit a score sheet for approval."""

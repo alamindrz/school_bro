@@ -50,7 +50,6 @@ class InvoiceService:
         created_by_id: Optional[int] = None
     ) -> Invoice:
         
-        print("=== INVOICE CREATION STARTED ===")
         print(f"student_id: {student_id}")
         print(f"student_name: {student_name}")
         print(f"class_id: {class_id}")
@@ -68,7 +67,6 @@ class InvoiceService:
         
         # Validate student exists ONLY if student_id is provided
         if student_id is not None:
-            print(f"Validating student_id: {student_id}")
             student = StudentSelector.get_by_id(student_id)
             if not student:
                 raise StudentNotEligibleError(f"Student with id {student_id} not found")
@@ -93,11 +91,9 @@ class InvoiceService:
                 raise DuplicateInvoiceError(
                     f"An invoice for {fee_type} already exists for this student in this session/term"
                 )
-            print("Duplicate check passed")
         
         # Generate invoice number
         invoice_number = InvoiceService._generate_invoice_number()
-        print(f"invoice_number: {invoice_number}")
         
         # Calculate due date
         if not due_date:
@@ -145,7 +141,6 @@ class InvoiceService:
             print(f"Logging failed: {e}")
             # Don't fail the whole operation for logging error
         
-        print("=== INVOICE CREATION SUCCESS ===")
         return invoice
 
 

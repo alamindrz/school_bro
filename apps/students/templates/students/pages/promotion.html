@@ -109,7 +109,7 @@
         }
         
         // HTMX request
-        htmx.ajax('GET', `/students/ajax/?action=promotion_candidates&class_id=${fromClass}`, {
+        htmx.ajax('GET', `/students/ajax/filter/&class_id=${fromClass}`, {
             target: '#students-list',
             swap: 'innerHTML'
         });

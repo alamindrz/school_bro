@@ -219,7 +219,7 @@
     document.getElementById('{{ form.student_id.id_for_label }}').addEventListener('blur', function() {
         const studentId = this.value;
         if (studentId) {
-            fetch(`/students/ajax/?action=get&id=${studentId}`)
+            fetch(`/students/ajax/details/?student_id=${studentId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.student) {

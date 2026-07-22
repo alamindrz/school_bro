@@ -70,27 +70,34 @@ def search_students_htmx(request):
 @require_http_methods(["GET"])
 def get_student_details(request):
     """
-    AJAX endpoint to get detailed student information by ID.
+    AJAX endpoint to get detailed student information by ID or admission number.
     """
-    student_id = request.GET.get('id')
+    student_id = request.GET.get('student_id') or request.GET.get('id')
     
     if not student_id:
         return JsonResponse({'error': 'Student ID required'}, status=400)
     
-    try:
-        student_id = int(student_id)
-    except ValueError:
-        return JsonResponse({'error': 'Invalid student ID'}, status=400)
+    student = None
     
-    # Use selector to get student data
-    student = StudentSelector.get_by_id(student_id)
+    # Try as integer PK first
+    try:
+        student = StudentSelector.get_by_id(int(student_id))
+    except (ValueError, TypeError):
+        pass
+    
+    # Try as admission number
+    if not student:
+        from apps.students.models import Student
+        try:
+            s = Student.objects.get(admission_number=student_id)
+            student = StudentSelector.get_by_id(s.id)
+        except Student.DoesNotExist:
+            pass
     
     if not student:
         return JsonResponse({'error': 'Student not found'}, status=404)
     
-    return JsonResponse({
-        'student': student
-    })
+    return JsonResponse({'student': student})
 
 
 @login_required

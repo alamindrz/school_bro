@@ -98,7 +98,7 @@ class Notification(models.Model):
         choices=RecipientType.CHOICES
     )
     recipient_id = models.IntegerField(null=True, blank=True)
-    recipient_group = models.CharField(max_length=100, blank=True)
+    recipient_group = models.CharField(max_length=50, null=True, blank=True, default="")  # Was: (max_length=100, blank=True)
     
     # For class/role based notifications
     class_id = models.IntegerField(null=True, blank=True)

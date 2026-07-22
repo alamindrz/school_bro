@@ -217,6 +217,16 @@ class MenuRegistry:
         """Build staff submenu."""
         children = []
         
+        dashboard = cls._safe_reverse("staffs:dashboard")
+        if dashboard != '#':
+            children.append(MenuItem(
+                label=_("Dashboard"),
+                url=dashboard,
+                icon="fas fa-users",
+                permission="staffs.view_staff",
+                order=1
+            ))
+            
         all_url = cls._safe_reverse("staffs:list")
         if all_url != '#':
             children.append(MenuItem(

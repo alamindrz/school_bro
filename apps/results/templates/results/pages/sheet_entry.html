@@ -98,19 +98,151 @@
 </div>
 
 <script>
+    // Auto-advance: after a short pause following a keystroke, move focus to
+    // the next score field in the same row (CA1 -> CA2 -> CA3 -> Exam).
+    // Exam is last in the row, so there's nowhere further to advance to.
+    let advanceTimer;
+    document.addEventListener('input', (e) => {
+        const input = e.target;
+        if (!input.matches('input[type="number"]')) return;
+        clearTimeout(advanceTimer);
+        if (input.value === '') return;
+        advanceTimer = setTimeout(() => {
+            const row = input.closest('.score-row');
+            if (!row) return;
+            const fields = Array.from(row.querySelectorAll('input[type="number"]'));
+            const idx = fields.indexOf(input);
+            if (idx > -1 && idx < fields.length - 1) {
+                fields[idx + 1].focus();
+                fields[idx + 1].select();
+            }
+        }, 450);
+    });
+    // Cancel a pending auto-advance if the user leaves the field some other way.
+    document.addEventListener('blur', (e) => {
+        if (e.target.matches('input[type="number"]')) clearTimeout(advanceTimer);
+    }, true);
+
+    // "Full mark" quick-fill button under each mobile field.
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.quick-max-btn');
+        if (!btn) return;
+        const input = btn.previousElementSibling;
+        if (!input || input.tagName !== 'INPUT') return;
+        input.focus();
+        input.value = input.max;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        btn.style.display = 'none';
+        input.blur();
+    });
+    // Hide the "Full mark" hint the moment the user starts typing themselves.
+    document.addEventListener('input', (e) => {
+        const input = e.target;
+        if (!input.matches('input[type="number"]')) return;
+        const hint = input.nextElementSibling;
+        if (hint && hint.matches('.quick-max-btn')) {
+            hint.style.display = input.value ? 'none' : '';
+        }
+    });
+
+    // Track the last known-good value per input so we can revert on a rejected edit.
+    document.addEventListener('focusin', (e) => {
+        if (e.target.matches('input[type="number"]')) {
+            e.target.dataset.lastGood = e.target.value;
+        }
+    });
+
+    // Live clamp as the user types — min/max attrs exist but nothing enforced them
+    // since there's no form submit event to trigger native HTML5 validation.
+    document.addEventListener('input', (e) => {
+        const input = e.target;
+        if (!input.matches('input[type="number"]')) return;
+        const max = Number(input.max);
+        const min = Number(input.min);
+        if (input.value === '') return;
+        const val = Number(input.value);
+        if (!Number.isNaN(max) && val > max) {
+            input.value = input.max;
+            input.title = `Max is ${input.max}`;
+            input.classList.add('border-red-500');
+        } else if (!Number.isNaN(min) && val < min) {
+            input.value = input.min;
+        } else {
+            input.classList.remove('border-red-500');
+            input.removeAttribute('title');
+        }
+    });
+
+    function clearFieldError(input) {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-400');
+        input.removeAttribute('title');
+    }
+
+    function showFieldError(input, message) {
+        clearFieldError(input);
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-400');
+        input.title = message;
+        // Revert to the last accepted value so the sheet never silently keeps an invalid number.
+        input.value = input.dataset.lastGood ?? '';
+    }
+
+    function gradeBadgeClasses(grade) {
+        if (['A1', 'B2', 'B3'].includes(grade)) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+        if (['C4', 'C5', 'C6'].includes(grade)) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+        if (['D7', 'E8'].includes(grade)) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+        if (grade === 'F9') return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+        return null;
+    }
+
+    function setGrade(el, grade) {
+        if (!el) return;
+        el.textContent = grade || '—';
+        const colorClasses = gradeBadgeClasses(grade);
+        if (colorClasses) {
+            el.className = 'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ' + colorClasses;
+        } else {
+            el.className = 'text-xs text-gray-300 dark:text-gray-600';
+        }
+    }
+
     function handleUpdate(event, entryId) {
+        const input = event.target;
         try {
             const data = JSON.parse(event.detail.xhr.responseText);
+
             if (data.success) {
-                document.getElementById('total-' + entryId).textContent = data.total_score ?? '—';
-                document.getElementById('grade-' + entryId).textContent = data.grade ?? '—';
-                document.getElementById('pos-' + entryId).textContent = data.position ?? '—';
+                clearFieldError(input);
+                input.dataset.lastGood = input.value;
+
+                // Both the desktop table and mobile cards render a copy of each
+                // entry (only one is visible at a time via CSS) — update both
+                // so the visible one is always in sync, regardless of breakpoint.
+                const total = data.total_score ?? '—';
+                const pos = data.position ?? '—';
+                document.getElementById('total-d-' + entryId) && (document.getElementById('total-d-' + entryId).textContent = total);
+                document.getElementById('total-m-' + entryId) && (document.getElementById('total-m-' + entryId).textContent = total);
+                document.getElementById('pos-d-' + entryId) && (document.getElementById('pos-d-' + entryId).textContent = pos);
+                document.getElementById('pos-m-' + entryId) && (document.getElementById('pos-m-' + entryId).textContent = pos);
+                setGrade(document.getElementById('grade-d-' + entryId), data.grade);
+                setGrade(document.getElementById('grade-m-' + entryId), data.grade);
+
+                if (data.stats) {
+                    document.getElementById('stat-filled').textContent =
+                        (data.stats.filled_count ?? 0) + '/' + (data.stats.total ?? 0);
+                    document.getElementById('stat-avg').textContent = data.stats.average ?? '—';
+                    document.getElementById('stat-high').textContent = data.stats.highest ?? '—';
+                    document.getElementById('stat-low').textContent = data.stats.lowest ?? '—';
+                }
+            } else {
+                showFieldError(input, data.error || 'Invalid score');
             }
-        } catch(e) {}
+        } catch (e) {
+            showFieldError(input, 'Could not save — try again');
+        }
     }
 
     document.body.addEventListener('htmx:configRequest', (e) => {
-        const token = document.querySelector('meta[name="csrf-token"]')?.content 
+        const token = document.querySelector('meta[name="csrf-token"]')?.content
                    || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
         if (token) e.detail.headers['X-CSRFToken'] = token;
     });

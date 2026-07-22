@@ -101,7 +101,7 @@ class Invoice(models.Model):
     )
     
     # Student reference (decoupled)
-    student_id = models.IntegerField(
+    student_id = models.CharField(max_length=50,
         db_index=True,
         null=True,
         blank=True,

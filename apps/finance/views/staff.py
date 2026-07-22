@@ -1,3 +1,4 @@
+from decimal import Decimal
 """
 Staff views for finance management
 """
@@ -200,9 +201,18 @@ class InvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
     
     def form_valid(self, form):
         try:
-            from .services import InvoiceService
+            from ..services import InvoiceService
+            
+            # Resolve admission number to student PK
+            student_id = form.cleaned_data['student_id']
+            if student_id and isinstance(student_id, str) and not student_id.isdigit():
+                from apps.students.models import Student
+                s = Student.objects.filter(admission_number=student_id).first()
+                if s:
+                    student_id = s.id
+            
             invoice = InvoiceService.create_invoice(
-                student_id=form.cleaned_data['student_id'],
+                student_id=student_id,
                 student_name=form.cleaned_data['student_name'],
                 class_id=form.cleaned_data['student_class'].id,
                 fee_type=form.cleaned_data['fee_type'],
@@ -214,17 +224,13 @@ class InvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView)
                 created_by_id=self.request.user.id
             )
             
-            messages.success(
-                self.request,
-                f'Invoice {invoice.invoice_number} created successfully.'
-            )
-            
+            messages.success(self.request, f'Invoice {invoice.invoice_number} created successfully.')
             return redirect('finance:invoice_detail', pk=invoice.id)
             
         except Exception as e:
             messages.error(self.request, f'Error creating invoice: {str(e)}')
             return self.form_invalid(form)
-
+    
 
 class BulkInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Bulk create invoices for multiple students"""
@@ -382,6 +388,7 @@ class RecordPaymentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
             return redirect('finance:invoice_detail', pk=invoice_id)
             
         except Exception as e:
+            print(f'PAYMENT ERROR: {e}')
             messages.error(request, f'Payment failed: {str(e)}')
             return self.get(request, *args, **kwargs)
 

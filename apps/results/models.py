@@ -133,39 +133,24 @@ class ScoreEntry(models.Model):
         return f"{self.student_name} - {self.score_sheet.subject.name}"
     
     def calculate_total(self):
-        """Calculate weighted total from CA and Exam scores."""
-        scores = []
-        weights = []
-        
-        if self.ca1 is not None:
-            scores.append(self.ca1)
-            weights.append(10)
-        if self.ca2 is not None:
-            scores.append(self.ca2)
-            weights.append(10)
-        if self.ca3 is not None:
-            scores.append(self.ca3)
-            weights.append(10)
-        if self.exam is not None:
-            scores.append(self.exam)
-            weights.append(60)
-        
-        if not scores:
+        """
+        Total score for this subject is a straight sum of the four fields
+        (CA1 /10 + CA2 /10 + CA3 /10 + Exam /70 = /100). Only set once every
+        field is filled in — a partial total isn't a meaningful score, and
+        this is NOT a weighted/cumulative average across subjects.
+        """
+        fields = [self.ca1, self.ca2, self.ca3, self.exam]
+        if any(f is None for f in fields):
             self.total_score = None
             return None
-        
-        total_weight = sum(weights)
-        if total_weight == 0:
-            self.total_score = None
-            return None
-        
-        weighted_sum = sum(s * w for s, w in zip(scores, weights))
-        self.total_score = int(weighted_sum / total_weight)
+
+        self.total_score = sum(fields)
         return self.total_score
-    
+
     def determine_grade(self):
         """Determine grade based on total score."""
         if self.total_score is None:
+            self.grade = None
             return None
         
         if self.total_score >= 75:
