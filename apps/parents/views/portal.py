@@ -549,7 +549,7 @@ class MessageThreadView(ParentPortalMixin, TemplateView):
         context['messages'] = MessageSelector.get_messages_for_student(
             self.parent.id, int(student_id)
         )
-        context['form'] = ParentMessageForm(student=student)
+        context['form'] = ParentMessageForm()
         
         self.log_action('VIEW_PROFILE', student_id=int(student_id))
         return context

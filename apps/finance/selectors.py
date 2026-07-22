@@ -128,7 +128,7 @@ class InvoiceSelector:
         fee_type: Optional[str] = None,
         overdue_only: bool = False,
         search: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100, offset: int = 0
     ) -> List[Dict[str, Any]]:
         """List invoices with filters. Status can be a single string or a list of strings."""
         queryset = Invoice.objects.select_related(
@@ -452,7 +452,7 @@ class PaymentSelector:
         status: Optional[str] = None,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100, offset: int = 0
     ) -> List[Dict[str, Any]]:
         """List payments with filters"""
         queryset = Payment.objects.select_related('invoice', 'received_by')
