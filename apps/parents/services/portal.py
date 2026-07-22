@@ -236,7 +236,7 @@ class PortalService:
         return session
     
     @staticmethod
-    def validate_session(session_key: str) -> Optional[ParentProfile]:
+    def validate_session(session_key: str, *args, **kwargs) -> Optional[ParentProfile]:
         """
         Validate a portal session and return parent profile if valid
         """

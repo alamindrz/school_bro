@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views.generic import TemplateView, View
 from django.views.decorators.cache import never_cache  # ✅ ADD THIS
+from django.utils.decorators import method_decorator
 from django.http import HttpResponse
 from django.urls import reverse
 from django.conf import settings
@@ -20,7 +21,7 @@ from ..selectors import (
     ParentProfileSelector, PortalDashboardSelector,
     ChildLinkSelector, MessageSelector
 )
-from ..models import ParentProfile, ChildLink, Message, PortalSession, ParentAccessLog, generate_device_fingerprint
+from ..models import ParentProfile, ChildLink, Message, PortalSession, ParentAccessLog, MagicLink, generate_device_fingerprint
 from ..forms import (
     ParentLoginForm, ParentProfileForm, ParentMessageForm, ResendMagicLinkForm,
     ChildLinkForm
@@ -68,7 +69,7 @@ class ParentPortalMixin:
         if not session_key:
             return redirect('parents:login')
         try:
-            parent = AccessService.validate_session(
+            parent = PortalService.validate_session(
                 session_key, request,
                 ip_address=get_client_ip(request),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
@@ -260,13 +261,12 @@ class ResendMagicLinkView(View):
 
 
 class MagicLinkView(View):
-    @never_cache
+    @method_decorator(never_cache)
     def get(self, request, token):
         ip = get_client_ip(request)
         user_agent = request.META.get('HTTP_USER_AGENT', '')
         device_fingerprint = generate_device_fingerprint(request)
         try:
-            from .models import MagicLink
             magic_link = MagicLink.objects.select_related('parent').get(token=token)
             if magic_link.is_expired:
                 raise MagicLinkExpiredError()
@@ -293,7 +293,7 @@ class MagicLinkView(View):
                 user_agent=user_agent,
                 device_fingerprint=device_fingerprint,
                 success=True,
-                details={'magic_link': True, 'session_key': session.session_key[:8]}
+                details={'magic_link': True, 'session_key': str(session.session_key)[:8]}
             )
             magic_link.parent.record_login(device_fingerprint)
             response = redirect('parents:dashboard')

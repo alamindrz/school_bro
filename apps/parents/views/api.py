@@ -43,7 +43,7 @@ def children_list(request):
     if not session_key:
         return JsonResponse({'error': 'No session'}, status=401)
     
-    parent = AccessService.validate_session(
+    parent = PortalService.validate_session(
         session_key, 
         request,
         ip_address=get_client_ip(request),
@@ -73,7 +73,7 @@ def student_balance(request, student_id):
     if not session_key:
         return JsonResponse({'error': 'No session'}, status=401)
     
-    parent = AccessService.validate_session(
+    parent = PortalService.validate_session(
         session_key, 
         request,
         ip_address=get_client_ip(request),
@@ -102,7 +102,7 @@ def dashboard_data(request):
     if not session_key:
         return JsonResponse({'error': 'No session'}, status=401)
     
-    parent = AccessService.validate_session(
+    parent = PortalService.validate_session(
         session_key, 
         request,
         ip_address=get_client_ip(request),

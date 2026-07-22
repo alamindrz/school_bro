@@ -104,7 +104,7 @@ class ParentProfile(models.Model):
     access_key = models.CharField(
         max_length=64,
         unique=True,
-        default=uuid.uuid4().hex,
+        default=uuid.uuid4,
         help_text=_("Unique key for portal access URL")
     )
     last_login = models.DateTimeField(null=True, blank=True)
@@ -336,7 +336,7 @@ class Message(models.Model):
 
 class PortalSession(models.Model):
     parent = models.ForeignKey(ParentProfile, on_delete=models.CASCADE, related_name='sessions')
-    session_key = models.CharField(max_length=64, unique=True, db_index=True, default=uuid.uuid4().hex)
+    session_key = models.CharField(max_length=64, unique=True, db_index=True, default=uuid.uuid4)
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField(blank=True)
     device_fingerprint = models.CharField(max_length=128, blank=True)
