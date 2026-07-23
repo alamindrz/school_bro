@@ -6,7 +6,7 @@ Uses central notifications app for all notifications
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views.generic import TemplateView, View
-from django.views.decorators.cache import never_cache  # ✅ ADD THIS
+from django.views.decorators.cache import never_cache  
 from django.utils.decorators import method_decorator
 from django.http import HttpResponse
 from django.urls import reverse
@@ -149,75 +149,105 @@ class ParentLoginView(TemplateView):
         context['company_name'] = getattr(settings, 'COMPANY_NAME', 'DETs Toolkit')
         context['form'] = ParentLoginForm()
         return context
+
     def post(self, request, *args, **kwargs):
         form = ParentLoginForm(request.POST)
         if not form.is_valid():
             messages.error(request, 'Please enter a valid email address')
             return self.get(request, *args, **kwargs)
+        
         email = form.cleaned_data['email']
+        password = form.cleaned_data.get('password', '')
         ip = get_client_ip(request)
+        
         if not rate_limit_check(f"login_ip:{ip}", MAX_LOGIN_ATTEMPTS_PER_IP, 3600):
             messages.error(request, 'Too many login attempts. Please try again later.')
             return self.get(request, *args, **kwargs)
+        
         if not rate_limit_check(f"login_email:{email}", MAX_LOGIN_ATTEMPTS_PER_HOUR, 3600):
             messages.error(request, 'Too many login attempts for this email. Please try again later.')
             return self.get(request, *args, **kwargs)
+        
         try:
             parent = ParentProfile.objects.get_by_email(email)
-            if parent:
-                if parent.is_locked:
-                    messages.error(request, 'Your account is temporarily locked. Please try again later.')
+            if not parent:
+                ParentAccessLog.objects.create(
+                    parent=None, action='LOGIN_FAILED', ip_address=ip,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    success=False, error_message='Email not found', details={'email': email}
+                )
+                messages.success(request, f'If an account exists for {email}, a login link has been sent.')
+                return redirect('parents:login_sent')
+            
+            if parent.is_locked:
+                messages.error(request, 'Your account is temporarily locked. Please try again later.')
+                return self.get(request, *args, **kwargs)
+            
+            # If password provided, try password login
+            print(f'DEBUG: password field value: [{password}]')
+            if password:
+                if parent.check_password(password):
+                    # Password login successful
+                    session = PortalSession.objects.create(
+                        parent=parent, ip_address=ip,
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        device_fingerprint=generate_device_fingerprint(request),
+                        expires_at=timezone.now() + timedelta(seconds=SESSION_TIMEOUT_SECONDS)
+                    )
+                    ParentAccessLog.objects.create(
+                        parent=parent, action='LOGIN', ip_address=ip,
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        success=True, details={'method': 'password'}
+                    )
+                    parent.record_login(generate_device_fingerprint(request))
+                    response = redirect('parents:dashboard')
+                    response.set_cookie('parent_session', session.session_key,
+                                       max_age=SESSION_TIMEOUT_SECONDS, httponly=True,
+                                       secure=settings.SECURE_SSL_REDIRECT or not settings.DEBUG,
+                                       samesite='Strict')
+                    messages.success(request, f'Welcome back, {parent.full_name}!')
+                    return response
+                else:
+                    # Wrong password
+                    parent.record_failed_login()
+                    ParentAccessLog.objects.create(
+                        parent=parent, action='LOGIN_FAILED', ip_address=ip,
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        success=False, error_message='Invalid password'
+                    )
+                    messages.error(request, 'Invalid password. Please try again or leave blank for magic link.')
                     return self.get(request, *args, **kwargs)
-                magic_link = parent.generate_magic_link()
-                from django.template.loader import render_to_string
-                from django.core.mail import send_mail
-                link_url = request.build_absolute_uri(
-                    reverse('parents:magic_link', kwargs={'token': magic_link.token})
-                )
-                context = {
-                    'parent': parent,
-                    'link_url': link_url,
-                    'expiry_minutes': MAGIC_LINK_EXPIRY_MINUTES,
-                    'company_name': getattr(settings, 'COMPANY_NAME', 'DETs Toolkit'),
-                }
-                html_message = render_to_string('parents/emails/magic_link.html', context)
-                plain_message = f"Hello {parent.full_name},\n\nClick the link below to log in to the Parent Portal:\n{link_url}\n\nThis link will expire in {MAGIC_LINK_EXPIRY_MINUTES} minutes.\n\nIf you didn't request this, please ignore this email.\n\n{getattr(settings, 'COMPANY_NAME', 'DETs Toolkit')}"
-                ParentAccessLog.objects.create(
-                    parent=parent,
-                    action='LOGIN',
-                    ip_address=ip,
-                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    success=True,
-                    details={'email_sent': True}
-                )
-                send_mail(
-                    subject='Parent Portal Login Link',
-                    message=plain_message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[email],
-                    html_message=html_message,
-                    fail_silently=False,
-                )
-            else:
-                ParentAccessLog.objects.create(
-                    parent=None,
-                    action='LOGIN_FAILED',
-                    ip_address=ip,
-                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    success=False,
-                    error_message='Email not found',
-                    details={'email': email}
-                )
-            messages.success(
-                request,
-                f'If an account exists for {email}, a login link has been sent. Please check your email.'
+            
+            # No password or blank — send magic link
+            magic_link = parent.generate_magic_link()
+            from django.template.loader import render_to_string
+            from django.core.mail import send_mail
+            link_url = request.build_absolute_uri(reverse('parents:magic_link', kwargs={'token': magic_link.token}))
+            context = {
+                'parent': parent, 'link_url': link_url,
+                'expiry_minutes': MAGIC_LINK_EXPIRY_MINUTES,
+                'company_name': getattr(settings, 'COMPANY_NAME', 'DETs Toolkit'),
+            }
+            html_message = render_to_string('parents/emails/magic_link.html', context)
+            plain_message = f"Hello {parent.full_name},\n\nClick the link below to log in:\n{link_url}\n\nThis link expires in {MAGIC_LINK_EXPIRY_MINUTES} minutes."
+            ParentAccessLog.objects.create(
+                parent=parent, action='LOGIN', ip_address=ip,
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                success=True, details={'email_sent': True}
             )
+            send_mail(
+                subject='Parent Portal Login Link', message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[email],
+                html_message=html_message, fail_silently=False,
+            )
+            messages.success(request, f'If an account exists for {email}, a login link has been sent.')
             return redirect('parents:login_sent')
+            
         except Exception as e:
             logger.error(f"Login error for {email}: {str(e)}")
             messages.error(request, 'An error occurred. Please try again.')
             return self.get(request, *args, **kwargs)
-
+    
 
 class LoginSentView(TemplateView):
     template_name = 'parents/portal/login_sent.html'
@@ -629,4 +659,32 @@ class ProfileView(ParentPortalMixin, TemplateView):
                 for field, errors in form.errors.items():
                     for error in errors:
                         messages.error(request, f"{field}: {error}")
+        return redirect('parents:profile')
+
+
+
+class SetPasswordView(ParentPortalMixin, View):
+    """Set a password for email+password login"""
+    
+    def get(self, request):
+        return render(request, 'parents/portal/set_password.html', {
+            'parent': self.parent,
+            'has_password': self.parent.has_password(),
+        })
+    
+    def post(self, request):
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        
+        if not password1 or len(password1) < 6:
+            messages.error(request, 'Password must be at least 6 characters.')
+            return redirect('parents:set_password')
+        
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return redirect('parents:set_password')
+        
+        self.parent.set_password(password1)
+        self.log_action('SET_PASSWORD')
+        messages.success(request, 'Password set successfully. You can now login with email and password.')
         return redirect('parents:profile')

@@ -7,6 +7,25 @@
     <!-- Header -->
     <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Profile Settings</h1>
 
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Password Login</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if parent.has_password %}
+                        Password is set. You can login with email + password.
+                    {% else %}
+                        No password set. Only magic link login is available.
+                    {% endif %}
+                </p>
+            </div>
+            <a href="{% url 'parents:set_password' %}" 
+               class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                {% if parent.has_password %}Change{% else %}Set{% endif %}
+            </a>
+        </div>
+    </div>
+
     <!-- Profile Card -->
     <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border overflow-hidden">
         <div class="px-6 py-4 border-b border-light-border dark:border-dark-border">

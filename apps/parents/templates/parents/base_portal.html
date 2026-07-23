@@ -29,32 +29,45 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
+                            50: '#eef4f7',
+                            100: '#d9e6ed',
+                            200: '#b3cdda',
+                            300: '#82adc0',
+                            400: '#4f88a0',
+                            500: '#336a82',
+                            600: '#25546a',
+                            700: '#1e4356',
+                            800: '#1a3747',
+                            900: '#152c3a',
+                        },
+                        accent: {
+                            50: '#fff8ec',
+                            100: '#ffedc7',
+                            200: '#ffd98a',
+                            300: '#ffc04d',
+                            400: '#ffab26',
+                            500: '#f2930d',
+                            600: '#d17607',
+                            700: '#a8580a',
+                            800: '#89460f',
+                            900: '#733a10',
                         },
                         dark: {
-                            bg: '#1a1c1e',
-                            card: '#2a2c2e',
-                            hover: '#3a3c3e',
-                            border: '#404244',
+                            bg: '#12181f',
+                            card: '#1b232c',
+                            hover: '#242e39',
+                            border: '#2e3947',
                         },
                         light: {
-                            bg: '#f5f7fa',
+                            bg: '#f4f6f8',
                             card: '#ffffff',
-                            hover: '#f0f2f5',
-                            border: '#e4e6e9',
+                            hover: '#eef1f4',
+                            border: '#e2e6ea',
                         }
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Manrope', 'system-ui', 'sans-serif'],
                     },
                 },
             },
@@ -62,7 +75,7 @@
     </script>
     
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
     
     <style>
         .notification-badge {
@@ -95,7 +108,7 @@
         /* Loading spinner */
         .loader {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #0284c7;
+            border-top: 3px solid #336a82;
             border-radius: 50%;
             width: 24px;
             height: 24px;
@@ -107,12 +120,11 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Toast notifications */
+        /* Toast notifications - the container (below) is what's fixed to the
+           viewport; toasts themselves just stack inside it via flexbox, so
+           they can never end up positioned off-screen. */
         .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
+            width: 100%;
             max-width: 400px;
             animation: slideIn 0.3s ease-out;
         }
@@ -145,11 +157,11 @@
     {% if parent %}
     <!-- Top Navigation - Only shown when logged in -->
     <nav class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sticky top-0 z-50">
-        <div class="mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 justify-between items-center">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="{% url 'parents:dashboard' %}" class="text-xl font-bold text-primary-600 dark:text-primary-400">
+                    <a href="{% url 'parents:dashboard' %}" class="font-display text-xl font-bold text-primary-700 dark:text-primary-300">
                         Parent Portal
                     </a>
                 </div>
@@ -193,22 +205,28 @@
                                 class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover relative"
                                 aria-label="Notifications">
                             <i class="fas fa-bell text-lg"></i>
+                            {% if unread_notifications %}
                             <span class="notification-badge" id="notification-badge">
-                                {{ unread_notifications|default:0 }}
+                                {{ unread_notifications }}
                             </span>
+                            {% endif %}
                         </button>
                         
+                        <!-- Below `sm`, this becomes a fixed panel pinned to the
+                             viewport edges (inset-x-4) instead of an absolutely
+                             positioned box hanging off the bell icon, so it can
+                             never run off the left/right edge of a phone screen. -->
                         <div x-show="open" @click.away="open = false"
-                             class="absolute right-0 mt-2 w-80 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-light-border dark:border-dark-border z-50"
+                             class="fixed inset-x-4 top-16 w-auto max-w-sm sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-80 sm:max-w-none mx-auto sm:mx-0 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-light-border dark:border-dark-border z-50"
                              x-cloak>
                             <div class="p-3 border-b border-light-border dark:border-dark-border flex justify-between items-center">
-                                <h3 class="font-medium">Notifications</h3>
+                                <h3 class="font-display font-semibold">Notifications</h3>
                                 <a href="{% url 'parents:notifications' %}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View All</a>
                             </div>
                             <div class="max-h-96 overflow-y-auto" id="notification-dropdown">
                                 {% if recent_notifications %}
                                     {% for note in recent_notifications %}
-                                    <div class="p-3 border-b border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover {% if not note.is_read %}bg-blue-50 dark:bg-blue-900/10{% endif %}">
+                                    <div class="p-3 border-b border-light-border dark:border-dark-border hover:bg-light-hover dark:hover:bg-dark-hover {% if not note.is_read %}bg-primary-50 dark:bg-primary-900/10{% endif %}">
                                         <p class="text-sm font-medium">{{ note.title|escape }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ note.message|truncatechars:60|escape }}</p>
                                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ note.time_ago }}</p>
@@ -236,7 +254,7 @@
                         </button>
                         
                         <div x-show="open" @click.away="open = false"
-                             class="absolute right-0 mt-2 w-48 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-light-border dark:border-dark-border z-50"
+                             class="fixed inset-x-4 top-16 w-auto max-w-[12rem] ml-auto sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-48 sm:max-w-none sm:ml-0 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-light-border dark:border-dark-border z-50"
                              x-cloak>
                             <a href="{% url 'parents:profile' %}" class="block px-4 py-2 text-sm hover:bg-light-hover dark:hover:bg-dark-hover">
                                 <i class="fas fa-user mr-2"></i> Profile
@@ -283,10 +301,10 @@
     {% else %}
     <!-- Minimal header for login pages -->
     <nav class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sticky top-0 z-50">
-        <div class="mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 justify-between items-center">
                 <div class="flex items-center">
-                    <a href="{% url 'parents:login' %}" class="text-xl font-bold text-primary-600 dark:text-primary-400">
+                    <a href="{% url 'parents:login' %}" class="font-display text-xl font-bold text-primary-700 dark:text-primary-300">
                         Parent Portal
                     </a>
                 </div>
@@ -308,7 +326,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {% if messages %}
                 {% for message in messages %}
-                    <div class="mb-4 rounded-md p-4 {% if message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800{% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800{% else %}bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800{% endif %}">
+                    <div class="mb-4 rounded-md p-4 {% if message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800{% elif message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800{% else %}bg-primary-50 dark:bg-primary-900/20 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-800{% endif %}">
                         {{ message|escape }}
                     </div>
                 {% endfor %}
@@ -319,7 +337,7 @@
     </main>
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+    <div id="toast-container" class="fixed inset-x-4 bottom-4 z-50 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:right-4 sm:items-end"></div>
 
     <script>
         // Theme management
@@ -357,7 +375,7 @@
                 success: 'bg-green-500',
                 error: 'bg-red-500',
                 warning: 'bg-yellow-500',
-                info: 'bg-blue-500'
+                info: 'bg-primary-600'
             };
             
             const toast = document.createElement('div');

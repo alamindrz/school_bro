@@ -4,7 +4,7 @@
 {% block title %}Parent Portal Login - School Bro{% endblock %}
 
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center">
+<div class="min-h-[80vh] flex items-center justify-center" x-data="{ tab: 'magic' }">
     <div class="max-w-md w-full">
         <!-- Logo and Header -->
         <div class="text-center mb-8">
@@ -15,49 +15,78 @@
             <p class="text-gray-600 dark:text-gray-400 mt-2">Access your child's academic information</p>
         </div>
         
-        <!-- Login Card -->
-        <div class="bg-light-card dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-8">
-            <form method="post" class="space-y-6" id="login-form">
-                {% csrf_token %}
-                
-                <div>
-                    <label for="id_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-envelope text-gray-400"></i>
+        <!-- Tab Switcher -->
+        <div class="flex mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button @click="tab = 'magic'" 
+                    :class="tab === 'magic' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition">
+                <i class="fas fa-magic mr-1"></i> Magic Link
+            </button>
+            <button @click="tab = 'password'" 
+                    :class="tab === 'password' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition">
+                <i class="fas fa-lock mr-1"></i> Password
+            </button>
+        </div>
+
+        <!-- Magic Link Form -->
+        <div x-show="tab === 'magic'" x-cloak>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    <div>
+                        <label for="magic-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400"></i>
+                            </div>
+                            <input type="email" name="email" id="magic-email" required autocomplete="email"
+                                   placeholder="Enter your email address"
+                                   class="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                         </div>
-                        <input type="email" 
-                               name="email" 
-                               id="id_email" 
-                               required
-                               autocomplete="email"
-                               placeholder="Enter your email address"
-                               class="block w-full pl-10 pr-3 py-3 border border-light-border dark:border-dark-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We'll send a secure login link to your email</p>
                     </div>
-                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        We'll send a secure login link to your email
+                    <button type="submit" class="w-full py-3 px-4 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+                        <i class="fas fa-paper-plane mr-2"></i>Send Login Link
+                    </button>
+                </form>
+                <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">Secure login link expires in 15 minutes</p>
+            </div>
+        </div>
+
+        <!-- Password Form -->
+        <div x-show="tab === 'password'" x-cloak>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="pw-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400"></i>
+                            </div>
+                            <input type="email" name="email" id="pw-email" required autocomplete="email"
+                                   placeholder="Enter your email address"
+                                   class="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        </div>
                     </div>
-                </div>
-                
-                <button type="submit" 
-                        id="submit-btn"
-                        class="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="btn-text">
-                        <i class="fas fa-paper-plane mr-2"></i>
-                        Send Login Link
-                    </span>
-                    <span id="btn-loading" class="hidden">
-                        <span class="loader inline-block mr-2"></span>
-                        Sending...
-                    </span>
-                </button>
-            </form>
-            
-            <div class="mt-6 text-center">
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Secure login link expires in 15 minutes
+                    <div>
+                        <label for="pw-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" name="password" id="pw-password" required autocomplete="current-password"
+                                   placeholder="Enter your password"
+                                   class="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3 px-4 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Log In
+                    </button>
+                </form>
+                <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    <a href="{% url 'parents:login' %}" class="text-primary-600 hover:underline">Forgot password? Use magic link</a>
                 </p>
             </div>
         </div>
@@ -67,7 +96,6 @@
             <p>Not registered? Contact the school administration to set up your parent account.</p>
         </div>
         
-        <!-- Back to Main Site -->
         <div class="mt-8 text-center">
             <a href="{% url 'corecode:dashboard' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
                 <i class="fas fa-arrow-left mr-1"></i> Back to Main Site
@@ -75,16 +103,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    document.getElementById('login-form').addEventListener('submit', function(e) {
-        const btn = document.getElementById('submit-btn');
-        const text = document.getElementById('btn-text');
-        const loading = document.getElementById('btn-loading');
-        
-        btn.disabled = true;
-        text.classList.add('hidden');
-        loading.classList.remove('hidden');
-    });
-</script>
 {% endblock %}

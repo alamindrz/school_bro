@@ -24,6 +24,16 @@ class ParentLoginForm(forms.Form):
             'required': True,
         })
     )
+    password = forms.CharField(
+        label=_("Password"),
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'placeholder': _('Enter your password (optional)'),
+            'class': 'form-input',
+            'autocomplete': 'current-password',
+        })
+    )
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -31,14 +41,16 @@ class ParentLoginForm(forms.Form):
         self.helper.form_class = 'space-y-4'
         self.helper.layout = Layout(
             'email',
+            'password',
             HTML("""
                 <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    {message}
+                    Enter your password if you have one, or leave it blank to receive a magic link.
                 </p>
-            """.format(message=_("We'll send a secure login link to your email. No password needed."))),
-            TailwindSubmit('submit', _('Send Login Link'), 
+            """),
+            TailwindSubmit('submit', _('Log In'), 
                           css_class='w-full bg-primary-600 hover:bg-primary-700 text-white')
         )
+    
     def clean_email(self):
         email = self.cleaned_data.get('email')
         return email

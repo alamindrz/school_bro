@@ -90,7 +90,7 @@ class ParentProfile(models.Model):
         validators=[
             RegexValidator(
                 regex=r'^\+?1?\d{9,15}$',
-                message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+                message="Phone number must be entered in the format: '+234999999'. Up to 15 digits allowed."
             )
         ]
     )
@@ -126,7 +126,13 @@ class ParentProfile(models.Model):
         blank=True,
         help_text=_("Device fingerprint for security")
     )
-    
+    # Password for email+password login 
+    password = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=_('Hashed password for email+password login (optional, magic link is primary)'))
+        
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -204,6 +210,25 @@ class ParentProfile(models.Model):
             expires_at=expires_at,
         )
         return magic_link
+    
+    def set_password(self, raw_password):
+        """Hash and set the password"""
+        from django.contrib.auth.hashers import make_password
+        self.password = make_password(raw_password)
+        self.save(update_fields=['password'])
+    
+    def check_password(self, raw_password):
+        """Check if raw password matches the stored hash"""
+        from django.contrib.auth.hashers import check_password
+        if not self.password:
+            return False
+        return check_password(raw_password, self.password)
+    
+    def has_password(self):
+        """Check if parent has set a password"""
+        return bool(self.password)
+            
+    
 
 
 class MagicLink(models.Model):
