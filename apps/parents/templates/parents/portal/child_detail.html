@@ -10,6 +10,12 @@
         <a href="{% url 'parents:children' %}" class="text-primary-600 dark:text-primary-400 hover:underline">
             <i class="fas fa-arrow-left mr-1"></i> Back to Children
         </a>
+      {% if balance.pending_count > 0 %}
+      <a href="{% url 'parents:pay_fees' %}?student_id={{ student.id }}" 
+         class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition">
+          <i class="fas fa-credit-card mr-2"></i>Pay Fees (₦{{ balance.total_balance|floatformat:0 }})
+      </a>
+      {% endif %}       
     </div>
 
     <!-- Student Profile Header -->

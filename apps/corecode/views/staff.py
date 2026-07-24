@@ -10,6 +10,9 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.db import transaction
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 from apps.corecode.navigation import MenuRegistry
 
 

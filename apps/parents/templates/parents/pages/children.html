@@ -1,0 +1,80 @@
+{% extends "parents/base_portal.html" %}
+{% load static %}
+
+{% block title %}My Children | Parent Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Children</h1>
+        <span class="text-sm text-gray-500">{{ children|length }} child{{ children|pluralize }}</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for child in children %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 text-center">
+                <div class="inline-flex h-20 w-20 rounded-full bg-white dark:bg-gray-800 items-center justify-center shadow-lg mb-2">
+                    <span class="text-3xl font-bold text-primary-600">{{ child.student.full_name|slice:":1"|upper }}</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white">{{ child.student.full_name }}</h3>
+                <p class="text-primary-100 text-sm">{{ child.student.current_class.display_name|default:"—" }}</p>
+            </div>
+            
+            <div class="px-6 py-2 bg-gray-50 dark:bg-gray-800 text-center">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                    <i class="fas fa-heart mr-1"></i> {{ child.link.relationship|title }}
+                </span>
+                {% if child.link.is_primary %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">Primary</span>
+                {% endif %}
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500">Fees</p>
+                        {% if child.has_outstanding %}
+                        <p class="text-lg font-bold text-red-600">₦{{ child.financial.total_balance|floatformat:0 }}</p>
+                        {% else %}
+                        <p class="text-lg font-bold text-green-600"><i class="fas fa-check-circle"></i></p>
+                        {% endif %}
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500">Exams</p>
+                        {% if child.exam_clearance.is_cleared %}
+                        <p class="text-lg font-bold text-green-600"><i class="fas fa-check-circle"></i></p>
+                        {% else %}
+                        <p class="text-lg font-bold text-red-600"><i class="fas fa-times-circle"></i></p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="{% url 'parents:child_detail' child.student.id %}" 
+                       class="text-center px-3 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition">
+                        View Profile
+                    </a>
+                    {% if child.has_outstanding %}
+                    <a href="{% url 'parents:pay_fees' %}?student_id={{ child.student.id }}" 
+                       class="text-center px-3 py-2 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <i class="fas fa-credit-card mr-1"></i>Pay Fees
+                    </a>
+                    {% else %}
+                    <span class="text-center px-3 py-2 text-sm font-medium rounded-lg border border-green-200 text-green-600 bg-green-50">
+                        <i class="fas fa-check-circle mr-1"></i>Paid
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-xl border">
+            <i class="fas fa-child text-5xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium">No Children Linked</h3>
+            <p class="text-sm text-gray-500 mt-1">Contact the school to link your children.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

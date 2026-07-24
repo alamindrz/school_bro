@@ -28,6 +28,7 @@ from ..exceptions import (
     InvoiceNotFoundError, InvalidInvoiceStatusError,
     PaymentError, WaiverError, WaiverLimitExceededError
 )
+from ..constants import PaymentMethod, PaymentStatus
 
 from apps.corecode.selectors import (
     StudentClassSelector, AcademicSessionSelector, AcademicTermSelector
@@ -354,7 +355,7 @@ class RecordPaymentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
         context['payment_methods'] = [
             (PaymentMethod.CASH, 'Cash'),
             (PaymentMethod.POS, 'POS'),
-            (PaymentMethod.TRANSFER, 'Bank Transfer'),
+            (PaymentMethod.BANK_TRANSFER, 'BANK TRANSFER'),
             (PaymentMethod.CHEQUE, 'Cheque'),
         ]
         
@@ -414,7 +415,7 @@ class BulkPaymentView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView)
         context['payment_methods'] = [
             (PaymentMethod.CASH, 'Cash'),
             (PaymentMethod.POS, 'POS'),
-            (PaymentMethod.TRANSFER, 'Bank Transfer'),
+            (PaymentMethod.BANK_TRANSFER, 'BANK TRANSFER'),
         ]
         
         return context
@@ -620,3 +621,61 @@ class StudentFinancialView(LoginRequiredMixin, PermissionRequiredMixin, Template
         )
         
         return context
+        
+
+class PendingPaymentsView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    """View pending bank transfer payments that need verification"""
+    template_name = 'finance/pages/pending_payments.html'
+    context_object_name = 'payments'
+    permission_required = 'finance.view_payment'
+    paginate_by = 25
+
+    def get_queryset(self):
+        return Payment.objects.filter(
+            payment_method=PaymentMethod.BANK_TRANSFER,
+            status=PaymentStatus.PENDING
+        ).select_related('invoice', 'receipt').order_by('-created_at')
+
+class VerifyPaymentView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Approve or reject a bank transfer payment - Bursar/Principal only"""
+    permission_required = 'finance.change_payment'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Only Bursar, Principal, or Superuser can verify payments
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'staff_profile'):
+                messages.error(request, 'Access denied.')
+                return redirect('finance:dashboard')
+            
+            allowed_types = ['bursar', 'principal', 'vice_principal_1', 'vice_principal_2']
+            if request.user.staff_profile.staff_type not in allowed_types:
+                messages.error(request, 'Only Bursar or Principal can verify payments.')
+                return redirect('finance:pending_payments')
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
+
+        try:
+            payment = Payment.objects.select_related('invoice').get(id=pk)
+
+            if action == 'approve':
+                payment.mark_completed()
+                if hasattr(payment, 'receipt') and payment.receipt:
+                    payment.receipt.verify(
+                        verified_by=request.user,
+                        notes=notes or 'Payment verified'
+                    )
+                messages.success(request, f'Payment {payment.transaction_id} approved.')
+
+            elif action == 'reject':
+                payment.status = PaymentStatus.FAILED
+                payment.save()
+                messages.warning(request, f'Payment {payment.transaction_id} rejected.')
+
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+
+        return redirect('finance:pending_payments')

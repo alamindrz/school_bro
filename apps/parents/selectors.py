@@ -341,12 +341,17 @@ class PortalDashboardSelector:
         financial_data = {}
         if student_ids:
             from apps.finance.selectors import InvoiceSelector, FinancialStatusSelector
-            for student_id in student_ids:
-                financial_data[student_id] = {
-                    'financial': InvoiceSelector.get_student_balance(student_id),
-                    'exam_clearance': FinancialStatusSelector.is_student_cleared_for_exams(student_id),
-                }
+
+        for student_id in student_ids:
+            balance = InvoiceSelector.get_student_balance(student_id)
+            financial_data[student_id] = {
+                'financial': balance,
+                'exam_clearance': FinancialStatusSelector.is_student_cleared_for_exams(student_id),
+                'has_outstanding': balance['pending_count'] > 0,
+            }
         
+
+
         # Use central notification selector
         notifications, total = CentralNotificationSelector.list_for_recipient(
             recipient_type='parent',

@@ -4,44 +4,42 @@
 
 {% block content %}
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="mb-8 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+    <div class="mb-8 rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card p-6 shadow-sm">
+        <h1 class="font-display text-2xl font-bold text-gray-900 dark:text-gray-100">
             Welcome back, {{ parent.full_name|escape }}
         </h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Here's what's happening with your children
         </p>
     </div>
-    
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-    <div class="flex items-center justify-between">
-        <div>
-            <p class="text-sm font-medium text-gray-900 dark:text-white">Password Login</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-                {% if parent.has_password %}
-                    Password is set. You can login with email + password.
-                {% else %}
+
+    {% if not parent.has_password %}
+    <div class="mb-8 rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Password Login</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
                     No password set. Only magic link login is available.
-                {% endif %}
-            </p>
+                </p>
+            </div>
+            <a href="{% url 'parents:set_password' %}" 
+               class="px-3 py-1.5 text-sm border border-light-border dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover transition">
+                Set
+            </a>
         </div>
-        <a href="{% url 'parents:set_password' %}" 
-           class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-            {% if parent.has_password %}Change{% else %}Set{% endif %}
-        </a>
     </div>
-</div>    
+    {% endif %}
     
     <!-- Children Dashboard -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% for child_data in children %}
-        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white/80 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="overflow-hidden rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card shadow-sm">
             
             <!-- Child Header -->
-            <div class="border-b border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/80">
+            <div class="border-b border-light-border dark:border-dark-border bg-light-hover dark:bg-dark-hover px-6 py-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {{ child_data.student.full_name|escape }}
                         </h2>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -49,7 +47,7 @@
                         </p>
                     </div>
                     <a href="{% url 'parents:child_detail' child_data.student.id %}" 
-                       class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                       class="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
                         View Details →
                     </a>
                 </div>
@@ -61,15 +59,15 @@
                 {% if child_data.application %}
                 <div class="rounded-lg p-3 
                     {% if child_data.application.status == 'enrolled' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800
-                    {% elif child_data.application.status == 'approved' %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800
+                    {% elif child_data.application.status == 'approved' %}bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800
                     {% elif child_data.application.status == 'submitted' %}bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800
                     {% elif child_data.application.status == 'rejected' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
-                    {% else %}bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                    {% else %}bg-light-hover dark:bg-dark-hover border border-light-border dark:border-dark-border
                     {% endif %}">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
                             <span class="text-2xl mr-3">
-                                {% if child_data.application.status == 'enrolled' %}✅
+                                {% if child_data.application.status == 'enrolled' %}
                                 {% elif child_data.application.status == 'approved' %}✓
                                 {% elif child_data.application.status == 'submitted' %}⏳
                                 {% elif child_data.application.status == 'under_review' %}🔍
@@ -97,13 +95,13 @@
                 
                 <!-- Financial Summary -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-center p-3 bg-light-hover dark:bg-dark-hover rounded-lg">
                         <p class="text-xs text-gray-500 dark:text-gray-400">Fee Balance</p>
                         <p class="text-lg font-bold {% if child_data.financial.total_balance > 0 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
                             ₦{{ child_data.financial.total_balance|default_if_none:0|floatformat:2 }}
                         </p>
                     </div>
-                    <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-center p-3 bg-light-hover dark:bg-dark-hover rounded-lg">
                         <p class="text-xs text-gray-500 dark:text-gray-400">Exam Clearance</p>
                         <p class="text-lg font-bold {% if child_data.exam_clearance.is_cleared %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
                             {% if child_data.exam_clearance.is_cleared %}✓ Cleared{% else %}⚠ Pending{% endif %}
@@ -118,14 +116,14 @@
                         View Fees
                     </a>
                     <a href="{% url 'parents:message_thread' child_data.student.id %}" 
-                       class="flex-1 text-center px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                       class="flex-1 text-center px-3 py-2 border border-light-border dark:border-dark-border text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-light-hover dark:hover:bg-dark-hover">
                         Message
                     </a>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="col-span-2 rounded-3xl border border-slate-200 bg-white/80 py-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="col-span-2 rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card py-12 text-center shadow-sm">
             <i class="fas fa-users text-4xl text-gray-400 mb-3"></i>
             <p class="text-gray-500 dark:text-gray-400">No children linked to your account yet.</p>
             <p class="text-sm text-gray-400 mt-1">Contact the school to link your children.</p>
@@ -136,17 +134,17 @@
     <!-- Recent Notifications -->
     <div class="mt-8">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Recent Notifications
             </h2>
-            <a href="{% url 'parents:notifications' %}" class="text-sm text-primary-600 hover:text-primary-700">
+            <a href="{% url 'parents:notifications' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
                 View all →
             </a>
         </div>
         
         <div class="space-y-2">
             {% for notification in notifications %}
-            <div class="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 {% if not notification.is_read %}border-l-4 border-l-primary-500{% endif %}" 
+            <div class="rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card p-4 shadow-sm {% if not notification.is_read %}border-l-4 border-l-primary-500{% endif %}" 
                  id="notification-{{ notification.id }}">
                 <div class="flex justify-between items-start">
                     <div>
@@ -161,7 +159,7 @@
                         </p>
                     </div>
                     {% if not notification.is_read %}
-                    <button class="mark-read-btn text-xs text-primary-600 hover:text-primary-700"
+                    <button class="mark-read-btn text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                             data-notification-id="{{ notification.id }}">
                         Mark read
                     </button>
@@ -169,7 +167,7 @@
                 </div>
             </div>
             {% empty %}
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div class="rounded-xl border border-light-border dark:border-dark-border bg-light-card dark:bg-dark-card p-6 text-center shadow-sm">
                 <p class="text-gray-500 dark:text-gray-400">No notifications yet.</p>
             </div>
             {% endfor %}

@@ -1,0 +1,225 @@
+{% extends "parents/base_portal.html" %}
+{% load static %}
+
+{% block title %}Pay Fees | Parent Portal{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6"
+     x-data="{ 
+        showPayment: false, 
+        submitting: false,
+        selectedInvoice: null, 
+        selectedFeeType: '',
+        selectedAmount: 0,
+        selectedBalance: 0,
+        selectedMethod: '{{ PaymentMethod.BANK_TRANSFER }}',
+        isBankTransfer: true
+     }"
+     @keydown.escape.window="showPayment = false">
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="font-display text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Pay Fees</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {% if student %}
+                {{ student.full_name }} — {{ current_term.name }}
+            {% endif %}
+        </p>
+    </div>
+
+    {% if student %}
+    <!-- Student Selector -->
+    <div class="mb-6">
+        <select onchange="window.location.href='?student_id='+this.value"
+                class="w-full sm:w-auto px-3 py-2 border border-light-border dark:border-dark-border rounded-lg bg-light-card dark:bg-dark-card text-gray-900 dark:text-gray-100 text-sm">
+            <option value="">Select child...</option>
+            {% for child in parent_data.children %}
+            <option value="{{ child.student_id }}" {% if student.id == child.student_id %}selected{% endif %}>
+                {{ child.student_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Term Payment Status -->
+    {% if all_terms %}
+    <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {% for term in all_terms %}
+        <div class="bg-light-card dark:bg-dark-card rounded-xl border p-4 
+                    {% if term.required_fully_paid %}border-green-200 dark:border-green-800{% else %}border-red-200 dark:border-red-800{% endif %}">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ term.term_name }}</span>
+                {% if term.required_fully_paid %}
+                <span class="text-green-600 dark:text-green-400"><i class="fas fa-check-circle"></i></span>
+                {% else %}
+                <span class="text-red-600 dark:text-red-400"><i class="fas fa-times-circle"></i></span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Paid: ₦{{ term.total_paid_required|floatformat:0 }} / ₦{{ term.total_required|floatformat:0 }}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Balance Summary -->
+    {% if balance %}
+    <div class="mb-6 bg-light-card dark:bg-dark-card rounded-xl shadow-sm border border-light-border dark:border-dark-border p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Total Invoiced</p>
+                <p class="text-lg font-bold text-gray-900 dark:text-gray-100">₦{{ balance.total_invoiced|floatformat:0 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Total Paid</p>
+                <p class="text-lg font-bold text-green-600 dark:text-green-400">₦{{ balance.total_paid|floatformat:0 }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Balance</p>
+                <p class="text-lg font-bold {% if balance.total_balance > 0 %}text-red-600 dark:text-red-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                    ₦{{ balance.total_balance|floatformat:0 }}
+                </p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Invoices</p>
+                <p class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ balance.paid_count }}/{{ balance.invoice_count }}</p>
+            </div>
+        </div>
+
+        {% if payable_total > 0 and payable_count > 1 %}
+        <div class="mt-4 pt-4 border-t border-light-border dark:border-dark-border">
+            <button @click="showPayment = true; selectedInvoice = 'all'; selectedFeeType = 'All outstanding invoices ({{ payable_count }})'; selectedAmount = {{ payable_total }}; selectedBalance = {{ payable_total }}"
+                    class="w-full py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition">
+                <i class="fas fa-credit-card mr-2"></i>Pay All Outstanding (₦{{ payable_total|floatformat:0 }})
+            </button>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                This will pay {{ payable_count }} outstanding invoice{{ payable_count|pluralize }} at once
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Outstanding Invoices -->
+    {% if invoices %}
+    <div class="bg-light-card dark:bg-dark-card rounded-xl shadow-sm border border-light-border dark:border-dark-border overflow-hidden mb-6">
+        <div class="px-4 py-3 border-b border-light-border dark:border-dark-border">
+            <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-gray-100">Outstanding Invoices</h2>
+        </div>
+        <div class="divide-y divide-light-border dark:divide-dark-border">
+            {% for invoice in invoices %}
+            <div class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.fee_type }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ invoice.student_class }}</p>
+                </div>
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-gray-900 dark:text-gray-100">₦{{ invoice.balance|floatformat:0 }}</p>
+                        <p class="text-xs {% if invoice.is_overdue %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                            Due: {{ invoice.due_date }}
+                        </p>
+                    </div>
+                    {% if invoice.has_pending_payment %}
+                    <span class="px-3 py-1.5 text-sm bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg border border-yellow-200 dark:border-yellow-800 whitespace-nowrap">
+                        <i class="fas fa-clock mr-1"></i>Awaiting Verification
+                    </span>
+                    {% else %}
+                    <button @click="showPayment = true; selectedInvoice = {{ invoice.id }}; selectedFeeType = '{{ invoice.fee_type|escapejs }}'; selectedAmount = {{ invoice.balance }}; selectedBalance = {{ invoice.balance }}"
+                            class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 whitespace-nowrap">
+                        Pay Now
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-light-card dark:bg-dark-card rounded-xl shadow-sm border border-light-border dark:border-dark-border p-8 text-center text-gray-500 dark:text-gray-400">
+        <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+        <p class="text-lg font-medium text-gray-900 dark:text-gray-100">All fees paid!</p>
+        <p class="text-sm">No outstanding invoices for this term.</p>
+    </div>
+    {% endif %}
+
+    <!-- Payment Modal -->
+    <div x-show="showPayment" x-cloak class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4"
+         @click.self="showPayment = false">
+        <div class="bg-light-card dark:bg-dark-card rounded-xl shadow-xl max-w-md w-full p-6"
+             x-show="showPayment" x-transition>
+            <h3 class="font-display text-lg font-bold text-gray-900 dark:text-gray-100">Make Payment</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4" x-text="selectedFeeType"></p>
+            
+            <form method="post" enctype="multipart/form-data" @submit="submitting = true">
+                {% csrf_token %}
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="invoice_id" x-bind:value="selectedInvoice">
+                <input type="hidden" name="method" x-model="selectedMethod">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (₦)</label>
+                        <input type="number" name="amount" x-model="selectedAmount" required min="1" 
+                               :max="selectedBalance || 999999"
+                               class="w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-lg bg-white dark:bg-dark-hover text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Maximum: ₦<span x-text="Number(selectedBalance).toLocaleString()"></span>
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Method</label>
+                        <div class="flex flex-wrap gap-2">
+                            {% for value, label in payment_methods %}
+                            <button type="button"
+                                    @click="selectedMethod = '{{ value }}'; isBankTransfer = {% if value == PaymentMethod.BANK_TRANSFER %}true{% else %}false{% endif %}"
+                                    :class="selectedMethod === '{{ value }}' 
+                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300' 
+                                        : 'border-light-border dark:border-dark-border text-gray-600 dark:text-gray-400 hover:bg-light-hover dark:hover:bg-dark-hover'"
+                                    class="flex-1 min-w-[130px] px-3 py-2 text-sm rounded-lg border font-medium transition">
+                                <i class="fas {% if value == PaymentMethod.BANK_TRANSFER %}fa-university{% else %}fa-money-bill{% endif %} mr-1.5"></i>{{ label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Bank Transfer Info -->
+                    <div x-show="isBankTransfer" x-cloak class="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-3 text-sm">
+                        <p class="font-medium text-primary-800 dark:text-primary-200">Bank Transfer Instructions</p>
+                        <p class="text-primary-700 dark:text-primary-300 mt-1">Transfer to:</p>
+                        <p class="text-primary-700 dark:text-primary-300 font-mono">Account: 1234567890</p>
+                        <p class="text-primary-700 dark:text-primary-300 font-mono">Bank: Example Bank</p>
+                    </div>
+                    
+                    <!-- Receipt Upload (required for both remaining methods) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span x-text="isBankTransfer ? 'Upload Bank Transfer Receipt' : 'Upload Cash Payment Receipt'"></span>
+                        </label>
+                        <input type="file" name="receipt" accept="image/*,.pdf" required
+                               class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-700 dark:file:text-primary-300">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span x-text="isBankTransfer ? 'Upload a screenshot or PDF of your transfer' : 'Upload the receipt given to you by the school'"></span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" @click="showPayment = false" :disabled="submitting"
+                            class="px-4 py-2 text-sm border border-light-border dark:border-dark-border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-light-hover dark:hover:bg-dark-hover disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button type="submit" :disabled="submitting"
+                            class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed min-w-[140px]">
+                        <span x-show="!submitting">Submit Payment</span>
+                        <span x-show="submitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i>Processing…</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

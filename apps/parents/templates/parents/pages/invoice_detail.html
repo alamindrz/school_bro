@@ -1,0 +1,149 @@
+{% extends "parents/base_portal.html" %}
+{% load static %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} | Parent Portal{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6 print:max-w-full print:p-0">
+
+    <!-- Print Header (hidden on screen) -->
+    <div class="hidden print:block mb-6 text-center">
+        <h1 class="text-xl font-bold">{{ company_name|default:"DETs Toolkit" }}</h1>
+        <p class="text-sm text-gray-500">Invoice Statement</p>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6 flex justify-between items-center no-print">
+        <div>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Invoice Details</h1>
+            <p class="text-sm text-gray-500">{{ invoice.invoice_number }}</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="window.print()" 
+                    class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-print mr-1"></i>Print
+            </button>
+            <a href="{% if student %}{% url 'parents:fees' %}?student_id={{ student.id }}{% else %}{% url 'parents:fees' %}{% endif %}" 
+               class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-arrow-left mr-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Invoice Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-xs text-gray-500">Invoice Number</p>
+                <p class="text-sm font-bold">{{ invoice.invoice_number }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Date Issued</p>
+                <p class="text-sm">{{ invoice.issue_date }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Student</p>
+                <p class="text-sm font-medium">{{ invoice.student_name }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Class</p>
+                <p class="text-sm">{{ invoice.student_class.display_name }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Fee Type</p>
+                <p class="text-sm">{{ invoice.fee_type_display }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Session / Term</p>
+                <p class="text-sm">{{ invoice.academic_session.name }} • {{ invoice.academic_term.term_display|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Due Date</p>
+                <p class="text-sm {% if invoice.is_overdue %}text-red-600{% endif %}">{{ invoice.due_date }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Status</p>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {% if invoice.status == 'paid' %}bg-green-100 text-green-800
+                    {% elif invoice.status == 'partial' %}bg-blue-100 text-blue-800
+                    {% elif invoice.status == 'overdue' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ invoice.status_display }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Amount Table -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <table class="w-full text-sm">
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 text-gray-500">Subtotal</td>
+                    <td class="py-2 text-right font-medium">₦{{ invoice.subtotal|floatformat:2 }}</td>
+                </tr>
+                {% if invoice.discount_amount > 0 %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 text-gray-500">Discount</td>
+                    <td class="py-2 text-right text-green-600">-₦{{ invoice.discount_amount|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
+                {% if invoice.waiver_amount > 0 %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 text-gray-500">Waiver</td>
+                    <td class="py-2 text-right text-green-600">-₦{{ invoice.waiver_amount|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 text-gray-500">Total</td>
+                    <td class="py-2 text-right font-bold">₦{{ invoice.total|floatformat:2 }}</td>
+                </tr>
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 text-gray-500">Amount Paid</td>
+                    <td class="py-2 text-right text-green-600 font-medium">₦{{ invoice.amount_paid|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="py-2 font-medium">Balance Due</td>
+                    <td class="py-2 text-right font-bold {% if invoice.balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                        ₦{{ invoice.balance|floatformat:2 }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    {% if payments %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden no-print">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Payment History</h2>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for payment in payments %}
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-medium">{{ payment.receipt_number|default:payment.transaction_id }}</p>
+                    <p class="text-xs text-gray-500">{{ payment.payment_date }} • {{ payment.method }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold">₦{{ payment.amount|floatformat:2 }}</p>
+                    <span class="text-xs px-2 py-0.5 rounded-full 
+                        {% if payment.status_code == 'completed' %}bg-green-100 text-green-800
+                        {% elif payment.status_code == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ payment.status }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white; color: black; }
+        .dark\:bg-gray-800, .dark\:text-white { background: white !important; color: black !important; }
+    }
+</style>
+{% endblock %}

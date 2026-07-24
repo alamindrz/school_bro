@@ -38,6 +38,36 @@
         // attribute makes every element follow one single source of truth.
         tailwind.config = {
             darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef4f7',
+                            100: '#d9e6ed',
+                            200: '#b3cdda',
+                            300: '#82adc0',
+                            400: '#4f88a0',
+                            500: '#336a82',
+                            600: '#25546a',
+                            700: '#1e4356',
+                            800: '#1a3747',
+                            900: '#152c3a',
+                        },
+                        accent: {
+                            50: '#fff8ec',
+                            100: '#ffedc7',
+                            200: '#ffd98a',
+                            300: '#ffc04d',
+                            400: '#ffab26',
+                            500: '#f2930d',
+                            600: '#d17607',
+                            700: '#a8580a',
+                            800: '#89460f',
+                            900: '#733a10',
+                        },
+                    },
+                },
+            },
         };
     </script>
     <!-- Font Awesome 6 -->
@@ -62,7 +92,7 @@
             --border-color: 229 231 235;
             --nav-bg: 255 255 255;
             --nav-hover: 243 244 246;
-            --nav-active: 59 130 246;
+            --nav-active: 51 106 130;
         }
 
         [data-theme="dark"] {
@@ -73,7 +103,7 @@
             --border-color: 55 65 81;
             --nav-bg: 31 41 55;
             --nav-hover: 55 65 81;
-            --nav-active: 59 130 246;
+            --nav-active: 51 106 130;
         }
 
         body {
@@ -101,9 +131,10 @@
 <body class="h-full antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
     <div id="global-loading" class="fixed top-0 left-0 w-full h-1 bg-primary-600 transform -translate-x-full transition-transform duration-300 z-[100] htmx-indicator">
-        <div class="absolute inset-0 bg-gradient-to-r from-primary-600 to-purple-600 animate-pulse"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-primary-600 to-accent-500 animate-pulse"></div>
     </div>
 
+    {% block layout %}
     <div class="min-h-full">
         {% include 'includes/navigation.html' %}
 
@@ -177,6 +208,7 @@
             </div>
         </main>
     </div>
+    {% endblock %}
 
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 w-full max-w-sm pointer-events-none"></div>
@@ -236,7 +268,7 @@
                 success: 'bg-green-500',
                 error: 'bg-red-500',
                 warning: 'bg-yellow-500',
-                info: 'bg-blue-500'
+                info: 'bg-primary-600'
             };
             const toast = document.createElement('div');
             toast.className = `${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full opacity-0`;

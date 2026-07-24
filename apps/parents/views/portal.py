@@ -21,6 +21,11 @@ from ..selectors import (
     ParentProfileSelector, PortalDashboardSelector,
     ChildLinkSelector, MessageSelector
 )
+from apps.corecode.selectors import AcademicSessionSelector, AcademicTermSelector
+from apps.finance.services import PaymentService
+from apps.finance.models import PaymentReceipt
+from apps.finance.constants import PaymentMethod, PaymentStatus
+from decimal import Decimal
 from ..models import ParentProfile, ChildLink, Message, PortalSession, ParentAccessLog, MagicLink, generate_device_fingerprint
 from ..forms import (
     ParentLoginForm, ParentProfileForm, ParentMessageForm, ResendMagicLinkForm,
@@ -41,7 +46,7 @@ from apps.notifications.selectors import NotificationSelector as CentralNotifica
 
 from apps.students.selectors import StudentSelector
 from apps.finance.selectors import InvoiceSelector, FinancialStatusSelector
-
+from django.db import transaction
 logger = logging.getLogger(__name__)
 
 
@@ -73,7 +78,6 @@ class ParentPortalMixin:
                 session_key, request,
                 ip_address=get_client_ip(request),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                device_fingerprint=generate_device_fingerprint(request)
             )
             if not parent:
                 response = redirect('parents:login')
@@ -132,7 +136,6 @@ class ParentPortalMixin:
                 action=action,
                 ip_address=get_client_ip(self.request),
                 user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
-                device_fingerprint=generate_device_fingerprint(self.request),
                 student_id=student_id,
                 details=details or {},
                 success=success,
@@ -184,14 +187,12 @@ class ParentLoginView(TemplateView):
                 return self.get(request, *args, **kwargs)
             
             # If password provided, try password login
-            print(f'DEBUG: password field value: [{password}]')
             if password:
                 if parent.check_password(password):
                     # Password login successful
                     session = PortalSession.objects.create(
                         parent=parent, ip_address=ip,
                         user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                        device_fingerprint=generate_device_fingerprint(request),
                         expires_at=timezone.now() + timedelta(seconds=SESSION_TIMEOUT_SECONDS)
                     )
                     ParentAccessLog.objects.create(
@@ -199,7 +200,6 @@ class ParentLoginView(TemplateView):
                         user_agent=request.META.get('HTTP_USER_AGENT', ''),
                         success=True, details={'method': 'password'}
                     )
-                    parent.record_login(generate_device_fingerprint(request))
                     response = redirect('parents:dashboard')
                     response.set_cookie('parent_session', session.session_key,
                                        max_age=SESSION_TIMEOUT_SECONDS, httponly=True,
@@ -368,7 +368,6 @@ class LogoutView(ParentPortalMixin, View):
                     action='LOGOUT',
                     ip_address=get_client_ip(request),
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    device_fingerprint=generate_device_fingerprint(request),
                     success=True
                 )
             except PortalSession.DoesNotExist:
@@ -389,12 +388,14 @@ class DashboardView(ParentPortalMixin, TemplateView):
 
 
 class ChildrenView(ParentPortalMixin, TemplateView):
-    template_name = 'parents/portal/children.html'
+    template_name = 'parents/pages/children.html'
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['children'] = self.parent_data['children']
+        from ..selectors import PortalDashboardSelector
+        dashboard = PortalDashboardSelector.get_dashboard_data(self.parent.id)
+        context['children'] = dashboard.get('children', [])
         return context
-
 
 class ChildDetailView(ParentPortalMixin, TemplateView):
     template_name = 'parents/portal/child_detail.html'
@@ -454,6 +455,325 @@ class FeesView(ParentPortalMixin, TemplateView):
             context['invoices'] = all_invoices[:50]
             self.log_action('VIEW_FEES')
         return context
+        
+        
+        
+
+class PayFeesView(ParentPortalMixin, TemplateView):
+    """Pay fees for a child"""
+
+    template_name = "parents/pages/pay_fees.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_id = self.request.GET.get("student_id")
+
+        if student_id:
+            db_id = student_id
+            if not str(student_id).isdigit():
+                from apps.students.models import Student
+
+                s = Student.objects.filter(admission_number=student_id).first()
+                if s:
+                    db_id = s.id
+                else:
+                    messages.error(self.request, "Student not found")
+                    return context
+
+            db_id = int(db_id)
+
+            # Verify parent access
+            has_access = PortalService.verify_child_access(
+                self.parent.id, db_id, "view_fees"
+            )
+            if not has_access:
+                messages.error(self.request, "Access denied")
+                return context
+
+            student = StudentSelector.get_by_id(db_id)
+            if not student:
+                messages.error(self.request, "Student not found")
+                return context
+
+            context["student"] = student
+            context["balance"] = InvoiceSelector.get_student_balance(db_id)
+
+            current_session = AcademicSessionSelector.get_current_session()
+            current_term = AcademicTermSelector.get_current_term()
+
+            if current_session and current_term:
+                context["term_status"] = (
+                    FinancialStatusSelector.get_term_payment_status(
+                        student_id=db_id,
+                        session_id=current_session.id,
+                        term_id=current_term.id,
+                    )
+                )
+                context["all_terms"] = (
+                    FinancialStatusSelector.get_all_terms_status(
+                        student_id=db_id, session_id=current_session.id
+                    )
+                )
+
+                invoices = InvoiceSelector.list_invoices(
+                    student_id=db_id,
+                    session_id=current_session.id,
+                    term_id=current_term.id,
+                    status=["pending", "partial", "overdue"],
+                )
+
+                from apps.finance.models import Payment as PaymentModel
+
+                for invoice in invoices:
+                    invoice["has_pending_payment"] = (
+                        PaymentModel.objects.filter(
+                            invoice_id=invoice["id"], status="pending"
+                        ).exists()
+                    )
+
+                context["invoices"] = invoices
+                payable_invoices = [
+                    inv for inv in invoices if not inv["has_pending_payment"]
+                ]
+                context["payable_total"] = sum(
+                    (
+                        Decimal(str(inv["balance"]))
+                        for inv in payable_invoices
+                    ),
+                    Decimal("0"),
+                )
+                context["payable_count"] = len(payable_invoices)
+
+            context["payment_methods"] = [
+                (v, l)
+                for v, l in PaymentMethod.CHOICES
+                if v in (PaymentMethod.BANK_TRANSFER, PaymentMethod.CASH)
+            ]
+            context["current_session"] = current_session
+            context["current_term"] = current_term
+
+            self.log_action("VIEW_FEES", student_id=db_id)
+
+        return context
+
+    def post(self, request):
+        student_id = request.POST.get("student_id")
+        invoice_id = request.POST.get("invoice_id")
+        amount = request.POST.get("amount")
+        method = request.POST.get("method")
+        receipt_file = request.FILES.get("receipt")
+
+        if not all([student_id, invoice_id, amount, method]):
+            messages.error(request, "Please fill all required fields")
+            return redirect(
+                f"{reverse('parents:pay_fees')}?student_id={student_id}"
+            )
+
+        student_id = int(student_id)
+        if not PortalService.verify_child_access(
+            self.parent.id, student_id, "view_fees"
+        ):
+            messages.error(request, "Access denied")
+            return redirect("parents:children")
+
+        allowed_methods = (PaymentMethod.BANK_TRANSFER, PaymentMethod.CASH)
+        if method not in allowed_methods:
+            messages.error(request, "Invalid payment method")
+            return redirect(
+                f"{reverse('parents:pay_fees')}?student_id={student_id}"
+            )
+
+        if not receipt_file:
+            messages.error(request, "Please upload your payment receipt.")
+            return redirect(
+                f"{reverse('parents:pay_fees')}?student_id={student_id}"
+            )
+
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                messages.error(request, "Enter a valid amount.")
+                return redirect(
+                    f"{reverse('parents:pay_fees')}?student_id={student_id}"
+                )
+
+            current_session = AcademicSessionSelector.get_current_session()
+            current_term = AcademicTermSelector.get_current_term()
+            if not current_session or not current_term:
+                messages.error(request, "No active academic term found.")
+                return redirect(
+                    f"{reverse('parents:pay_fees')}?student_id={student_id}"
+                )
+
+            from apps.finance.models import Payment as PaymentModel
+
+            student_invoices = InvoiceSelector.list_invoices(
+                student_id=student_id,
+                session_id=current_session.id,
+                term_id=current_term.id,
+                status=["pending", "partial", "overdue"],
+            )
+            invoices_by_id = {inv["id"]: inv for inv in student_invoices}
+            payable_by_id = {
+                inv_id: inv
+                for inv_id, inv in invoices_by_id.items()
+                if not PaymentModel.objects.filter(
+                    invoice_id=inv_id, status="pending"
+                ).exists()
+            }
+
+            is_pay_all = invoice_id == "all"
+
+            if is_pay_all:
+                target_invoices = list(payable_by_id.values())
+            else:
+                single_invoice_id = int(invoice_id)
+                if single_invoice_id not in invoices_by_id:
+                    messages.error(request, "Invalid invoice")
+                    return redirect(
+                        f"{reverse('parents:pay_fees')}?student_id={student_id}"
+                    )
+                if single_invoice_id not in payable_by_id:
+                    messages.error(
+                        request,
+                        "This invoice already has a payment awaiting verification.",
+                    )
+                    return redirect(
+                        f"{reverse('parents:pay_fees')}?student_id={student_id}"
+                    )
+
+                target_invoices = [payable_by_id[single_invoice_id]] + [
+                    inv
+                    for iid, inv in payable_by_id.items()
+                    if iid != single_invoice_id
+                ]
+
+            if not target_invoices:
+                messages.error(
+                    request,
+                    "Nothing payable — every outstanding invoice already has a payment awaiting verification.",
+                )
+                return redirect(
+                    f"{reverse('parents:pay_fees')}?student_id={student_id}"
+                )
+
+            total_outstanding = sum(
+                (Decimal(str(inv["balance"])) for inv in target_invoices),
+                Decimal("0"),
+            )
+
+            if amount > total_outstanding:
+                amount = total_outstanding
+                messages.info(
+                    request,
+                    f"Payment amount adjusted to outstanding balance: ₦{amount:,.0f}",
+                )
+
+            total_paid = Decimal("0")
+            remaining = amount
+            invoices_paid = 0
+            first_invoice_id = target_invoices[0]["id"]
+
+            with transaction.atomic():
+                for inv in target_invoices:
+                    if remaining <= 0:
+                        break
+
+                    inv_balance = Decimal(str(inv["balance"]))
+                    pay_amount = min(remaining, inv_balance)
+                    if pay_amount <= 0:
+                        continue
+
+                    is_primary_target = (
+                        not is_pay_all and inv["id"] == first_invoice_id
+                    )
+                    notes = (
+                        f"Payment by parent {self.parent.full_name}"
+                        if is_primary_target
+                        else f"Bulk/rollover payment by parent {self.parent.full_name}"
+                    )
+
+                    if method == PaymentMethod.BANK_TRANSFER:
+                        payment = PaymentService.record_bank_transfer_payment(
+                            invoice_id=inv["id"],
+                            amount=pay_amount,
+                            received_by_id=request.user.id
+                            if request.user.is_authenticated
+                            else None,
+                            notes=notes,
+                        )
+                    else:
+                        payment = PaymentService.record_cash_payment(
+                            invoice_id=inv["id"],
+                            amount=pay_amount,
+                            received_by_id=request.user.id
+                            if request.user.is_authenticated
+                            else None,
+                            notes=notes,
+                        )
+
+                    receipt_file.seek(0)
+                    PaymentReceipt.objects.create(
+                        payment=payment,
+                        receipt_file=receipt_file,
+                        uploaded_by=request.user
+                        if request.user.is_authenticated
+                        else None,
+                    )
+
+
+                    total_paid += pay_amount
+                    remaining -= pay_amount
+                    invoices_paid += 1
+
+            self.log_action(
+                "VIEW_FEES",
+                student_id=student_id,
+                details={
+                    "invoice_id": "all" if is_pay_all else single_invoice_id,
+                    "amount": float(total_paid),
+                    "method": method,
+                    "invoices_paid": invoices_paid,
+                },
+            )
+
+            verifying = (
+                " Awaiting verification by school admin."
+                if method == PaymentMethod.BANK_TRANSFER
+                else ""
+            )
+            if invoices_paid == 1 and not is_pay_all:
+                messages.success(
+                    request, f"Payment of ₦{total_paid:,.0f} recorded.{verifying}"
+                )
+            elif is_pay_all:
+                messages.success(
+                    request,
+                    f"₦{total_paid:,.0f} submitted across {invoices_paid} invoices.{verifying}",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"₦{total_paid:,.0f} recorded, covering this invoice and {invoices_paid - 1} other outstanding invoice(s).{verifying}",
+                )
+
+        except RuntimeError as e:
+            if str(e) == "payment_amount_mismatch":
+                messages.error(
+                    request,
+                    "We could not safely process this payment — please contact the school office. No charge has been recorded.",
+                )
+            else:
+                logger.error(f"Payment failed for parent {self.parent.id}: {e}")
+                messages.error(request, f"Payment failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"Payment failed for parent {self.parent.id}: {e}")
+            messages.error(request, f"Payment failed: {str(e)}")
+
+        return redirect(f"{reverse('parents:pay_fees')}?student_id={student_id}")
+
+
+
 
 
 class PaymentsView(ParentPortalMixin, TemplateView):
@@ -688,3 +1008,29 @@ class SetPasswordView(ParentPortalMixin, View):
         self.log_action('SET_PASSWORD')
         messages.success(request, 'Password set successfully. You can now login with email and password.')
         return redirect('parents:profile')
+        
+        
+class InvoiceDetailView(ParentPortalMixin, TemplateView):
+    """View a single invoice with print option"""
+    template_name = 'parents/pages/invoice_detail.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        invoice_id = kwargs.get('invoice_id')
+        invoice = InvoiceSelector.get_by_id(invoice_id)
+        
+        if not invoice:
+            messages.error(self.request, 'Invoice not found')
+            return context
+        
+        # Verify parent has access to this student
+        if not PortalService.verify_child_access(self.parent.id, invoice['student_id'], 'view_fees'):
+            messages.error(self.request, 'Access denied')
+            return context
+        
+        context['invoice'] = invoice
+        context['student'] = StudentSelector.get_by_id(invoice['student_id'])
+        context['payments'] = PaymentSelector.list_payments(invoice_id=invoice_id)
+        
+        self.log_action('VIEW_FEES', student_id=invoice['student_id'])
+        return context

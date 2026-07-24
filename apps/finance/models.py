@@ -57,6 +57,11 @@ class FeeStructure(models.Model):
     
     # Description
     description = models.CharField(max_length=255, blank=True)
+    
+    is_required = models.BooleanField(
+        default=True,
+        help_text=_("If checked, this fee is mandatory for all students in this class")
+    )
     is_active = models.BooleanField(default=True)
     
     # Metadata
@@ -233,10 +238,29 @@ class Invoice(models.Model):
     def __str__(self):
         return f"{self.invoice_number} - {self.student_name} - ₦{self.total}"
     
+
     def save(self, *args, **kwargs):
-        """Auto-calculate balance before saving"""
+        """Auto-calculate balance and generate invoice number"""
+        if not self.invoice_number:
+            self.invoice_number = self._generate_invoice_number()
         self.balance = self.total - self.amount_paid
         super().save(*args, **kwargs)
+    
+    
+    def _generate_invoice_number(self):
+        """Generate unique invoice number: INV-{year}-{sequential}"""
+        year = timezone.now().year
+        prefix = f"INV-{year}"
+        last = Invoice.objects.filter(
+            invoice_number__startswith=prefix
+        ).order_by('-invoice_number').first()
+        if last and last.invoice_number:
+            num = int(last.invoice_number.split('-')[-1]) + 1
+        else:
+            num = 1
+        return f"{prefix}-{num:04d}"
+    
+
     
     @property
     def is_overdue(self):
@@ -378,20 +402,32 @@ class Payment(models.Model):
         if gateway_resp:
             self.gateway_response = gateway_resp
         self.save()
-        
-        # Update invoice amount paid
-        invoice = self.invoice
+    
+        # Lock the invoice row before touching its balance. mark_completed()
+        # can be reached from concurrent requests for the same invoice (a
+        # double-submit, a retry, a cash payment and a Paystack callback
+        # landing close together) — without a lock here, two calls can each
+        # read the same pre-payment balance and both apply their amount in
+        # full, letting the balance go negative. self.invoice (the cached FK)
+        # is not re-fetched or locked, so it isn't safe to use for this.
+        invoice = Invoice.objects.select_for_update().get(id=self.invoice_id)
+    
+        if self.amount > invoice.balance:
+            # Fail loudly and roll back rather than silently overpaying.
+            raise ExcessPaymentError(
+                f"Payment {self.transaction_id} of ₦{self.amount} exceeds "
+                f"invoice {invoice.invoice_number}'s outstanding balance of ₦{invoice.balance}"
+            )
+    
         invoice.amount_paid += self.amount
         invoice.balance = invoice.total - invoice.amount_paid
-        
-        # Update invoice status
+    
         if invoice.balance <= 0:
             invoice.status = InvoiceStatus.PAID
         elif invoice.amount_paid > 0:
             invoice.status = InvoiceStatus.PARTIAL
-        
-        invoice.save()
-
+    
+        invoice.save()    
 
 class FeeWaiver(models.Model):
     """
@@ -479,3 +515,58 @@ class FeeWaiver(models.Model):
         self.approved_at = timezone.now()
         self.approval_notes = reason
         self.save()
+        
+        
+class PaymentReceipt(models.Model):
+    """
+    Receipt uploaded by parent for bank transfer payments.
+    Requires admin verification.
+    """
+    payment = models.OneToOneField(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name='receipt'
+    )
+    receipt_file = models.FileField(
+        upload_to='finance/receipts/%Y/%m/',
+        help_text=_("Uploaded receipt image or PDF")
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_receipts'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    # Admin verification
+    verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='verified_receipts'
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_notes = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+        verbose_name = _('Payment Receipt')
+        verbose_name_plural = _('Payment Receipts')
+    
+    def __str__(self):
+        return f"Receipt for {self.payment.transaction_id}"
+    
+    def verify(self, verified_by, notes=""):
+        """Verify receipt and mark payment as completed"""
+        self.verified = True
+        self.verified_by = verified_by
+        self.verified_at = timezone.now()
+        self.verification_notes = notes
+        self.save()
+        
+        # Mark payment as completed
+        self.payment.mark_completed()

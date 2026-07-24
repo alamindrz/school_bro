@@ -305,3 +305,48 @@ def get_pending_waivers(request):
         })
     
     return JsonResponse({'pending_waivers': data})
+    
+
+
+@login_required
+@permission_required('finance.change_payment')
+@require_http_methods(["POST"])
+def verify_payment_htmx(request, pk):
+    """Approve or reject payment via HTMX — returns updated row"""
+    
+    # Check staff role
+    if not request.user.is_superuser:
+        if not hasattr(request.user, 'staff_profile'):
+            return HttpResponse('Access denied', status=403)
+        allowed = ['bursar', 'principal', 'vice_principal_1', 'vice_principal_2']
+        if request.user.staff_profile.staff_type not in allowed:
+            return HttpResponse('Only Bursar or Principal can verify', status=403)
+    
+    action = request.POST.get('action')
+    
+    try:
+        payment = Payment.objects.select_related('invoice', 'invoice__student_class').get(id=pk)
+        
+        if action == 'approve':
+            payment.mark_completed()
+            return HttpResponse(f'''
+                <tr class="bg-green-50 dark:bg-green-900/20">
+                    <td colspan="7" class="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">
+                        <i class="fas fa-check-circle mr-1"></i> Approved — {payment.transaction_id[:16]}
+                    </td>
+                </tr>
+            ''')
+        
+        elif action == 'reject':
+            payment.status = PaymentStatus.FAILED
+            payment.save()
+            return HttpResponse(f'''
+                <tr class="bg-red-50 dark:bg-red-900/20">
+                    <td colspan="7" class="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">
+                        <i class="fas fa-times-circle mr-1"></i> Rejected — {payment.transaction_id[:16]}
+                    </td>
+                </tr>
+            ''')
+    
+    except Exception as e:
+        return HttpResponse(f'<tr><td colspan="7" class="text-red-500 p-3">Error: {e}</td></tr>', status=500)

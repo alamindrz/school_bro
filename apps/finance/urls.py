@@ -16,6 +16,9 @@ urlpatterns = [
     
     # Student financial view
     path('student/<int:student_id>/', staff.StudentFinancialView.as_view(), name='student_financial'),
+    path('payments/pending/', staff.PendingPaymentsView.as_view(), name='pending_payments'),
+    
+    path('payments/<int:pk>/verify/', staff.VerifyPaymentView.as_view(), name='verify_payment'),
     
     # Payments
     path('payments/record/', staff.RecordPaymentView.as_view(), name='record_payment'),
@@ -46,4 +49,5 @@ urlpatterns = [
     path('ajax/verify-payment/', ajax.verify_payment_status, name='ajax_verify_payment'),
     path('ajax/calculate-partial/', ajax.calculate_partial_payment, name='ajax_calculate_partial'),
     path('ajax/pending-waivers/', ajax.get_pending_waivers, name='ajax_pending_waivers'),
+    path('ajax/verify-payment/<int:pk>/', ajax.verify_payment_htmx, name='verify_payment_htmx'),
 ]

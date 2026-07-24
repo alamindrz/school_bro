@@ -240,10 +240,10 @@
                         <span class="block text-2xl mb-2">📄</span>
                         <span class="text-sm">New Invoice</span>
                     </a>
-                    <a href="{% url 'finance:bulk_invoice' %}" 
-                       class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
-                        <span class="block text-2xl mb-2">📊</span>
-                        <span class="text-sm">Bulk Invoicing</span>
+                    <a href="{% url 'finance:pending_payments' %}" 
+                       class="text-center p-3 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20">
+                        <span class="block text-2xl mb-2">⏳</span>
+                        <span class="text-sm">Pending Verification</span>
                     </a>
                     <a href="{% url 'finance:export_transactions' %}?start_date={{ now|date:'Y-m-01' }}&end_date={{ now|date:'Y-m-d' }}" 
                        class="text-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:bg-light-hover dark:hover:bg-dark-hover">
@@ -252,6 +252,8 @@
                     </a>
                 </div>
             </div>
+            
+
         </div>
     </div>
 </div>

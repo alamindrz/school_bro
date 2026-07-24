@@ -17,7 +17,9 @@ urlpatterns = [
     path('children/<int:student_id>/', portal.ChildDetailView.as_view(), name='child_detail'),
     path('fees/', portal.FeesView.as_view(), name='fees'),
     path('payments/', portal.PaymentsView.as_view(), name='payments'),
+    path('pay-fees/', portal.PayFeesView.as_view(), name='pay_fees'),
     path('set-password/', portal.SetPasswordView.as_view(), name='set_password'),
+    path('invoice/<int:invoice_id>/', portal.InvoiceDetailView.as_view(), name='invoice_detail'),
     
     # Notifications - use central notification views via API
     path('notifications/', portal.NotificationsView.as_view(), name='notifications'),

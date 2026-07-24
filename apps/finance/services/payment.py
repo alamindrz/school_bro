@@ -487,3 +487,40 @@ class PaymentService:
                 'event': event,
                 'ignored': True,
             }
+            
+    @classmethod
+    @transaction.atomic
+    def record_bank_transfer_payment(
+        cls,
+        invoice_id: int,
+        amount: Decimal,
+        received_by_id: int,
+        notes: str = ""
+    ) -> Payment:
+        """
+        Record a bank transfer payment — requires admin verification.
+        Status is PENDING until verified.
+        """
+        try:
+            invoice = Invoice.objects.select_for_update().get(id=invoice_id)
+        except Invoice.DoesNotExist:
+            raise InvoiceNotFoundError(f"Invoice {invoice_id} not found")
+    
+        if amount <= 0:
+            raise ValidationError("Payment amount must be positive")
+    
+        transaction_id = cls._generate_transaction_id()
+    
+        payment = Payment.objects.create(
+            transaction_id=transaction_id,
+            invoice=invoice,
+            amount=amount,
+            payment_method=PaymentMethod.BANK_TRANSFER,
+            status=PaymentStatus.PENDING,
+            payment_date=timezone.now(),
+            notes=notes,
+            received_by_id=received_by_id
+        )
+    
+        logger.info(f"Bank transfer payment recorded: {transaction_id}")
+        return payment    

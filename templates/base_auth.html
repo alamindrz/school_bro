@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{# For login/register/password-reset style screens: no sidebar nav, no
+   breadcrumbs, no "Dashboard" page header — just the shared head (fonts,
+   Tailwind config, theme toggle, toasts) with a centered content area. #}
+
+{% block layout %}
+<div class="min-h-full flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    {% block content %}{% endblock %}
+</div>
+{% endblock %}

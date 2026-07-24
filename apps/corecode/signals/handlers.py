@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Corecode signals - strictly internal to corecode only.
 No cross-app signals allowed per manifesto.
@@ -46,3 +49,33 @@ def track_session_changes(sender, instance, **kwargs):
             )
     except sender.DoesNotExist:
         pass
+      
+
+@receiver(post_save, sender=AcademicTerm)
+def on_term_activated(sender, instance, created, **kwargs):
+    """
+    When a term is set as current, auto-create fee structures and generate invoices
+    for all active classes and students.
+    """
+    if not instance.is_current:
+        return
+    
+    logger.info(f"Term activated: {instance.name}. Triggering fee/invoice generation...")
+    
+    try:
+        from apps.finance.services.invoice_generation import InvoiceGenerationService
+        
+        fee_count = InvoiceGenerationService.create_fee_structures_for_term(
+            term_id=instance.id,
+            session_id=instance.session_id
+        )
+        logger.info(f"Created {fee_count} fee structures for term {instance.name}")
+        
+        invoice_count = InvoiceGenerationService.generate_invoices_for_term(
+            term_id=instance.id,
+            session_id=instance.session_id
+        )
+        logger.info(f"Generated {invoice_count} invoices for term {instance.name}")
+        
+    except Exception as e:
+        logger.error(f"Failed to generate fees/invoices for term {instance.name}: {e}")

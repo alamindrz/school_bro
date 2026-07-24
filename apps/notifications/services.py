@@ -1,3 +1,4 @@
+from django.db.models import Q
 """
 Notification Service
 Centralized notification sending across multiple channels

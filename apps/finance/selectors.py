@@ -601,14 +601,12 @@ class FinancialStatusSelector:
             session = AcademicSessionSelector.get_current_session()
             session_id = session.id if session else None
         
-        # Get all pending invoices for this student
         pending_invoices = Invoice.objects.filter(
             student_id=student_id,
             academic_session_id=session_id,
             status__in=InvoiceStatus.REQUIRES_PAYMENT
         )
         
-        # Calculate total due with proper Decimal handling
         total_due = pending_invoices.aggregate(
             total=Coalesce(
                 Sum('balance', output_field=DecimalField()), 
@@ -620,7 +618,6 @@ class FinancialStatusSelector:
             due_date__lt=timezone.now().date()
         ).exists()
         
-        # Prepare pending invoices list safely
         pending_list = []
         for inv in pending_invoices:
             pending_list.append({
@@ -632,16 +629,30 @@ class FinancialStatusSelector:
                 'is_overdue': inv.due_date < timezone.now().date(),
             })
         
+        # Check if there are any required fees for this student (OUTSIDE the loop)
+        student_class_id = Invoice.objects.filter(
+            student_id=student_id, academic_session_id=session_id
+        ).values_list('student_class_id', flat=True).first()
+        
+        has_required_fees = False
+        if student_class_id:
+            has_required_fees = FeeStructure.objects.filter(
+                student_class_id=student_class_id,
+                academic_session_id=session_id,
+                is_active=True, is_required=True
+            ).exists()
+        
+        is_cleared = has_required_fees and total_due == 0 and not has_overdue
+        
         return {
             'student_id': student_id,
             'session_id': session_id,
-            'is_cleared': total_due == 0 and not has_overdue,
+            'is_cleared': is_cleared,
             'total_due': float(total_due),
             'has_overdue': has_overdue,
             'pending_count': pending_invoices.count(),
             'pending_invoices': pending_list,
-        }
-    
+        }   
 
     
     @staticmethod
@@ -704,3 +715,135 @@ class FinancialStatusSelector:
             'partial_students': invoices.filter(status=InvoiceStatus.PARTIAL).values('student_id').distinct().count(),
             'pending_students': invoices.filter(status__in=[InvoiceStatus.PENDING, InvoiceStatus.OVERDUE]).values('student_id').distinct().count(),
         }
+        
+        
+    @staticmethod
+    def get_term_payment_status(
+        student_id: int,
+        session_id: int,
+        term_id: int
+    ) -> Dict[str, Any]:
+        """
+        Get payment status for a student in a specific term.
+        Returns whether the student has paid all required fees.
+        """
+        from django.db.models import Sum, Q, DecimalField
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        # Get all invoices for this student, session, and term
+        invoices = Invoice.objects.filter(
+            student_id=student_id,
+            academic_session_id=session_id,
+            academic_term_id=term_id
+        )
+        
+        # Separate required vs optional based on FeeStructure
+        # Get required fee types for this class/session/term
+        student_class_id = invoices.values_list('student_class_id', flat=True).first()
+        
+        if student_class_id:
+            required_fee_types = FeeStructure.objects.filter(
+                student_class_id=student_class_id,
+                academic_session_id=session_id,
+                is_active=True,
+                is_required=True
+            ).values_list('fee_type', flat=True)
+        else:
+            required_fee_types = []
+        
+        # Required invoices (mandatory fees)
+        required_invoices = invoices.filter(fee_type__in=required_fee_types)
+        # Optional invoices
+        optional_invoices = invoices.exclude(fee_type__in=required_fee_types)
+        
+        # All invoices
+        all_invoices = invoices.all()
+        
+        # Calculate totals with proper Decimal handling
+        total_required = required_invoices.aggregate(
+            total=Coalesce(Sum('total', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['total']
+        
+        total_paid_required = required_invoices.aggregate(
+            paid=Coalesce(Sum('amount_paid', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['paid']
+        
+        total_optional = optional_invoices.aggregate(
+            total=Coalesce(Sum('total', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['total']
+        
+        total_paid_optional = optional_invoices.aggregate(
+            paid=Coalesce(Sum('amount_paid', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['paid']
+        
+        total_invoiced = all_invoices.aggregate(
+            total=Coalesce(Sum('total', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['total']
+        
+        total_paid = all_invoices.aggregate(
+            paid=Coalesce(Sum('amount_paid', output_field=DecimalField()), Value(Decimal('0'), output_field=DecimalField()))
+        )['paid']
+        
+        required_count = required_invoices.count()
+        required_paid_count = required_invoices.filter(balance__lte=0).count()
+        optional_count = optional_invoices.count()
+        # Check if fully paid (all required invoices have balance = 0)
+        required_fully_paid = required_count > 0 and not required_invoices.filter(balance__gt=0).exists()
+        optional_fully_paid = not optional_invoices.filter(balance__gt=0).exists()
+        all_fully_paid = all_invoices.count() > 0 and not all_invoices.filter(balance__gt=0).exists()
+        
+        # Can proceed to next term if all required fees are paid
+        can_proceed = required_fully_paid
+        
+        optional_count = optional_invoices.count()
+        
+        return {
+            'student_id': student_id,
+            'session_id': session_id,
+            'term_id': term_id,
+            'total_required': float(total_required),
+            'total_paid_required': float(total_paid_required),
+            'required_balance': float(total_required - total_paid_required),
+            'total_optional': float(total_optional),
+            'total_paid_optional': float(total_paid_optional),
+            'optional_balance': float(total_optional - total_paid_optional),
+            'total_invoiced': float(total_invoiced),
+            'total_paid': float(total_paid),
+            'total_balance': float(total_invoiced - total_paid),
+            'required_fully_paid': required_fully_paid,
+            'optional_fully_paid': optional_fully_paid,
+            'all_fully_paid': all_fully_paid,
+            'can_proceed': can_proceed,
+            'required_count': required_count,
+            'required_paid_count': required_paid_count,
+            'optional_count': optional_count,
+            'invoice_count': all_invoices.count(),
+        }
+    
+    @staticmethod
+    def get_all_terms_status(
+        student_id: int,
+        session_id: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Get payment status for all terms in a session.
+        Returns list of term statuses.
+        """
+        from apps.corecode.selectors import AcademicTermSelector
+        
+        terms = AcademicTermSelector.get_terms_for_session(session_id)
+        
+        result = []
+        for term in terms:
+            status = FinancialStatusSelector.get_term_payment_status(
+                student_id=student_id,
+                session_id=session_id,
+                term_id=term.id
+            )
+            status['term_name'] = term.get_term_display()
+            status['term_number'] = term.term
+            result.append(status)
+        
+        return result

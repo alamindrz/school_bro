@@ -69,15 +69,15 @@ class PaymentMethod:
     
     CASH = 'cash'
     POS = 'pos'
-    TRANSFER = 'transfer'
     PAYSTACK = 'paystack'
     CHEQUE = 'cheque'
     WAIVER = 'waiver'
+    BANK_TRANSFER = 'bank_transfer'
     
     CHOICES = [
         (CASH, _('Cash')),
         (POS, _('POS')),
-        (TRANSFER, _('Bank Transfer')),
+        (BANK_TRANSFER, _('Bank Transfer')),
         (PAYSTACK, _('Paystack Online')),
         (CHEQUE, _('Cheque')),
         (WAIVER, _('Fee Waiver')),
