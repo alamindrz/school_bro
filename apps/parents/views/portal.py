@@ -295,7 +295,6 @@ class MagicLinkView(View):
     def get(self, request, token):
         ip = get_client_ip(request)
         user_agent = request.META.get('HTTP_USER_AGENT', '')
-        device_fingerprint = generate_device_fingerprint(request)
         try:
             magic_link = MagicLink.objects.select_related('parent').get(token=token)
             if magic_link.is_expired:
@@ -721,6 +720,25 @@ class PayFeesView(ParentPortalMixin, TemplateView):
                         else None,
                     )
 
+                    # Post-payment verification check
+                    post_payment = InvoiceSelector.get_by_id(inv["id"])
+                    new_balance = (
+                        Decimal(str(post_payment["balance"]))
+                        if post_payment
+                        else None
+                    )
+                    expected_balance = inv_balance - pay_amount
+
+                    if (
+                        new_balance is None
+                        or new_balance < Decimal("-0.01")
+                        or abs(new_balance - expected_balance) > Decimal("0.01")
+                    ):
+                        logger.critical(
+                            f"Payment amount mismatch for invoice {inv['id']}: "
+                            f"expected balance {expected_balance}, got {new_balance}."
+                        )
+                        raise RuntimeError("payment_amount_mismatch")
 
                     total_paid += pay_amount
                     remaining -= pay_amount
@@ -1034,3 +1052,48 @@ class InvoiceDetailView(ParentPortalMixin, TemplateView):
         
         self.log_action('VIEW_FEES', student_id=invoice['student_id'])
         return context
+        
+        
+class ChildEditView(ParentPortalMixin, TemplateView):
+    """Edit child's basic information"""
+    template_name = 'parents/pages/child_edit.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_id = kwargs.get('student_id')
+
+        if not PortalService.verify_child_access(self.parent.id, int(student_id), 'view_results'):
+            messages.error(self.request, 'Access denied')
+            return context
+
+        student = StudentSelector.get_by_id(int(student_id))
+        if not student:
+            messages.error(self.request, 'Student not found')
+            return context
+
+        context['student'] = student
+        return context
+
+    def post(self, request, student_id):
+        if not PortalService.verify_child_access(self.parent.id, int(student_id), 'view_results'):
+            messages.error(request, 'Access denied')
+            return redirect('parents:children')
+
+        from apps.students.models import Student
+        try:
+            student = Student.objects.get(id=student_id)
+            student.first_name = request.POST.get('first_name', student.first_name)
+            student.last_name = request.POST.get('last_name', student.last_name)
+            student.date_of_birth = request.POST.get('date_of_birth', student.date_of_birth)
+            student.address = request.POST.get('address', student.address or '')
+            student.phone = request.POST.get('phone', student.phone or '')
+            student.email = request.POST.get('email', student.email or '')
+            student.save()
+
+            self.log_action('EDIT_PROFILE', student_id=int(student_id))
+            messages.success(request, 'Child information updated successfully.')
+        except Exception as e:
+            logger.error(f"Child edit failed: {e}")
+            messages.error(request, 'Failed to update child information.')
+
+        return redirect('parents:child_detail', student_id=student_id)

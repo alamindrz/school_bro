@@ -40,6 +40,7 @@ class StudentSelector:
                 'age': student.age,
                 'email': student.email,
                 'phone': student.phone,
+                'address': student.address,
                 'current_class': {
                     'id': student.current_class.id,
                     'name': student.current_class.name,

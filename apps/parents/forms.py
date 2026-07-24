@@ -59,7 +59,7 @@ class ParentLoginForm(forms.Form):
 class ParentProfileForm(forms.ModelForm):
     class Meta:
         model = ParentProfile
-        fields = ['first_name', 'last_name', 'email', 'phone', 'alternate_phone', 'preferred_language']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'alternate_phone']
         widgets = {
             'phone': forms.TextInput(attrs={'placeholder': _('08012345678')}),
             'alternate_phone': forms.TextInput(attrs={'placeholder': _('08012345678')}),
@@ -70,7 +70,7 @@ class ParentProfileForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.form_class = 'space-y-4'
         self.helper.layout = Layout(
-            Fieldset(_('Personal Information'),
+            Fieldset(_('Personal   Information'),
                 Row(Column('first_name', css_class='w-1/2 pr-2'), Column('last_name', css_class='w-1/2 pl-2')),
             ),
             Fieldset(_('Contact Information'),
@@ -82,17 +82,11 @@ class ParentProfileForm(forms.ModelForm):
         )
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
-        if phone:
-            from .validators import ParentValidator
-            ParentValidator.validate_phone(phone)
         return phone
+    
     def clean_alternate_phone(self):
         phone = self.cleaned_data.get('alternate_phone')
-        if phone:
-            from .validators import ParentValidator
-            ParentValidator.validate_phone(phone)
         return phone
-
 
 class ChildLinkForm(forms.ModelForm):
     class Meta:
